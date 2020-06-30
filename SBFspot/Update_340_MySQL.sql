@@ -1,4 +1,13 @@
-CREATE TABLE SpotDataX (
+-- Fix 09-JAN-2017 See Issue 54: SQL Support for battery inverters
+-- Update_340_SQLite.sql
+--
+-- SchemaVersion 2
+--
+-- This version update was forgotten - See issue #335
+-- To avoid possible issues, we will not increment the schema version
+-- UPDATE Config SET `Value` = '2' WHERE `Key` = 'SchemaVersion'
+
+CREATE TABLE IF NOT EXISTS SpotDataX (
     `TimeStamp` INTEGER (4) NOT NULL,
     `Serial`    INTEGER (4) NOT NULL,
     `Key`       INTEGER (4) NOT NULL,
@@ -10,6 +19,15 @@ CREATE TABLE SpotDataX (
     )
 );
 
+-- Following remarks in issue #330 some changes to the SpotDataX table structure are needed
+ALTER TABLE SpotDataX MODIFY `TimeStamp` INTEGER;
+ALTER TABLE SpotDataX MODIFY `Serial` INTEGER UNSIGNED;
+ALTER TABLE SpotDataX MODIFY `Key` INTEGER;
+ALTER TABLE SpotDataX MODIFY `Value` INTEGER;
+
+--
+-- vwBatteryData
+--
 DROP VIEW IF EXISTS vwBatteryData;
 
 CREATE VIEW vwBatteryData AS

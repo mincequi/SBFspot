@@ -48,8 +48,8 @@ extern int verbose;
 #define SQL_BATCH_DATELIMIT		"Batch_DateLimit"
 #define SQL_BATCH_STATUSLIMIT	"Batch_StatusLimit"
 
-#define SQL_MINIMUM_SCHEMA_VERSION 1
-#define SQL_RECOMMENDED_SCHEMA_VERSION 1
+#define SQL_MINIMUM_SCHEMA_VERSION 3
+#define SQL_RECOMMENDED_SCHEMA_VERSION 3
 
 class db_SQL_Base
 {

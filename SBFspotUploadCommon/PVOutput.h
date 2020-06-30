@@ -59,41 +59,41 @@ public:
 
 private:
 	std::string m_SystemName;
-	unsigned int m_SystemSize;
+	unsigned int m_SystemSize = 0;
 	std::string m_Postcode;
-	unsigned int m_NmbrPanels;
-	unsigned int m_PanelPower;
+	unsigned int m_NmbrPanels = 0;
+	unsigned int m_PanelPower = 0;
 	std::string m_PanelBrand;
-	unsigned int m_NmbrInverters;
-	unsigned int m_InverterPower;
+	unsigned int m_NmbrInverters = 0;
+	unsigned int m_InverterPower = 0;
 	std::string m_InverterBrand;
 	std::string m_Orientation;
-	float m_ArrayTilt;
+	float m_ArrayTilt = 0;
 	std::string m_Shade;
-	std::string m_InstallDate; //time_t ?
+	std::string m_InstallDate;
 	std::pair<double, double> m_location; //Latitude/Longitude;
-	unsigned int m_StatusInterval;
-	unsigned int m_NmbrPanels2;
-	unsigned int m_PanelPower2;
+	unsigned int m_StatusInterval = 0;
+	unsigned int m_NmbrPanels2 = 0;
+	unsigned int m_PanelPower2 = 0;
 	std::string m_Orientation2;
-	float m_ArrayTilt2;
-	float m_ExportTariff;
-	float m_ImportPeakTariff;
-	float m_ImportOffPeakTariff;
-	float m_ImportShoulderTariff;
-	float m_ImportHighShoulderTariff;
-	float m_ImportDailyCharge;
+	float m_ArrayTilt2 = 0;
+	float m_ExportTariff = 0;
+	float m_ImportPeakTariff = 0;
+	float m_ImportOffPeakTariff = 0;
+	float m_ImportShoulderTariff = 0;
+	float m_ImportHighShoulderTariff = 0;
+	float m_ImportDailyCharge = 0;
 	std::vector<unsigned int> m_Teams;
-	unsigned int m_Donations;
+	unsigned int m_Donations = 0;
 	std::map<int, std::pair<std::string, std::string> > m_ExtData;
-	CURLcode m_curlres;
-	CURL* m_curl;
-	unsigned int m_timeout;
-	unsigned int m_SID;
+	CURLcode m_curlres = CURLE_FAILED_INIT;
+	CURL* m_curl = NULL;
+	unsigned int m_timeout = 0;
+	unsigned int m_SID = 0;
 	std::string m_APIkey;
 	std::string m_buffer;
-    curl_slist *m_http_header;
-	long m_http_status;
+    curl_slist *m_http_header = NULL;
+	long m_http_status = 0;
 
 public:
 	PVOutput(unsigned int SID, std::string APIkey, unsigned int timeout);
@@ -101,14 +101,13 @@ public:
 	CURLcode downloadURL(std::string URL);
 	CURLcode downloadURL(std::string URL, std::string data);
 	CURLcode getSystemData(void);
-	//Removed in version 3.0
-	//bool Export(Config *cfg, InverterData *inverters[]);
 	void clearBuffer() { m_buffer.clear(); }
 	std::string SystemName() const { return m_SystemName; }
+	unsigned long SystemSize() const { return m_SystemSize; }
+	std::string InstallDate() const { return m_InstallDate; }
+	CURLcode joinTeam();
 	long HTTP_status() const { return m_http_status; }
-	/*
-	Add other members if needed...
-	*/
+
 	CURLcode errcode() const { return m_curlres; }
 	std::string errtext() const { return std::string(curl_easy_strerror(m_curlres)); }
 

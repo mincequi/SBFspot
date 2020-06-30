@@ -171,12 +171,34 @@ void CSBFspotUploadService::OnStart(DWORD dwArgc, LPWSTR *lpszArgv)
 
 	if (cfg.readSettings(svcpath, L"") == Configuration::CFG_OK)
 	{
+		// Check if DB is accessible
+		db_SQL_Base db = db_SQL_Base();
+		db.open(cfg.getSqlHostname(), cfg.getSqlUsername(), cfg.getSqlPassword(), cfg.getSqlDatabase());
+		if (!db.isopen())
+		{
+			wprintf(msg, L"Unable to open database [%s] -- Check configuration", cfg.getSqlDatabase());
+			WriteEventLogEntry(msg, EVENTLOG_ERROR_TYPE);
+			throw Configuration::CFG_ERROR;
+		}
+
+		// DB is open - Check DB Version
+		int schema_version = 0;
+		db.get_config(SQL_SCHEMAVERSION, schema_version);
+		db.close();
+
+		if (schema_version < SQL_MINIMUM_SCHEMA_VERSION)
+		{
+			wprintf(msg, L"Upgrade your database to version %d", SQL_MINIMUM_SCHEMA_VERSION);
+			WriteEventLogEntry(msg, EVENTLOG_ERROR_TYPE);
+			throw Configuration::CFG_ERROR;
+		}
+
 		// Queue the main service function for execution in a worker thread.
 		CThreadPool::QueueUserWorkItem(&CSBFspotUploadService::ServiceWorkerThread, this);
 	}
 	else
 	{
-		WriteEventLogEntry(L"Error reading config file" , EVENTLOG_ERROR_TYPE);
+		WriteEventLogEntry(L"Error reading config file", EVENTLOG_ERROR_TYPE);
 		throw Configuration::CFG_ERROR;
 	}
 

@@ -169,7 +169,7 @@ int db_SQL_Base::type_label(InverterData *inverters[])
 			s_quoted(inverters[inv]->DeviceName) << ',' <<
 			s_quoted(inverters[inv]->DeviceType) << ',' <<
 			s_quoted(inverters[inv]->SWVersion) << ',' <<
-			"0,0,0,0,0,0,'','',0)";
+			"0,0,0,0,0,0,'','',0,null,null)";
 
 		if ((rc = exec_query(sql.str())) != SQLITE_OK)
 			print_error("exec_query() returned", sql.str());
@@ -201,8 +201,8 @@ int db_SQL_Base::device_status(InverterData *inverters[], time_t spottime)
 	{
 		sql.str("");
 
-		sql << "UPDATE Inverters SET" <<
-			" TimeStamp=" << strftime_t(spottime) <<
+		sql << "UPDATE Inverters SET " <<
+			"TimeStamp=" << strftime_t(spottime) <<
 			",TotalPac=" << inverters[inv]->TotalPac <<
 			",EToday=" << inverters[inv]->EToday <<
 			",ETotal=" << inverters[inv]->ETotal <<
@@ -220,6 +220,23 @@ int db_SQL_Base::device_status(InverterData *inverters[], time_t spottime)
 	return rc;
 }
 
+int db_SQL_Base::set_pvo_system(const unsigned int serial, const unsigned int systemSize, const std::string installDate_YYYYMMDD)
+{
+	std::stringstream sql;
+	int rc = SQLITE_OK;
+
+	sql.str("");
+
+	sql << "UPDATE Inverters SET " <<
+		"PvoSystemSize=" << systemSize <<
+		",PvoInstallDate='" << installDate_YYYYMMDD << "' WHERE Serial=" << serial;
+
+	if ((rc = exec_query(sql.str())) != SQLITE_OK)
+		print_error("exec_query() returned", sql.str());
+
+	return rc;
+}
+
 int db_SQL_Base::batch_get_archdaydata(std::string &data, unsigned int Serial, int datelimit, int statuslimit, int& recordcount)
 {
 	std::stringstream sql;
@@ -228,12 +245,10 @@ int db_SQL_Base::batch_get_archdaydata(std::string &data, unsigned int Serial, i
 
 	sqlite3_stmt *pStmt = NULL;
 
-	sql << "SELECT strftime('%Y%m%d,%H:%M',TimeStamp),V1,V2,V3,V4,V5,V6,V7,V8,V9,V10,V11,V12 FROM [vwPvoData] WHERE "
-        "TimeStamp>DATE(DATE(),'" << -(datelimit-2) << " day') "
-        "AND PVoutput IS NULL "
-        "AND Serial=" << Serial << " "
-        "ORDER BY TimeStamp "
-        "LIMIT " << statuslimit;
+	sql << "SELECT strftime('%Y%m%d,%H:%M',TimeStamp),V1,V2,V3,V4,V5,V6,V7,V8,V9,V10,V11,V12 FROM [vwPvoUploadGeneration] WHERE "
+		"Serial=" << Serial << " "
+		"ORDER BY TimeStamp "
+		"LIMIT " << statuslimit;
 
 	rc = sqlite3_prepare_v2(m_dbHandle, sql.str().c_str(), -1, &pStmt, NULL);
 

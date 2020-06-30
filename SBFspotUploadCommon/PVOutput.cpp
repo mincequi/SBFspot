@@ -287,6 +287,22 @@ bool PVOutput::isTeamMember() const
 	return false;
 }
 
+CURLcode PVOutput::joinTeam()
+{
+	m_curlres = CURLE_FAILED_INIT;
+	std::string response;
+
+	if (m_curl)
+	{
+		if ((m_curlres = downloadURL("http://pvoutput.org/service/r2/jointeam.jsp", "tid=613")) == CURLE_OK)
+			response = m_buffer;
+		else
+			response = errtext();
+	}
+
+	return m_curlres;
+}
+
 CURLcode PVOutput::addBatchStatus(std::string data, std::string &response)
 {
 	if (isverbose(2)) cout << "PVOutput::addBatchStatus()\n";

@@ -10,46 +10,48 @@ CREATE Table Config (
 	PRIMARY KEY (`Key`)
 );
 
-INSERT INTO Config VALUES('SchemaVersion','1');
-
 CREATE Table Inverters (
-	Serial int(4) NOT NULL,
+	Serial int unsigned NOT NULL,
 	Name varchar(32),
 	Type varchar(32),
 	SW_Version varchar(32),
-	TimeStamp int(4),
-	TotalPac int(4),
-	EToday int(8),
-	ETotal int(8),
+	TimeStamp int,
+	TotalPac int,
+	EToday bigint,
+	ETotal bigint,
 	OperatingTime double,
 	FeedInTime double,
 	Status varchar(10),
 	GridRelay varchar(10),
 	Temperature float,
+	PvoSystemSize int unsigned,
+	PvoInstallDate varchar(8),
 	PRIMARY KEY (Serial)
 );
 
 CREATE View vwInverters AS
-	Select Serial,
+	SELECT Serial,
 	Name,Type,SW_Version,
 	From_UnixTime(TimeStamp) AS TimeStamp,
 	TotalPac,
 	EToday,ETotal,
 	OperatingTime,FeedInTime,
 	Status,GridRelay,
-	Temperature
+	Temperature,
+	PvoSystemSize,
+	PvoInstallDate
 	FROM Inverters;
 
 CREATE Table SpotData (
-	TimeStamp int(4) NOT NULL,
-	Serial int(4) NOT NULL,
-	Pdc1 int(4), Pdc2 int(4),
+	TimeStamp int NOT NULL,
+	Serial int unsigned NOT NULL,
+	Pdc1 int, Pdc2 int,
 	Idc1 float, Idc2 float,
 	Udc1 float, Udc2 float,
-	Pac1 int(4), Pac2 int(4), Pac3 int(4),
+	Pac1 int, Pac2 int, Pac3 int,
 	Iac1 float, Iac2 float, Iac3 float,
 	Uac1 float, Uac2 float, Uac3 float,
-	EToday int(8), ETotal int(8),
+	EToday bigint, ETotal bigint,
 	Frequency float,
 	OperatingTime double,
 	FeedInTime double,
@@ -63,10 +65,7 @@ CREATE Table SpotData (
 -- Fix 02-MAY-2016 See Issue 150
 CREATE View vwSpotData AS
     Select From_UnixTime(Dat.TimeStamp) AS TimeStamp,
-    From_UnixTime(CASE WHEN (Dat.TimeStamp % 300) < 150
-    THEN Dat.TimeStamp - (Dat.TimeStamp % 300)
-    ELSE Dat.TimeStamp - (Dat.TimeStamp % 300) + 300
-    END) AS Nearest5min,
+    From_UnixTime(Dat.TimeStamp - (Dat.TimeStamp % 300)) AS Nearest5min,
     Inv.Name,
     Inv.Type,
     Dat.Serial,
@@ -100,11 +99,11 @@ CREATE View vwSpotData AS
 INNER JOIN Inverters Inv ON Dat.Serial=Inv.Serial;
 
 CREATE Table DayData (
-	TimeStamp int(4) NOT NULL,
-	Serial int(4) NOT NULL,
-	TotalYield int(8),
-	Power int(8),
-	PVoutput int(1),
+	TimeStamp int NOT NULL,
+	Serial int unsigned NOT NULL,
+	TotalYield bigint,
+	Power bigint,
+	PVoutput tinyint,
 	PRIMARY KEY (TimeStamp, Serial)
 );
 
@@ -118,10 +117,10 @@ INNER JOIN Inverters Inv ON Dat.Serial=Inv.Serial
 ORDER BY Dat.Timestamp Desc;
 
 CREATE Table MonthData (
-	TimeStamp int(4) NOT NULL,
-	Serial int(4) NOT NULL,
-	TotalYield int(8),
-	DayYield int(8),
+	TimeStamp int NOT NULL,
+	Serial int unsigned NOT NULL,
+	TotalYield bigint,
+	DayYield bigint,
 	PRIMARY KEY (TimeStamp, Serial)
 );
 
@@ -133,17 +132,17 @@ INNER JOIN Inverters Inv ON Dat.Serial=Inv.Serial
 ORDER BY Dat.Timestamp Desc;
 
 CREATE Table EventData (
-	EntryID int(4),
-	TimeStamp int(4) NOT NULL,
-	Serial int(4) NOT NULL,
-	SusyID int(2),
-	EventCode int(4),
+	EntryID int,
+	TimeStamp int NOT NULL,
+	Serial int unsigned NOT NULL,
+	SusyID smallint,
+	EventCode int,
 	EventType varchar(32),
 	Category varchar(32),
 	EventGroup varchar(32),
 	Tag varchar(200),
-	OldValue varchar(32),
-	NewValue varchar(32),
+	OldValue varchar(64),
+	NewValue varchar(64),
 	UserGroup varchar(10),
 	PRIMARY KEY (Serial, EntryID)
 );
@@ -160,18 +159,15 @@ INNER JOIN Inverters Inv ON Dat.Serial=Inv.Serial
 ORDER BY EntryID Desc;
 
 CREATE Table Consumption (
-	TimeStamp int(4) NOT NULL,
-	EnergyUsed int(4),
-	PowerUsed int(4),
+	TimeStamp int NOT NULL,
+	EnergyUsed int,
+	PowerUsed int,
 	PRIMARY KEY (TimeStamp)
 );
 
 CREATE VIEW vwConsumption AS
 	SELECT From_UnixTime(TimeStamp) As Timestamp,
-	From_UnixTime(CASE WHEN (TimeStamp % 300) < 150
-	THEN TimeStamp - (TimeStamp % 300)
-	ELSE TimeStamp - (TimeStamp % 300) + 300
-	END) AS Nearest5min,
+	From_UnixTime(TimeStamp - (TimeStamp % 300)) AS Nearest5min,
 	EnergyUsed,
 	PowerUsed
 	FROM Consumption;
@@ -233,10 +229,10 @@ CREATE VIEW vwPvoData AS
 
 -- Fix 09-JAN-2017 See Issue 54: SQL Support for battery inverters
 CREATE TABLE SpotDataX (
-    `TimeStamp` INTEGER (4) NOT NULL,
-    `Serial`    INTEGER (4) NOT NULL,
-    `Key`       INTEGER (4) NOT NULL,
-    `Value`     INTEGER (4),
+    `TimeStamp` INT NOT NULL,
+    `Serial`    INT UNSIGNED NOT NULL,
+    `Key`       INT NOT NULL,
+    `Value`     INT,
     PRIMARY KEY (
         `TimeStamp` ASC,
         `Serial` ASC,
@@ -260,3 +256,108 @@ CREATE VIEW vwBatteryData AS
            INNER JOIN
            Inverters AS inv ON sdx.Serial = inv.`Serial`
      GROUP BY `5min`;
+--
+-- vwPVODayData View
+--
+DROP VIEW IF EXISTS vwPVODayData;
+
+CREATE VIEW vwPVODayData AS
+	SELECT
+		`TimeStamp`,
+		`Serial`,
+        `TotalYield`,
+        `Power`
+	FROM DayData Dat
+    WHERE TimeStamp > unix_timestamp() -( SELECT `Value` FROM `Config` WHERE `Key` = 'Batch_DateLimit' ) * 86400 
+		AND `PvOutput` IS NULL;
+
+--
+-- vwPVOSpotData View
+--
+DROP VIEW IF EXISTS vwPVOSpotData;
+
+CREATE VIEW vwPVOSpotData AS
+	SELECT
+		`TimeStamp`,
+		`TimeStamp` -( `TimeStamp` % 300 ) AS `Nearest5min`,
+        `Serial`,
+        `Pdc1`,
+        `Pdc2`,
+        `Idc1`,
+        `Idc2`,
+        `Udc1`,
+		`Udc2`,
+		`Pac1`,
+        `Pac2`,
+        `Pac3`,
+        `Iac1`,
+        `Iac2`,
+        `Iac3`,
+        `Uac1`,
+        `Uac2`,
+        `Uac3`,
+        `Pdc1` + `Pdc2` AS `PdcTot`,
+        `Pac1` + `Pac2` + `Pac3` AS `PacTot`,
+        ROUND( `Temperature`, 1 ) AS `Temperature`
+	FROM SpotData
+    WHERE TimeStamp > unix_timestamp() -( SELECT `Value` FROM Config WHERE `Key` = 'Batch_DateLimit' ) * 86400;
+
+--
+-- vwPVOSpotDataAvg View
+--
+DROP VIEW IF EXISTS vwPVOSpotDataAvg;
+
+CREATE VIEW vwPVOSpotDataAvg AS
+	SELECT
+		`nearest5min`,
+		`serial`,
+        avg( `Pdc1` ) AS `Pdc1`,
+        avg( `Pdc2` ) AS `Pdc2`,
+        avg( `Idc1` ) AS `Idc1`,
+        avg( `Idc2` ) AS `Idc2`,
+        avg( `Udc1` ) AS `Udc1`,
+        avg( `Udc2` ) AS `Udc2`,
+        avg( `Pac1` ) AS `Pac1`,
+        avg( `Pac2` ) AS `Pac2`,
+        avg( `Pac3` ) AS `Pac3`,
+        avg( `Iac1` ) AS `Iac1`,
+        avg( `Iac2` ) AS `Iac2`,
+        avg( `Iac3` ) AS `Iac3`,
+        avg( `Uac1` ) AS `Uac1`,
+		avg( `Uac2` ) AS `Uac2`,
+        avg( `Uac3` ) AS `Uac3`,
+        avg( `Temperature` ) AS `Temperature`
+	FROM vwPVOSpotData
+    GROUP BY `serial`, `nearest5min`;
+
+--
+-- vwPVOUploadGeneration View
+--
+DROP VIEW IF EXISTS vwPVOUploadGeneration;
+
+CREATE VIEW vwPVOUploadGeneration AS
+	SELECT
+		from_unixtime( dd.`TimeStamp` ) AS `TimeStamp`,
+        dd.`Serial`,
+        dd.`TotalYield` AS `V1`,
+		CASE WHEN dd.Power > (IFNULL(inv.SystemSize * 1.4, dd.Power))
+			THEN 0 ELSE dd.Power END AS V2,
+        NULL AS `V3`,
+        NULL AS `V4`,
+		CASE (SELECT `Value` FROM Config WHERE `Key` = 'PvoTemperature')
+			WHEN 'Ambient' THEN NULL ELSE spot.Temperature END AS V5,
+        spot.`Uac1` AS `V6`,
+        NULL AS `V7`,
+        NULL AS `V8`,
+        NULL AS `V9`,
+        NULL AS `V10`,
+        NULL AS `V11`,
+        NULL AS `V12`
+	FROM vwPVODayData AS dd
+    LEFT JOIN vwPVOSpotDataAvg AS spot ON dd.`Serial` = spot.`Serial` AND dd.`Timestamp` = spot.`Nearest5min`
+	LEFT JOIN Inverters AS inv ON dd.Serial = inv.Serial;
+
+-- Define temperature to show at PVoutput (V5): Inverter or Ambient
+INSERT IGNORE INTO Config (`Key`,`Value`) VALUES ('PvoTemperature','Inverter');
+
+INSERT INTO Config VALUES('SchemaVersion','3');

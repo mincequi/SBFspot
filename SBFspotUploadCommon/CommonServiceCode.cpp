@@ -67,18 +67,16 @@ void CommonServiceCode(void)
 					{
                         batch_datelimit = PVO.batch_datelimit();
                         batch_statuslimit = PVO.batch_statuslimit();
-						//Fix Issue 131
-                        //db.get_config(SQL_BATCH_DATELIMIT, batch_datelimit);
-                        //db.get_config(SQL_BATCH_STATUSLIMIT, batch_statuslimit);
-
                         nextStatusCheck = now + timeBetweenChecks;
                         db.set_config(SQL_BATCH_DATELIMIT, db.intToString(batch_datelimit));
                         db.set_config(SQL_BATCH_STATUSLIMIT, db.intToString(batch_statuslimit));
                         db.set_config(SQL_NEXTSTATUSCHECK, db.intToString(nextStatusCheck));
+						db.set_pvo_system(it->first/*Serial*/, PVO.SystemSize(), PVO.InstallDate());
 
                         if (!PVO.isTeamMember())
                         {
                             Log(PVO.SystemName() + " is not yet member of SBFspot Team. Consider joining at http://pvoutput.org/listteam.jsp?tid=613", LOG_WARNING_);
+							PVO.joinTeam();
                         }
 					}
 				}
@@ -89,7 +87,16 @@ void CommonServiceCode(void)
 				std::string data;
 
 				int datapoints = 0;
-				if((rc_db = db.batch_get_archdaydata(data, it->first/*Serial*/, batch_datelimit, batch_statuslimit, datapoints)) == db.SQL_OK)
+
+#ifdef _DEBUG
+				Log("Starting batch_get_archdaydata()", ERRLEVEL::LOG_INFO_);
+#endif
+				rc_db = db.batch_get_archdaydata(data, it->first/*Serial*/, batch_datelimit, batch_statuslimit, datapoints);
+#ifdef _DEBUG
+				Log("Back from batch_get_archdaydata()", ERRLEVEL::LOG_INFO_);
+#endif
+
+				if (rc_db == db.SQL_OK)
 				{
 					if (!data.empty())
 					{
@@ -148,6 +155,29 @@ void CommonServiceCode(void)
     }
 }
 
+std::string timestamp(void)
+{
+	char buffer[100];
+#if !defined WIN32
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	struct tm *tm;
+	tm = localtime(&tv.tv_sec);
+
+	snprintf(buffer, sizeof(buffer), "[%04d-%02d-%02d %02d:%02d:%02d.%03d] ",
+		tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
+		tm->tm_hour, tm->tm_min, tm->tm_sec, (int)tv.tv_usec / 1000);
+#else
+	SYSTEMTIME time;
+	::GetLocalTime(&time);
+
+	sprintf_s(buffer, sizeof(buffer), "[%04d-%02d-%02d %02d:%02d:%02d.%03d] ", time.wYear, time.wMonth, time.wDay, time.wHour, time.wMinute, time.wSecond, time.wMilliseconds);
+#endif
+
+	std::string sTimestamp(buffer);
+	return sTimestamp;
+}
+
 int Log(std::string txt, ERRLEVEL level)
 {
 	int rc = 0;
@@ -163,8 +193,7 @@ int Log(std::string txt, ERRLEVEL level)
 
 		if (fs_log.is_open())
 		{
-			strftime(buff, sizeof(buff), "[%H:%M:%S] ", localtime(&now));
-			fs_log << buff << errlevelText[level] << ": " << txt << std::endl;
+			fs_log << timestamp() << errlevelText[level] << ": " << txt << std::endl;
 			fs_log.close();
 			rc = 0;
 		}

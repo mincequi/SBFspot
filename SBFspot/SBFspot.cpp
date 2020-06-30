@@ -52,6 +52,9 @@ DISCLAIMER:
 	SMA, Speedwire and SMAdata2 are registered trademarks of SMA Solar Technology AG
 
 ************************************************************************************************/
+
+#define BOOST_ERROR_CODE_HEADER_ONLY
+
 #include "version.h"
 #include "osselect.h"
 #include "endianness.h"
@@ -73,6 +76,12 @@ DISCLAIMER:
 #include <boost/algorithm/string.hpp>
 #include <boost/asio/ip/address.hpp>
 #include "mqtt.h"
+
+#if defined(WIN32) && defined (_DEBUG)
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+#endif
 
 using namespace std;
 using namespace boost;
@@ -97,6 +106,10 @@ bool hasBatteryDevice = false;	// Plant has 1 or more battery device(s)
 
 int main(int argc, char **argv)
 {
+#if defined(WIN32) && defined (_DEBUG)
+	_CrtSetDbgFlag(_CRTDBG_LEAK_CHECK_DF);
+#endif
+
     char msg[80];
 
     int rc = 0;
@@ -117,6 +130,8 @@ int main(int argc, char **argv)
     verbose = cfg.verbose;
     quiet = cfg.quiet;
     ConnType = cfg.ConnectionType;
+
+	// TODO: (24-JUN-2020) Check SQL DB SchemaVersion
 
 	if ((ConnType != CT_BLUETOOTH) && (cfg.settime == 1))
 	{
@@ -594,7 +609,8 @@ int main(int argc, char **argv)
 		ExportBatteryDataToCSV(&cfg, Inverters);
 
 	#if defined(USE_SQLITE) || defined(USE_MYSQL)
-	db_SQL_Export db = db_SQL_Export();
+	db_SQL_Export db;
+
 	if (!cfg.nosql)
 	{
 		db.open(cfg.sqlHostname, cfg.sqlUsername, cfg.sqlUserPassword, cfg.sqlDatabase);
@@ -784,6 +800,10 @@ int main(int argc, char **argv)
 
 
     if (VERBOSE_NORMAL) print_error(stdout, PROC_INFO, "Done.\n");
+
+#if defined(WIN32) && defined (_DEBUG)
+	_CrtDumpMemoryLeaks();
+#endif
 
     return 0;
 }

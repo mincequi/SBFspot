@@ -48,8 +48,8 @@ extern int verbose;
 #define SQL_BATCH_DATELIMIT		"Batch_DateLimit"
 #define SQL_BATCH_STATUSLIMIT	"Batch_StatusLimit"
 
-#define SQL_MINIMUM_SCHEMA_VERSION 1
-#define SQL_RECOMMENDED_SCHEMA_VERSION 1
+#define SQL_MINIMUM_SCHEMA_VERSION 3
+#define SQL_RECOMMENDED_SCHEMA_VERSION 3
 #define SQL_BUSY_RETRY_COUNT 20
 
 class db_SQL_Base
@@ -81,6 +81,7 @@ public:
 	int get_config(const std::string key, std::string &value);
 	int get_config(const std::string key, int &value);
 	std::string intToString(const int i) { return static_cast<std::ostringstream*>( &(std::ostringstream() << i) )->str(); }
+	int set_pvo_system(const unsigned int serial, const unsigned int systemSize, const std::string installDate_YYYYMMDD);
 
 protected:
 	std::string s_quoted(std::string str) { return "'" + str + "'"; }
