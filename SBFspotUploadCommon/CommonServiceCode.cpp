@@ -89,11 +89,11 @@ void CommonServiceCode(void)
 				int datapoints = 0;
 
 #ifdef _DEBUG
-				Log("Starting batch_get_archdaydata()", ERRLEVEL::LOG_INFO_);
+				Log("Starting batch_get_archdaydata()", ERRLEVEL::LOG_DEBUG_);
 #endif
 				rc_db = db.batch_get_archdaydata(data, it->first/*Serial*/, batch_datelimit, batch_statuslimit, datapoints);
 #ifdef _DEBUG
-				Log("Back from batch_get_archdaydata()", ERRLEVEL::LOG_INFO_);
+				Log("Back from batch_get_archdaydata()", ERRLEVEL::LOG_DEBUG_);
 #endif
 
 				if (rc_db == db.SQL_OK)

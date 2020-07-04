@@ -158,12 +158,6 @@
     <None Include="SBFspot.cfg">
       <Filter>Support Files</Filter>
     </None>
-    <None Include="Update_340_SQLite.sql">
-      <Filter>Support Files</Filter>
-    </None>
-    <None Include="Update_340_MySQL.sql">
-      <Filter>Support Files</Filter>
-    </None>
     <None Include="CreateMySQLUser.sql">
       <Filter>Support Files</Filter>
     </None>
@@ -171,6 +165,12 @@
       <Filter>Support Files</Filter>
     </None>
     <None Include="Update_V3_MySQL.sql">
+      <Filter>Support Files</Filter>
+    </None>
+    <None Include="Update_V2_MySQL.sql">
+      <Filter>Support Files</Filter>
+    </None>
+    <None Include="Update_V2_SQLite.sql">
       <Filter>Support Files</Filter>
     </None>
   </ItemGroup>

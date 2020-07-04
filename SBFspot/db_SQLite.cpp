@@ -225,8 +225,6 @@ int db_SQL_Base::set_pvo_system(const unsigned int serial, const unsigned int sy
 	std::stringstream sql;
 	int rc = SQLITE_OK;
 
-	sql.str("");
-
 	sql << "UPDATE Inverters SET " <<
 		"PvoSystemSize=" << systemSize <<
 		",PvoInstallDate='" << installDate_YYYYMMDD << "' WHERE Serial=" << serial;

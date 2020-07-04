@@ -83,6 +83,7 @@ public:
 	int get_config(const std::string key, std::string &value);
 	int get_config(const std::string key, int &value);
 	std::string intToString(const int i) { return static_cast<std::ostringstream*>( &(std::ostringstream() << i) )->str(); }
+	int set_pvo_system(const unsigned int serial, const unsigned int systemSize, const std::string installDate_YYYYMMDD);
 
 protected:
 	std::string s_quoted(std::string str) { return "'" + str + "'"; }

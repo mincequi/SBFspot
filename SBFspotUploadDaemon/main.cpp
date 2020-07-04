@@ -1,6 +1,6 @@
 /************************************************************************************************
 	SBFspot - Yet another tool to read power production of SMA solar inverters
-	(c)2012-2018, SBF
+	(c)2012-2020, SBF
 
 	Latest version found at https://github.com/SBFspot/SBFspot
 
@@ -29,14 +29,6 @@ DISCLAIMER:
 	the use or application of the software.
 
 ************************************************************************************************/
-
-#define VERSION "2.0.0"
-
-// Redesigned for systemd (Thanks to Jonathan de Boyne Pollard)
-
-// Fixed #215: Start SBFspotUpload.service failed because the control process exited with error code
-// Fixed #224: SBFSpotUpload.cfg - log level doesn't work
-
 
 #include "../SBFspotUploadCommon/CommonServiceCode.h"
 
@@ -109,7 +101,11 @@ int main(int argc, char *argv[])
 	if (cfg.readSettings(argv[0], config_file) != Configuration::CFG_OK)
 		return EXIT_FAILURE;
 
-	Log("SBFspotUploadDaemon Version " + std::string(VERSION), LOG_INFO_);
+	std::clog << "SBFspotUploadDaemon Version " << cfg.getVersion();
+	std::clog << "\nLoglevel=" << cfg.getLogLevel();
+	std::clog << "\nLogDir=" << cfg.getLogDir() << std::endl;
+	
+	Log("SBFspotUploadDaemon Version " + cfg.getVersion(), LOG_INFO_);
 
 	// Check if DB is accessible
 	db_SQL_Base db = db_SQL_Base();

@@ -176,6 +176,21 @@ int db_SQL_Base::device_status(InverterData *inverters[], time_t spottime)
 	return rc;
 }
 
+int db_SQL_Base::set_pvo_system(const unsigned int serial, const unsigned int systemSize, const std::string installDate_YYYYMMDD)
+{
+	std::stringstream sql;
+	int rc = SQL_OK;
+
+	sql << "UPDATE Inverters SET " <<
+		"PvoSystemSize=" << systemSize <<
+		",PvoInstallDate='" << installDate_YYYYMMDD << "' WHERE Serial=" << serial;
+
+	if ((rc = exec_query(sql.str())) != SQL_OK)
+		print_error("exec_query() returned", sql.str());
+
+	return rc;
+}
+
 int db_SQL_Base::batch_get_archdaydata(std::string &data, unsigned int Serial, int datelimit, int statuslimit, int& recordcount)
 {
 	std::stringstream sql;
