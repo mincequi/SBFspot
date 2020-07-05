@@ -173,7 +173,11 @@ void CSBFspotUploadService::OnStart(DWORD dwArgc, LPWSTR *lpszArgv)
 	{
 		// Check if DB is accessible
 		db_SQL_Base db;
-		db.open(cfg.getSqlHostname(), cfg.getSqlUsername(), cfg.getSqlPassword(), cfg.getSqlDatabase());
+#if defined(USE_MYSQL)
+		db.open(cfg.getSqlHostname(), cfg.getSqlUsername(), cfg.getSqlPassword(), cfg.getSqlDatabase(), cfg.getSqlPort());
+#elif defined(USE_SQLITE)
+		db.open(cfg.getSqlDatabase());
+#endif
 		if (!db.isopen())
 		{
 			wprintf(msg, L"Unable to open database [%s] -- Check configuration", cfg.getSqlDatabase());

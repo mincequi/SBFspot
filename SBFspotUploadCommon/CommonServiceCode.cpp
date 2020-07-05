@@ -50,7 +50,11 @@ void CommonServiceCode(void)
     while (!bStopping)
     {
         msg.str("");
-		db.open(cfg.getSqlHostname(), cfg.getSqlUsername(), cfg.getSqlPassword(), cfg.getSqlDatabase());
+#if defined(USE_MYSQL)
+		db.open(cfg.getSqlHostname(), cfg.getSqlUsername(), cfg.getSqlPassword(), cfg.getSqlDatabase(), cfg.getSqlPort());
+#elif defined(USE_SQLITE)
+		db.open(cfg.getSqlDatabase());
+#endif
 
 		if (db.isopen())
 		{

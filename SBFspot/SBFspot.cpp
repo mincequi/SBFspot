@@ -613,7 +613,11 @@ int main(int argc, char **argv)
 
 	if (!cfg.nosql)
 	{
-		db.open(cfg.sqlHostname, cfg.sqlUsername, cfg.sqlUserPassword, cfg.sqlDatabase);
+#if defined(USE_MYSQL)
+		db.open(cfg.sqlHostname, cfg.sqlUsername, cfg.sqlUserPassword, cfg.sqlDatabase, cfg.sqlPort);
+#elif defined(USE_SQLITE)
+		db.open(cfg.sqlDatabase);
+#endif
 		if (db.isopen())
 		{
 			time_t spottime = time(NULL);
@@ -2311,6 +2315,8 @@ int GetConfig(Config *cfg)
 	cfg->mqtt_publish_data = "Timestamp,SunRise,SunSet,InvSerial,InvName,InvStatus,EToday,ETotal,PACTot,UDC1,UDC2,IDC1,IDC2,PDC1,PDC2";
 	cfg->mqtt_item_format = "\"{key}\": {value}";
 
+	cfg->sqlPort = 3306;
+
     const char *CFG_Boolean = "(0-1)";
     const char *CFG_InvalidValue = "Invalid value for '%s' %s\n";
 
@@ -2626,8 +2632,19 @@ int GetConfig(Config *cfg)
 					cfg->sqlHostname = value;
 				else if(stricmp(variable, "SQL_Username") == 0)
 					cfg->sqlUsername = value;
-				else if(stricmp(variable, "SQL_Password") == 0)
+				else if (stricmp(variable, "SQL_Password") == 0)
 					cfg->sqlUserPassword = value;
+				else if (stricmp(variable, "SQL_Port") == 0)
+					try
+						{
+						cfg->sqlPort = boost::lexical_cast<unsigned int>(value);
+						}
+						catch (...)
+						{
+							fprintf(stderr, CFG_InvalidValue, variable, "");
+							rc = -2;
+							break;
+						}
 #endif
 				else if (stricmp(variable, "MQTT_Host") == 0)
 					cfg->mqtt_host = value;

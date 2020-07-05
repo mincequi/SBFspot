@@ -32,24 +32,6 @@ DISCLAIMER:
 
 ************************************************************************************************/
 
-/***********************************************************************************************
- ** SQLite is a software library that implements a self-contained, serverless, zero-configuration,
- ** transactional SQL database engine. SQLite is the most widely deployed SQL database engine in
- ** the world. The source code for SQLite is in the public domain.
- **
- ** Configuration for Windows build
- ** Visit http://www.sqlite.org/download.html
- **	Download sqlite-dll-win32-x86-3080403.zip (V3.8.4.3) (Precompiled Binaries for Windows)
- **	Extract sqlite3.dll to %windir%\System32
- **	Extract sqlite3.def to %ProgramFiles%\Microsoft Visual Studio 10.0\VC\lib\SQLite
- **	Start Visual Studio Command Prompt
- **	CD %ProgramFiles%\Microsoft Visual Studio 10.0\VC\lib\SQLite
- **	LIB.EXE /DEF:sqlite3.def /MACHINE:x86
- ** => this will create sqlite3.lib (needed by Linker)
- ** Download sqlite-amalgamation-3080403.zip (Source Code V3.8.4.3)
- ** Extract sqlite3.h to %ProgramFiles%\Microsoft Visual Studio 10.0\VC\include\SQLite
- ***********************************************************************************************/
-
 #if defined(USE_SQLITE)
 
 //TODO: MAX_INVERTERS is defined twice (Quick but dirty fix)
@@ -81,7 +63,7 @@ string db_SQL_Base::status_text(int status)
 	}
 }
 
-int db_SQL_Base::open(string server, string user, string pass, string database)
+int db_SQL_Base::open(const string database)
 {
 	int result = SQLITE_OK;
 

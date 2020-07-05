@@ -34,6 +34,9 @@ DISCLAIMER:
 
 #pragma once
 
+// Upload daemon/service Version
+#define VERSION "3.0.0"
+
 #include "../SBFspot/osselect.h"
 #include <string>
 #include <vector>
@@ -66,17 +69,17 @@ public:
 
 private:
 	std::string	m_PrgVersion;
-	int			m_Status;
-	std::string	m_ConfigFile;			//Fullpath to configuration file
+	int			m_Status = 0;
+	std::string	m_ConfigFile;		//Fullpath to configuration file
 	std::string	m_AppPath;
 	std::string m_LogDir;
 	ERRLEVEL    m_LogLevel = LOG_INFO_;
     std::string m_SqlDatabase;
     std::string m_SqlHostname;
     std::string m_SqlUsername;
-    std::string m_SqlUserPassword;
+	std::string m_SqlUserPassword;
+	unsigned int m_SqlPort = 3306;	// Default 3306
 	std::map<SMASerial, PVOSystemID> m_PvoSIDs;
-	bool		m_PvoConsolidated;
 	std::string	m_PvoAPIkey;
 
 	std::ifstream m_fs;
@@ -87,7 +90,7 @@ private:
 	int		verbose;			// -v			Verbose output level (0-5)
 
 public:
-	Configuration(void);
+	Configuration() { m_PrgVersion = VERSION; }
 	~Configuration();
 	int readSettings(std::string me, std::string filename);
 	int readSettings(std::wstring wme, std::wstring wfilename);
@@ -100,6 +103,7 @@ public:
 	std::string getSqlHostname() const { return m_SqlHostname; }
 	std::string getSqlUsername() const { return m_SqlUsername; }
 	std::string getSqlPassword() const { return m_SqlUserPassword; }
+	unsigned int getSqlPort() const { return m_SqlPort; }
 	const std::map<SMASerial, PVOSystemID>& getPvoSIDs() const { return m_PvoSIDs; }
 	std::string getPvoApiKey() const { return m_PvoAPIkey; }
 
