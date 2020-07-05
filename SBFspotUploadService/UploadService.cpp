@@ -172,7 +172,7 @@ void CSBFspotUploadService::OnStart(DWORD dwArgc, LPWSTR *lpszArgv)
 	if (cfg.readSettings(svcpath, L"") == Configuration::CFG_OK)
 	{
 		// Check if DB is accessible
-		db_SQL_Base db = db_SQL_Base();
+		db_SQL_Base db;
 		db.open(cfg.getSqlHostname(), cfg.getSqlUsername(), cfg.getSqlPassword(), cfg.getSqlDatabase());
 		if (!db.isopen())
 		{
