@@ -55,6 +55,9 @@
     <ClCompile Include="mqtt.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="filetools.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="bluetooth.h">
@@ -121,6 +124,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="mqtt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FileLogger.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="filetools.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

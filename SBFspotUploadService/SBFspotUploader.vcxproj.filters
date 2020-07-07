@@ -31,6 +31,9 @@
     <ClCompile Include="..\SBFspotUploadCommon\PVOutput_x.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\SBFspot\filetools.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ServiceBase.h">
@@ -58,6 +61,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\SBFspotUploadCommon\PVOutput.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SBFspot\FileLogger.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SBFspot\filetools.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

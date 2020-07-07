@@ -198,6 +198,7 @@ del "$(OutDir)*.pdb"
     <ClCompile Include="..\SBFspot\db_MySQL.cpp" />
     <ClCompile Include="..\SBFspotUploadCommon\CommonServiceCode.cpp" />
     <ClCompile Include="..\SBFspotUploadCommon\Configuration.cpp" />
+    <ClCompile Include="..\SBFspot\filetools.cpp" />
     <ClCompile Include="SBFspotUploadService.cpp" />
     <ClCompile Include="UploadService.cpp" />
     <ClCompile Include="ServiceBase.cpp" />
@@ -212,6 +213,8 @@ del "$(OutDir)*.pdb"
     <ClInclude Include="..\SBFspotUploadCommon\CommonServiceCode.h" />
     <ClInclude Include="..\SBFspotUploadCommon\Configuration.h" />
     <ClInclude Include="..\SBFspotUploadCommon\PVOutput.h" />
+    <ClInclude Include="..\SBFspot\FileLogger.h" />
+    <ClInclude Include="..\SBFspot\filetools.h" />
     <ClInclude Include="UploadService.h" />
     <ClInclude Include="ServiceBase.h" />
     <ClInclude Include="ServiceInstaller.h" />
