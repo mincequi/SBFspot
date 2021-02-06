@@ -358,7 +358,7 @@ std::string realpath(const char *path)
 
     return RealPath;
 #endif
-#if defined (linux)
+#if defined (linux) || defined (__APPLE__)
     char pathbuf[PATH_MAX];
     pathbuf[0] = 0;
     if (realpath(path, pathbuf))

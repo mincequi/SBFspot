@@ -47,7 +47,7 @@ const char *linebreak2txt(void)
 	return "CR/LF";
 #endif
 
-#if defined (linux)
+#if defined (linux) || defined (__APPLE__)
 	return "LF";
 #endif
 }
