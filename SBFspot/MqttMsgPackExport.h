@@ -36,6 +36,7 @@ DISCLAIMER:
 
 #include "Export.h"
 
+#include <chrono>
 #include <mosquittopp.h>
 
 struct Config;
@@ -51,7 +52,8 @@ public:
     std::string name() const override;
 
     int exportConfig(const std::vector<InverterData>& inverterData) override;
-    int exportInverterData(const std::vector<InverterData>& inverterData) override;
+    int exportInverterData(const std::chrono::seconds& timestamp,
+                           const std::vector<InverterData>& inverterData) override;
 
 private:
     const Config& m_config;

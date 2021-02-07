@@ -34,6 +34,7 @@ DISCLAIMER:
 
 #pragma once
 
+#include <chrono>
 #include <string>
 #include <vector>
 
@@ -46,10 +47,11 @@ public:
     {
         // Static properties
         Version = 0,    // Protocol version
-        StartOfProduction = 1,  // Timestamp when this inverter got installed
-        Latitude = 2,
-        Longitude = 3,
-        PowerMax = 4,   // Nominal inverter power
+        Name = 1,       // Device name
+        StartOfProduction = 2,  // Timestamp when this inverter got installed
+        Latitude = 3,
+        Longitude = 4,
+        PowerMax = 5,   // Nominal inverter power
 
         // Dynamic properties
         Timestamp = 32,     // Timestamp for this data set
@@ -61,10 +63,12 @@ public:
         // Key for PV array properties (stored in array of maps)
         PvArray = 64, // Data per PV array
 
-        // PV array specific properties
-        PvArrayName = 65,
+        // PV array specific properties - static
+        PvArrayName = Name,
         PvArrayAzimuth = 66,
         PvArrayElevation = 67,
+
+        // Dynamic
         PvArrayPowerMax = PowerMax, // Peak power
         PvArrayPower = Power    // Current power
     };
@@ -75,5 +79,6 @@ public:
 
     virtual int exportConfig(const std::vector<InverterData>& inverterData);
     virtual int exportSpotData(const std::vector<InverterData>& inverterData);
-    virtual int exportInverterData(const std::vector<InverterData>& inverterData) = 0;
+    virtual int exportInverterData(const std::chrono::seconds& timestamp,
+                                   const std::vector<InverterData>& inverterData) = 0;
 };

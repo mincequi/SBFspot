@@ -40,7 +40,7 @@ DISCLAIMER:
 #include <map>
 #include <boost/date_time/local_time/local_time.hpp>
 
-struct ArrayConfig
+struct PvArrayConfig
 {
     std::string name = "MPP";
     uint32_t inverterSerial = 0;
@@ -70,7 +70,7 @@ struct Config
     char	SMA_Password[13];
     float	latitude = 0.0f;
     float	longitude = 0.0f;
-    std::vector<ArrayConfig> arrays;    // Module array configurations
+    std::vector<PvArrayConfig> pvArrays;    // Module array configurations
     uint16_t liveInterval = 60;
     uint16_t archiveInterval = 300;
     time_t	archdata_from = 0;

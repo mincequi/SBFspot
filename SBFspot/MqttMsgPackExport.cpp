@@ -40,6 +40,7 @@ DISCLAIMER:
 #include <chrono>
 #include <thread>
 #include <msgpack.hpp>
+
 using namespace std::chrono_literals;
 
 MqttMsgPackExport::MqttMsgPackExport(const Config& config)
@@ -75,8 +76,8 @@ std::string MqttMsgPackExport::name() const
 int MqttMsgPackExport::exportConfig(const std::vector<InverterData>& inverterData)
 {
     // Collect PV array config per serial
-    std::multimap<uint32_t,ArrayConfig> arrayConfig;
-    for (const auto& ac : m_config.arrays)
+    std::multimap<uint32_t,PvArrayConfig> arrayConfig;
+    for (const auto& ac : m_config.pvArrays)
         arrayConfig.insert({ac.inverterSerial, ac});
 
     for (const auto& inv : inverterData)
@@ -90,20 +91,25 @@ int MqttMsgPackExport::exportConfig(const std::vector<InverterData>& inverterDat
         msgpack::sbuffer sbuf;
         msgpack::packer<msgpack::sbuffer> packer(sbuf);
         // Map with number of elements
-        packer.pack_map(5);
+        packer.pack_map(6);
         // 1. Protocol version
         packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Version));
         packer.pack_uint8(0);
-        // 2. Latitude
+        // 2. Device name
+        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Name));
+        std::string str = inv.DeviceName;
+        packer.pack_str(str.size());
+        packer.pack_str_body(inv.DeviceName, str.size());
+        // 3. Latitude
         packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Latitude));
         packer.pack_float(m_config.latitude);
-        // 3. Longitude
+        // 4. Longitude
         packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Longitude));
         packer.pack_float(m_config.longitude);
-        // 4. Power Max
+        // 5. Power Max
         packer.pack_uint8(static_cast<uint8_t>(InverterProperty::PowerMax));
         packer.pack_float(static_cast<float>(inv.Pmax1));
-        // 5. Array config
+        // 6. Array config
         packer.pack_uint8(static_cast<uint8_t>(InverterProperty::PvArray));
         packer.pack_array(arrayConfig.count(inv.Serial));   // Store an array to provide data for each PV array.
 
@@ -134,7 +140,8 @@ int MqttMsgPackExport::exportConfig(const std::vector<InverterData>& inverterDat
     return 0;
 }
 
-int MqttMsgPackExport::exportInverterData(const std::vector<InverterData>& inverterData)
+int MqttMsgPackExport::exportInverterData(const std::chrono::seconds& timestamp,
+                                          const std::vector<InverterData>& inverterData)
 {
     for (const auto& inv : inverterData)
     {
@@ -153,7 +160,7 @@ int MqttMsgPackExport::exportInverterData(const std::vector<InverterData>& inver
         packer.pack_uint8(0);
         // 2. Timestamp
         packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Timestamp));
-        auto t = htonl(time(nullptr));
+        auto t = htonl(timestamp.count());
         packer.pack_ext(4, -1); // Timestamp type
         packer.pack_ext_body((const char*)(&t), 4);
         // 3. Yield Total

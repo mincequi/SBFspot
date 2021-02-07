@@ -66,13 +66,14 @@ int MqttExport::exportConfig(const std::vector<InverterData>& inverterData)
 #endif
 }
 
-int MqttExport::exportInverterData(const std::vector<InverterData>& inverterData)
+int MqttExport::exportInverterData(const std::chrono::seconds& timestamp,
+                                   const std::vector<InverterData>& inverterData)
 {
     if (m_config.mqtt_item_format == "MSGPACK") {
 #if(!defined MOSQUITTO_FOUND || !defined MSGPACK_FOUND)
         return 0;
 #else
-        return m_msgPackExport.exportInverterData(inverterData);
+        return m_msgPackExport.exportInverterData(timestamp, inverterData);
 #endif
     }
 

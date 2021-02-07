@@ -36,6 +36,7 @@ DISCLAIMER:
 #include "../Defines.h"
 #include "../Inverter.h"
 #include "../mqtt.h"
+#include "../MqttMsgPackExport.h"
 #include "../Timer.h"
 
 #include <thread>
@@ -47,30 +48,42 @@ int main(int argc, char **argv)
 
     Config config;
     config.loop = true;
-    config.liveInterval = 1;
+    config.liveInterval = 7;
     config.mqtt_host = "broker.hivemq.com";
     config.plantname = "testplant";
-    config.mqtt_topic = "sbfspot_{plantname}/sma_{serial}";
+    config.mqtt_topic = "sbfspot_{serial}";
     config.mqtt_item_format = "MSGPACK";
+    PvArrayConfig array1;
+    array1.name = "East";
+    array1.inverterSerial = 1234567890;
+    PvArrayConfig array2;
+    array2.name = "West";
+    array2.inverterSerial = 1234567890;
+    config.pvArrays.push_back(array1);
+    config.pvArrays.push_back(array2);
+
     Timer timer(config);
 
     InverterData inverterData;
-    inverterData.Serial = 1234;
+    strncpy(inverterData.DeviceName, "STP 12000TL-10\n", 15);
+    inverterData.Serial = 1234567890;
     inverterData.Pmax1 = 10000;
 
     do
     {
         auto timePoint = timer.nextTimePoint();
-        inverterData.ETotal = std::chrono::system_clock::to_time_t(timePoint)/10;
-        inverterData.EToday = std::chrono::system_clock::to_time_t(timePoint)%100000;
-        inverterData.Pdc1 = std::chrono::system_clock::to_time_t(timePoint)%11000;
-        inverterData.Pdc2 = std::chrono::system_clock::to_time_t(timePoint)%7000;
-        inverterData.TotalPac = inverterData.Pdc1 + inverterData.Pdc2;
+        inverterData.ETotal = (rand()%5000)*(rand()%5000);
+        inverterData.EToday = std::chrono::system_clock::to_time_t(timePoint)%100*1000;
+        inverterData.Pdc1 = rand()%11111;
+        inverterData.Pdc2 = rand()%12433;
+        inverterData.TotalPac = inverterData.Pdc1 + inverterData.Pdc2 - rand()%1000;
         std::this_thread::sleep_until(timePoint);
 
-        MqttExport mqtt(config);
+        MqttMsgPackExport mqtt(config);
+        auto now = std::chrono::seconds(std::time(nullptr));
+        now -= std::chrono::seconds(rand()%240);
         mqtt.exportConfig({inverterData});
-        mqtt.exportInverterData({inverterData});
+        mqtt.exportInverterData(now, {inverterData});
     }
     while(true);
 

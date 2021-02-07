@@ -43,6 +43,8 @@ DISCLAIMER:
 #include "bluetooth.h"
 #include "mqtt.h"
 
+#include <ctime>
+
 using namespace boost;
 
 Inverter::Inverter(const Config& config)
@@ -797,7 +799,8 @@ void Inverter::exportSpotDataDb()
 void Inverter::exportSpotDataMqtt()
 {
     MqttExport mqtt(m_config);
-    auto rc = mqtt.exportInverterData(toStdVector(m_inverters));
+    auto now = std::chrono::seconds(std::time(nullptr));
+    auto rc = mqtt.exportInverterData(now, toStdVector(m_inverters));
     if (rc != 0)
     {
         std::cout << "Error " << rc << " while publishing to MQTT Broker" << std::endl;

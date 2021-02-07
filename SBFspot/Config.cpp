@@ -438,7 +438,7 @@ int Config::readConfig()
             if (strnicmp(line, "[Array]", 7) == 0)
             {
                 parseArray = true;
-                arrays.push_back({});
+                pvArrays.push_back({});
                 continue;
             }
 
@@ -994,11 +994,11 @@ void Config::invalidArg(char *arg)
 
 bool Config::parseArrayProperty(const char *key, const char *value)
 {
-    if (stricmp(key, "ARRAY_Name") == 0) arrays.back().name = value;
-    else if(stricmp(key, "ARRAY_InverterSerial") == 0) arrays.back().inverterSerial = atoi(value);
-    else if(stricmp(key, "ARRAY_Azimuth") == 0) arrays.back().azimuth = (float)atof(value);
-    else if(stricmp(key, "ARRAY_Elevation") == 0) arrays.back().elevation = (float)atof(value);
-    else if(stricmp(key, "ARRAY_PeakPower") == 0) arrays.back().powerPeak = (float)atof(value);
+    if (stricmp(key, "ARRAY_Name") == 0) pvArrays.back().name = value;
+    else if(stricmp(key, "ARRAY_InverterSerial") == 0) pvArrays.back().inverterSerial = atoi(value);
+    else if(stricmp(key, "ARRAY_Azimuth") == 0) pvArrays.back().azimuth = (float)atof(value);
+    else if(stricmp(key, "ARRAY_Elevation") == 0) pvArrays.back().elevation = (float)atof(value);
+    else if(stricmp(key, "ARRAY_PeakPower") == 0) pvArrays.back().powerPeak = (float)atof(value);
     else return false;
 
     return true;
