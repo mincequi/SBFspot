@@ -34,8 +34,46 @@ DISCLAIMER:
 
 #include "Ethernet.h"
 
+#include "osselect.h"
+
+#ifdef WIN32
+
+// Ignore warning C4127: conditional expression is constant
+#pragma warning(disable: 4127)
+
+#include <WinSock2.h>
+#include <ws2tcpip.h>
+
+//Windows Sockets Error Codes
+//http://msdn.microsoft.com/en-us/library/ms740668(v=vs.85).aspx
+
+#endif	/* WIN32 */
+
+#if defined (linux) || defined (__APPLE__)
+#include <sys/select.h>
+#include <sys/socket.h>
+#include <ifaddrs.h>
+#include <net/if.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <errno.h>
+#include <string.h>
+#endif	// #if defined (linux) || defined (__APPLE__)
+
+#include <stdio.h>
+#include <ctype.h>
+#include <iostream>
+
+#include "Config.h"
 #include "Defines.h"
 #include "misc.h"
+
+SOCKET sock = 0;
+struct sockaddr_in addr_in, addr_out;
 
 int ethConnect(short port)
 {
@@ -54,7 +92,7 @@ int ethConnect(short port)
     // create socket for UDP
     if ((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1)
     {
-        printf ("Socket error : %i\n", sock);
+        printf ("Socket error : %s\n", strerror(errno));
         return -1;
     }
 
@@ -91,6 +129,7 @@ int ethRead(unsigned char *buf, unsigned int bufsize)
 {
     int bytes_read;
     short timeout = 5;
+    int8_t emCount = 5;
     socklen_t addr_in_len = sizeof(addr_in);
 
     fd_set readfds;
@@ -98,7 +137,7 @@ int ethRead(unsigned char *buf, unsigned int bufsize)
 	do
 	{
 		struct timeval tv;
-		tv.tv_sec = timeout;     //set timeout of reading
+        tv.tv_sec = timeout;     //set timeout of reading
 		tv.tv_usec = 0;
 
 		FD_ZERO(&readfds);
@@ -108,7 +147,7 @@ int ethRead(unsigned char *buf, unsigned int bufsize)
 		if (DEBUG_HIGHEST) printf("select() returned %d\n", rc);
 		if (rc == -1)
 		{
-			if (DEBUG_HIGHEST) printf("errno = %d\n", errno);
+            printf ("select() error : %s\n", strerror(errno));
 		}
 
 		if (FD_ISSET(sock, &readfds))
@@ -137,7 +176,10 @@ int ethRead(unsigned char *buf, unsigned int bufsize)
 		else
 			printf("recvfrom() returned an error: %d\n", bytes_read);
 
-	} while (bytes_read == 600 || bytes_read == 608); // keep on reading if data received from Energy Meter (600 bytes) or Sunny Home Manager (608 bytes)
+    } while ((bytes_read == 600 || bytes_read == 608) && --emCount > 0); // keep on reading if data received from Energy Meter (600 bytes) or Sunny Home Manager (608 bytes)
+
+    if (bytes_read == 600 || bytes_read == 608)
+        bytes_read = 0;
 
     return bytes_read;
 }
