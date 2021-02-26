@@ -38,39 +38,59 @@ DISCLAIMER:
 #include <string>
 #include <vector>
 
+struct Config;
+struct DayStats;
 struct InverterData;
 
 class Export
 {
 public:
+    //  - Inverter:
+    //      - Version
+    //      - Name
+    //      - ...
+    //      - PowerMax
+    //      - String:
+    //          - 0:
+    //              - Name
+    //              - PowerMax
+    //              - Azimuth
+    //              - Elevation
+    //          - 1:
+    //              - Name
+    //              - PowerMax
+    //              - ...
     enum class InverterProperty : uint8_t
     {
         // Static properties
-        Version = 0,    // Protocol version
-        Name = 1,       // Device name
-        StartOfProduction = 2,  // Timestamp when this inverter got installed
-        Latitude = 3,
-        Longitude = 4,
-        PowerMax = 5,   // Nominal inverter power
+        Version = 0,    // Protocol version:    uint (max 15)
+        Name = 1,       // Device name:         string (max length 23)
+        StartOfProduction = 2,  // Timestamp when this inverter got installed: uint32
+        Latitude = 3,   // float16, float32
+        Longitude = 4,  // float16, float32
+        PowerMax = 5,   // uint16, uint32
 
         // Dynamic properties
-        Timestamp = 32,     // Timestamp for this data set
-        YieldTotal = 33,    // Total yield in Wh
-        YieldToday = 34,    // Today's yield in Wh
-        Power = 35,         // Current power
-        PowerMaxToday = 36,   // Today's maximum power
+        Timestamp = 8,      // Timestamp for this data set: uint32
+        YieldTotal = 9,     // Total yield in Wh: float16, float32, uint32
+        YieldToday = 10,    // Today's yield in Wh: float16, float32, uint16, uint32
+        Power = 11,         // Current power: float16, float32, uint16, uint32
+        PowerMaxToday = 12, // Today's maximum power: float16, float32, uint16, uint32
 
-        // Key for PV array properties (stored in array of maps)
-        PvArray = 64, // Data per PV array
+        // Key for PV string properties (stored in array of maps)
+        Strings = 16,       // Data per PV array: map (max length 15)
 
         // PV array specific properties - static
-        PvArrayName = Name,
-        PvArrayAzimuth = 66,
-        PvArrayElevation = 67,
+        StringName = Name,
+        StringAzimuth = 17,     // int16
+        StringElevation = 18,   // int8
+        StringPowerMax = PowerMax, // Peak power
 
         // Dynamic
-        PvArrayPowerMax = PowerMax, // Peak power
-        PvArrayPower = Power    // Current power
+        StringPower = Power,    // Current power
+        StringPowerMaxToday = PowerMaxToday,
+
+        PropertyMax = 128 // Should be 24
     };
 
     virtual ~Export() = default;
@@ -78,7 +98,8 @@ public:
     virtual std::string name() const = 0;
 
     virtual int exportConfig(const std::vector<InverterData>& inverterData);
-    virtual int exportSpotData(const std::vector<InverterData>& inverterData);
-    virtual int exportInverterData(const std::chrono::seconds& timestamp,
-                                   const std::vector<InverterData>& inverterData) = 0;
+    virtual int exportDayStats(std::time_t timestamp,
+                               const std::vector<DayStats>& dayStats);
+    virtual int exportLiveData(std::time_t timestamp,
+                               const std::vector<InverterData>& inverterData) = 0;
 };

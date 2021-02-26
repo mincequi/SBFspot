@@ -34,7 +34,9 @@ DISCLAIMER:
 
 #pragma once
 
+#include "InverterDataStorage.h"
 #include "SQLselect.h"
+#include "mqtt.h"
 
 struct Config;
 struct InverterData;
@@ -46,7 +48,8 @@ public:
     ~Inverter();
 
     void exportConfig();
-    int process(uint32_t secondsSinceEpoch);
+    int process(std::time_t timestamp);
+    void reset();
 
 private:
     int logOn();
@@ -55,26 +58,29 @@ private:
     bool dbOpen();
     void dbClose();
 
-    int importSpotData();
+    int importSpotData(std::time_t timestamp);
     void importDayData();
     void importMonthData();
     void importEventData();
 
-    void exportSpotData(uint32_t secondsSinceEpoch);
+    void exportSpotData(std::time_t timestamp);
     void exportDayData();
     void exportMonthData();
     void exportEventData(const std::string& dt_range_csv);
 
-    void exportSpotDataDb();
-    void exportSpotDataMqtt();
+    void exportSpotDataDb(std::time_t timestamp);
+    void exportSpotDataMqtt(std::time_t timestamp);
 
     const Config& m_config;
 
     // TODO: transform this to a C++ container
     InverterData **m_inverters;
+    InverterDataStorage m_storage;
+    std::vector<DayStats>   m_dayStats;
 
 #if defined(USE_SQLITE) || defined(USE_MYSQL)
     db_SQL_Export m_db;
 #endif
+    MqttExport m_mqtt;
 };
 

@@ -47,7 +47,7 @@ class db_SQL_Export : public db_SQL_Base
 public:
     int exportDayData(InverterData *inverters[]);
     int exportMonthData(InverterData *inverters[]);
-    int exportSpotData(InverterData *inv[], time_t spottime);
+    int exportSpotData(std::time_t timestamp, const std::vector<InverterData>& data);
     int exportEventData(InverterData *inv[], TagDefs& tags);
     int exportBatteryData(InverterData *inverters[], time_t spottime);
 

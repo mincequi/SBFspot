@@ -74,6 +74,3 @@ extern unsigned long AppSerial;
 extern unsigned int cmdcode;
 
 extern TagDefs tagdefs;
-
-extern SOCKET sock;
-extern struct sockaddr_in addr_in, addr_out;

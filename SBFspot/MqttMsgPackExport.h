@@ -38,6 +38,7 @@ DISCLAIMER:
 
 #include <chrono>
 #include <mosquittopp.h>
+#include <msgpack.hpp>
 
 struct Config;
 struct InverterData;
@@ -51,10 +52,22 @@ public:
 
     std::string name() const override;
 
+    void connectToHost();
+    void disconnectFromHost();
+
     int exportConfig(const std::vector<InverterData>& inverterData) override;
-    int exportInverterData(const std::chrono::seconds& timestamp,
-                           const std::vector<InverterData>& inverterData) override;
+    int exportDayStats(std::time_t timestamp,
+                       const std::vector<DayStats>& dayStats) override;
+    int exportLiveData(std::time_t timestamp,
+                       const std::vector<InverterData>& inverterData) override;
 
 private:
+    void publish(const std::string& topic, const msgpack::sbuffer& buffer, uint8_t qos = 0);
+
+    void on_connect(int rc) override;
+    void on_disconnect(int rc) override;
+
     const Config& m_config;
+    bool m_isConnected = false;
+    std::vector<float> m_powerMaxToday;
 };

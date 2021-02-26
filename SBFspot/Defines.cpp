@@ -58,6 +58,3 @@ unsigned long AppSerial = 0;
 unsigned int cmdcode = 0;
 
 TagDefs tagdefs = TagDefs();
-
-SOCKET sock = 0;
-struct sockaddr_in addr_in, addr_out;

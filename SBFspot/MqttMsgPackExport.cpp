@@ -39,7 +39,6 @@ DISCLAIMER:
 
 #include <chrono>
 #include <thread>
-#include <msgpack.hpp>
 
 using namespace std::chrono_literals;
 
@@ -47,24 +46,11 @@ MqttMsgPackExport::MqttMsgPackExport(const Config& config)
     : m_config(config)
 {
     mosqpp::lib_init();
-    if (VERBOSE_HIGH)
-        std::cout << "MQTT: Connecting broker: " << m_config.mqtt_host << std::endl;
-    if (connect(m_config.mqtt_host.c_str()) != 0)
-    {
-        std::cout << "MQTT: Failed to connect broker: " << m_config.mqtt_host << std::endl;
-        return;
-    }
-
-    // Do NOT start loop before being connected.
-    loop_start();
 }
 
 MqttMsgPackExport::~MqttMsgPackExport()
 {
-    // Let's sleep a little bit. mosquitto expects to run in an event loop.
-    std::this_thread::sleep_for(100ms);
-    disconnect();
-    loop_stop();
+    disconnectFromHost();
     mosqpp::lib_cleanup();
 }
 
@@ -75,8 +61,10 @@ std::string MqttMsgPackExport::name() const
 
 int MqttMsgPackExport::exportConfig(const std::vector<InverterData>& inverterData)
 {
+    connectToHost();
+
     // Collect PV array config per serial
-    std::multimap<uint32_t,PvArrayConfig> arrayConfig;
+    std::multimap<uint32_t,StringConfig> arrayConfig;
     for (const auto& ac : m_config.pvArrays)
         arrayConfig.insert({ac.inverterSerial, ac});
 
@@ -110,7 +98,7 @@ int MqttMsgPackExport::exportConfig(const std::vector<InverterData>& inverterDat
         packer.pack_uint8(static_cast<uint8_t>(InverterProperty::PowerMax));
         packer.pack_float(static_cast<float>(inv.Pmax1));
         // 6. Array config
-        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::PvArray));
+        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Strings));
         packer.pack_array(arrayConfig.count(inv.Serial));   // Store an array to provide data for each PV array.
 
         auto itb = arrayConfig.lower_bound(inv.Serial);
@@ -118,31 +106,73 @@ int MqttMsgPackExport::exportConfig(const std::vector<InverterData>& inverterDat
         for (auto it = itb; it != ite; ++it)
         {
             packer.pack_map(4);
-            packer.pack_uint8(static_cast<uint8_t>(InverterProperty::PvArrayName));
+            packer.pack_uint8(static_cast<uint8_t>(InverterProperty::StringName));
             packer.pack((*it).second.name);
-            packer.pack_uint8(static_cast<uint8_t>(InverterProperty::PvArrayAzimuth));
+            packer.pack_uint8(static_cast<uint8_t>(InverterProperty::StringAzimuth));
             packer.pack_float(static_cast<float>((*it).second.azimuth));
-            packer.pack_uint8(static_cast<uint8_t>(InverterProperty::PvArrayElevation));
+            packer.pack_uint8(static_cast<uint8_t>(InverterProperty::StringElevation));
             packer.pack_float(static_cast<float>((*it).second.elevation));
-            packer.pack_uint8(static_cast<uint8_t>(InverterProperty::PvArrayPowerMax));
+            packer.pack_uint8(static_cast<uint8_t>(InverterProperty::StringPowerMax));
             packer.pack_float(static_cast<float>((*it).second.powerPeak));
         }
 
-        if (VERBOSE_HIGH) std::cout << "MQTT: Publishing topic: " << topic
-                                    << ", data size: " << sbuf.size() << std::endl;
-        if (publish(nullptr, topic.c_str(), sbuf.size(), sbuf.data(), 1, true) != 0)
-        {
-            std::cout << "MQTT: Failed to publish topic" << std::endl;
-            continue;
-        }
+        publish(topic, sbuf, 1);
     }
 
     return 0;
 }
 
-int MqttMsgPackExport::exportInverterData(const std::chrono::seconds& timestamp,
-                                          const std::vector<InverterData>& inverterData)
+int MqttMsgPackExport::exportDayStats(std::time_t timestamp,
+                                      const std::vector<DayStats>& dayStats)
 {
+    connectToHost();
+
+    for (const auto& stats : dayStats)
+    {
+        std::string topic = m_config.mqtt_topic;
+        boost::replace_first(topic, "{plantname}", m_config.plantname);
+        boost::replace_first(topic, "{serial}", std::to_string(stats.serial));
+        topic += "/today/stats";
+
+        // Pack manually (because a float in map gets stored as double and timestamp is not supported yet).
+        msgpack::sbuffer sbuf;
+        msgpack::packer<msgpack::sbuffer> packer(sbuf);
+        // Map with number of elements
+        packer.pack_map(4);
+        // 1. Protocol version
+        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Version));
+        packer.pack_uint8(0);
+        // 2. Timestamp
+        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Timestamp));
+        auto t = htonl(timestamp);
+        packer.pack_ext(4, -1); // Timestamp type
+        packer.pack_ext_body((const char*)(&t), 4);
+        // 3. Power max today
+        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::PowerMaxToday));
+        packer.pack_float(stats.powerMax);
+        // 4. Power DC
+        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Strings));
+        packer.pack_array(stats.stringPowerMax.size());   // Store an array to provide data for each Mpp.
+
+        for (uint32_t i = 0; i < stats.stringPowerMax.size(); ++i)
+        {
+            // 4.X
+            packer.pack_map(1);
+            packer.pack_uint8(static_cast<uint8_t>(InverterProperty::StringPowerMaxToday));
+            packer.pack_float(static_cast<float>(stats.stringPowerMax[i]));
+        }
+
+        publish(topic, sbuf, 1);
+    }
+
+    return 0;
+}
+
+int MqttMsgPackExport::exportLiveData(std::time_t timestamp,
+                                      const std::vector<InverterData>& inverterData)
+{
+    connectToHost();
+
     for (const auto& inv : inverterData)
     {
         std::string topic = m_config.mqtt_topic;
@@ -160,7 +190,7 @@ int MqttMsgPackExport::exportInverterData(const std::chrono::seconds& timestamp,
         packer.pack_uint8(0);
         // 2. Timestamp
         packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Timestamp));
-        auto t = htonl(timestamp.count());
+        auto t = htonl(timestamp);
         packer.pack_ext(4, -1); // Timestamp type
         packer.pack_ext_body((const char*)(&t), 4);
         // 3. Yield Total
@@ -173,7 +203,7 @@ int MqttMsgPackExport::exportInverterData(const std::chrono::seconds& timestamp,
         packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Power));
         packer.pack_float(static_cast<float>(inv.TotalPac));
         // 6. Power DC
-        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::PvArray));
+        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Strings));
         packer.pack_array(2);   // Store an array to provide data for each Mpp.
         // 6.1 MPP1
         packer.pack_map(1);
@@ -184,14 +214,58 @@ int MqttMsgPackExport::exportInverterData(const std::chrono::seconds& timestamp,
         packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Power));
         packer.pack_float(static_cast<float>(inv.Pdc2));
 
-        if (VERBOSE_HIGH) std::cout << "MQTT: Publishing topic: " << topic
-                                    << ", data size: " << sbuf.size() << std::endl;
-        if (publish(nullptr, topic.c_str(), sbuf.size(), sbuf.data(), 0, true) != 0)
-        {
-            std::cout << "MQTT: Failed to publish topic" << std::endl;
-            continue;
-        }
+        publish(topic, sbuf, 0);
     }
 
     return 0;
+}
+
+void MqttMsgPackExport::connectToHost()
+{
+    if (m_isConnected)
+    {
+        return;
+    }
+
+    if (VERBOSE_HIGH)
+        std::cout << "MQTT: Connecting broker: " << m_config.mqtt_host << std::endl;
+    if (connect(m_config.mqtt_host.c_str()) != 0)
+    {
+        std::cout << "MQTT: Failed to connect broker: " << m_config.mqtt_host << std::endl;
+        return;
+    }
+
+    // Do NOT start loop before being connected.
+    loop_start();
+}
+
+void MqttMsgPackExport::disconnectFromHost()
+{
+    // Let's sleep a little bit. mosquitto expects to run in an event loop.
+    std::this_thread::sleep_for(100ms);
+    disconnect();
+    loop_stop();
+}
+
+void MqttMsgPackExport::publish(const std::string& topic, const msgpack::sbuffer& buffer, uint8_t qos)
+{
+    if (VERBOSE_HIGH) std::cout << "MQTT: Publishing topic: " << topic
+                                << ", data size: " << buffer.size() << std::endl;
+
+    int rc = 0;
+    rc = mosqpp::mosquittopp::publish(nullptr, topic.c_str(), buffer.size(), buffer.data(), qos, true);
+    if (rc != 0)
+    {
+        std::cout << "MQTT: Failed to publish topic: " << topic << ", error: " << mosqpp::strerror(rc) << std::endl;
+    }
+}
+
+void MqttMsgPackExport::on_connect(int rc)
+{
+    if (rc == 0) m_isConnected = true;
+}
+
+void MqttMsgPackExport::on_disconnect(int)
+{
+    m_isConnected = false;
 }

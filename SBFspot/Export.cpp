@@ -34,12 +34,15 @@ DISCLAIMER:
 
 #include "Export.h"
 
+#include "Config.h"
+
 int Export::exportConfig(const std::vector<InverterData>& /*inverterData*/)
 {
     return 0;
 }
 
-int Export::exportSpotData(const std::vector<InverterData>& /*inverterData*/)
+int Export::exportDayStats(std::time_t /*timestamp*/,
+                           const std::vector<DayStats>& /*dayStats*/)
 {
     return 0;
 }

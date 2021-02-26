@@ -41,14 +41,14 @@ DISCLAIMER:
 #include "Import.h"
 // TODO: remove bluetooth header from here. Abstract bluetooth functions using Import class
 #include "bluetooth.h"
-#include "mqtt.h"
 
 #include <ctime>
 
 using namespace boost;
 
 Inverter::Inverter(const Config& config)
-    : m_config(config)
+    : m_config(config),
+      m_mqtt(config)
 {
     //Allocate array to hold InverterData structs
     m_inverters = new InverterData*[MAX_INVERTERS];
@@ -64,8 +64,7 @@ void Inverter::exportConfig()
 {
     if (m_config.mqtt == 1)
     {
-        MqttExport mqtt(m_config);
-        auto rc = mqtt.exportConfig(toStdVector(m_inverters));
+        auto rc = m_mqtt.exportConfig(toStdVector(m_inverters));
         if (rc != 0)
         {
             std::cout << "Error " << rc << " while publishing to MQTT Broker" << std::endl;
@@ -73,7 +72,7 @@ void Inverter::exportConfig()
     }
 }
 
-int Inverter::process(uint32_t secondsSinceEpoch)
+int Inverter::process(std::time_t timestamp)
 {
     int rc = logOn();
     if (rc != 0)
@@ -104,17 +103,17 @@ int Inverter::process(uint32_t secondsSinceEpoch)
             std::cerr << "bthSetPlantTime returned an error: " << rc << std::endl;
 #endif
 
-    rc = importSpotData();
+    rc = importSpotData(timestamp);
     if (rc != 0)
         return rc;
     exportConfig();
-    exportSpotData(secondsSinceEpoch);
+    exportSpotData(timestamp);
 
-    // Only export archive data, when not running in loop mode OR
-    // when in loop mode and current timestamp matches archive interval.
-    if (!m_config.loop ||
+    // Only export archive data, when not running in daemon mode OR
+    // when in daemon mode and current timestamp matches archive interval.
+    if (!m_config.daemon ||
             (m_config.archiveInterval > 0 &&
-            (secondsSinceEpoch % m_config.archiveInterval == 0)))
+            (timestamp % m_config.archiveInterval == 0)))
     {
         importDayData();
         importMonthData();
@@ -126,6 +125,13 @@ int Inverter::process(uint32_t secondsSinceEpoch)
     dbClose();
 
     return rc;
+}
+
+void Inverter::reset()
+{
+    m_dayStats.clear();
+    auto now = std::time(nullptr);
+    m_mqtt.exportDayStats(now, m_dayStats);
 }
 
 int Inverter::logOn()
@@ -221,6 +227,7 @@ void Inverter::logOff()
         logoffMultigateDevices(m_inverters);
         for (uint32_t inv=0; m_inverters[inv]!=NULL && inv<MAX_INVERTERS; inv++)
             logoffSMAInverter(m_inverters[inv]);
+        ethClose();
     }
 
     freemem(m_inverters);
@@ -250,7 +257,7 @@ void Inverter::dbClose()
 #endif
 }
 
-int Inverter::importSpotData()
+int Inverter::importSpotData(std::time_t timestamp)
 {
     int rc = 0;
     if ((rc = getInverterData(m_inverters, sbftest)) != 0)
@@ -574,6 +581,8 @@ int Inverter::importSpotData()
         }
     }
 
+    m_storage.addInverterData(timestamp, toStdVector(m_inverters));
+
     return 0;
 }
 
@@ -712,17 +721,17 @@ void Inverter::importEventData()
     }
 }
 
-void Inverter::exportSpotData(uint32_t secondsSinceEpoch)
+void Inverter::exportSpotData(std::time_t timestamp)
 {
     // MQTT is a live exporter and will not cause disk I/O.
     if (m_config.mqtt == 1)
-        exportSpotDataMqtt();
+        exportSpotDataMqtt(timestamp);
 
     // SQL, CSV, ... are archive exporters and will cause disk I/O.
     // These can severely exhaust disk space and shall be rate limited.
-    if (!m_config.loop ||
+    if (!m_config.daemon ||
             (m_config.archiveInterval > 0 &&
-             (secondsSinceEpoch % m_config.archiveInterval == 0)))
+             (timestamp % m_config.archiveInterval == 0)))
     {
         if (m_inverters[0]->DevClass == SolarInverter)
         {
@@ -744,7 +753,7 @@ void Inverter::exportSpotData(uint32_t secondsSinceEpoch)
             ExportBatteryDataToCSV(&m_config, m_inverters);
 
         if (!m_config.nosql)
-            exportSpotDataDb();
+            exportSpotDataDb(timestamp);
     }
 }
 
@@ -781,26 +790,54 @@ void Inverter::exportEventData(const std::string& dt_range_csv)
 #endif
 }
 
-void Inverter::exportSpotDataDb()
+void Inverter::exportSpotDataDb(std::time_t timestamp)
 {
 #if defined(USE_SQLITE) || defined(USE_MYSQL)
     if (!dbOpen())
         return;
 
-    time_t spottime = time(NULL);
     m_db.type_label(m_inverters);
-    m_db.device_status(m_inverters, spottime);
-    m_db.exportSpotData(m_inverters, spottime);
+    m_db.device_status(m_inverters, timestamp);
+    m_db.exportSpotData(timestamp, m_storage.getInverterData(0, timestamp));
+    m_storage.clear();
     if (hasBatteryDevice)
-        m_db.exportBatteryData(m_inverters, spottime);
+        m_db.exportBatteryData(m_inverters, timestamp);
 #endif
 }
 
-void Inverter::exportSpotDataMqtt()
+void Inverter::exportSpotDataMqtt(std::time_t timestamp)
 {
-    MqttExport mqtt(m_config);
-    auto now = std::chrono::seconds(std::time(nullptr));
-    auto rc = mqtt.exportInverterData(now, toStdVector(m_inverters));
+    auto inverterData = toStdVector(m_inverters);
+
+    // Compute statistics
+    bool isDirty = false;
+    m_dayStats.resize(inverterData.size());
+    for (uint32_t i = 0; i < inverterData.size(); ++i)
+    {
+        m_dayStats[i].serial = inverterData[i].Serial;
+        if (m_dayStats[i].powerMax < inverterData[i].Pac1)
+        {
+            m_dayStats[i].powerMax = inverterData[i].Pac1;
+            isDirty = true;
+        }
+        m_dayStats[i].stringPowerMax.resize(2);
+        if (m_dayStats[i].stringPowerMax[0] < inverterData[i].Pdc1)
+        {
+            m_dayStats[i].stringPowerMax[0] = inverterData[i].Pdc1;
+            isDirty = true;
+        }
+        if (m_dayStats[i].stringPowerMax[1] < inverterData[i].Pdc2)
+        {
+            m_dayStats[i].stringPowerMax[1] = inverterData[i].Pdc2;
+            isDirty = true;
+        }
+    }
+    if (isDirty)
+    {
+        m_mqtt.exportDayStats(timestamp, m_dayStats);
+    }
+
+    auto rc = m_mqtt.exportLiveData(timestamp, inverterData);
     if (rc != 0)
     {
         std::cout << "Error " << rc << " while publishing to MQTT Broker" << std::endl;

@@ -186,41 +186,41 @@ int db_SQL_Export::exportMonthData(InverterData *inverters[])
     return rc;
 }
 
-int db_SQL_Export::exportSpotData(InverterData *inv[], time_t spottime)
+int db_SQL_Export::exportSpotData(std::time_t timestamp, const std::vector<InverterData>& data)
 {
     std::stringstream sql;
     int rc = SQLITE_OK;
 
-    for (uint32_t i=0; inv[i]!=NULL && i<MAX_INVERTERS; i++)
+    for (const auto& inv : data)
     {
         sql.str("");
         sql << "INSERT INTO SpotData VALUES(" <<
-               spottime << ',' <<
-               inv[i]->Serial << ',' <<
-               inv[i]->Pdc1 << ',' <<
-               inv[i]->Pdc2 << ',' <<
-               (float)inv[i]->Idc1/1000 << ',' <<
-               (float)inv[i]->Idc2/1000 << ',' <<
-               (float)inv[i]->Udc1/100 << ',' <<
-               (float)inv[i]->Udc2/100 << ',' <<
-               inv[i]->Pac1 << ',' <<
-               inv[i]->Pac2 << ',' <<
-               inv[i]->Pac3 << ',' <<
-               (float)inv[i]->Iac1/1000 << ',' <<
-               (float)inv[i]->Iac2/1000 << ',' <<
-               (float)inv[i]->Iac3/1000 << ',' <<
-               (float)inv[i]->Uac1/100 << ',' <<
-               (float)inv[i]->Uac2/100 << ',' <<
-               (float)inv[i]->Uac3/100 << ',' <<
-               inv[i]->EToday << ',' <<
-               inv[i]->ETotal << ',' <<
-               (float)inv[i]->GridFreq/100 << ',' <<
-               (double)inv[i]->OperationTime/3600 << ',' <<
-               (double)inv[i]->FeedInTime/3600 << ',' <<
-               (float)inv[i]->BT_Signal << ',' <<
-               s_quoted(status_text(inv[i]->DeviceStatus)) << ',' <<
-               s_quoted(status_text(inv[i]->GridRelayStatus)) << ',' <<
-               (float)inv[i]->Temperature/100 << ")";
+               timestamp << ',' <<
+               inv.Serial << ',' <<
+               inv.Pdc1 << ',' <<
+               inv.Pdc2 << ',' <<
+               (float)inv.Idc1/1000 << ',' <<
+               (float)inv.Idc2/1000 << ',' <<
+               (float)inv.Udc1/100 << ',' <<
+               (float)inv.Udc2/100 << ',' <<
+               inv.Pac1 << ',' <<
+               inv.Pac2 << ',' <<
+               inv.Pac3 << ',' <<
+               (float)inv.Iac1/1000 << ',' <<
+               (float)inv.Iac2/1000 << ',' <<
+               (float)inv.Iac3/1000 << ',' <<
+               (float)inv.Uac1/100 << ',' <<
+               (float)inv.Uac2/100 << ',' <<
+               (float)inv.Uac3/100 << ',' <<
+               inv.EToday << ',' <<
+               inv.ETotal << ',' <<
+               (float)inv.GridFreq/100 << ',' <<
+               (double)inv.OperationTime/3600 << ',' <<
+               (double)inv.FeedInTime/3600 << ',' <<
+               (float)inv.BT_Signal << ',' <<
+               s_quoted(status_text(inv.DeviceStatus)) << ',' <<
+               s_quoted(status_text(inv.GridRelayStatus)) << ',' <<
+               (float)inv.Temperature/100 << ")";
 
         if ((rc = exec_query(sql.str())) != SQLITE_OK)
         {

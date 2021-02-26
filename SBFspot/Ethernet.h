@@ -34,9 +34,6 @@ DISCLAIMER:
 
 #pragma once
 
-unsigned char char2dec(char ch);
-unsigned char hexbyte2dec(char *hex);
-
 //Function prototypes
 int ethConnect(short port);
 int ethClose(void);

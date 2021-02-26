@@ -83,9 +83,6 @@ typedef ULONGLONG BT_ADDR, *PBT_ADDR;
 
 #include "Types.h"
 
-unsigned char char2dec(char ch);
-unsigned char hexbyte2dec(char *hex);
-
 #define BT_NUMRETRY 10
 #define BT_TIMEOUT  10
 
