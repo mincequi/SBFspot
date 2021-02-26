@@ -13,6 +13,12 @@
 #    bluez-dbus-cpp
 #)
 
+add_executable(inverterdatastoragetest
+    InverterDataStorageTest.cpp
+    ../EventData.cpp
+    ../InverterDataStorage.cpp
+)
+
 if (Bluetooth_FOUND)
     add_executable(bluetoothtest
         BluetoothTest.cpp

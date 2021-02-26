@@ -69,6 +69,14 @@ typedef struct
     long long watt;		// changed to signed - issue 58
 } DayData;
 
+// Holds statistics for a day
+struct DayStats
+{
+    uint32_t    serial;
+    float       powerMax;
+    std::vector<float> stringPowerMax;    // Maximum power per string
+};
+
 typedef struct
 {
     unsigned short code;
@@ -129,41 +137,41 @@ struct InverterData
     unsigned short SUSyID;
     unsigned long Serial;
     unsigned char NetID;
-    float BT_Signal;
+    float BT_Signal = 0.0f;
     time_t InverterDatetime;
     time_t WakeupTime;
     time_t SleepTime;
-    long Pdc1;
-    long Pdc2;
-    long Udc1;
-    long Udc2;
-    long Idc1;
-    long Idc2;
+    long Pdc1 = 0;
+    long Pdc2 = 0;
+    long Udc1 = 0;
+    long Udc2 = 0;
+    long Idc1 = 0;
+    long Idc2 = 0;
     long Pmax1;
     long Pmax2;
     long Pmax3;
     long TotalPac;
-    long Pac1;
-    long Pac2;
-    long Pac3;
-    long Uac1;
-    long Uac2;
-    long Uac3;
-    long Iac1;
-    long Iac2;
-    long Iac3;
-    long GridFreq;
-    long long OperationTime;
-    long long FeedInTime;
-    long long EToday;
-    long long ETotal;
+    long Pac1 = 0;
+    long Pac2 = 0;
+    long Pac3 = 0;
+    long Uac1 = 0;
+    long Uac2 = 0;
+    long Uac3 = 0;
+    long Iac1 = 0;
+    long Iac2 = 0;
+    long Iac3 = 0;
+    long GridFreq = 0;
+    long long OperationTime = 0;
+    long long FeedInTime = 0;
+    long long EToday = 0;
+    long long ETotal = 0;
     unsigned short modelID;
     char DeviceType[64];
     char DeviceClass[64];
     DEVICECLASS DevClass;
     char SWVersion[16];	//"03.01.05.R"
-    int DeviceStatus;
-    int GridRelayStatus;
+    int DeviceStatus = 0;
+    int GridRelayStatus = 0;
     int flags;
     DayData dayData[288];
     bool hasDayData;
@@ -181,7 +189,7 @@ struct InverterData
     unsigned long BatTmpVal;			// Battery temperature
     unsigned long BatVol;				// Battery voltage
     long BatAmp;						// Battery current
-    long Temperature;					// Inverter Temperature
+    long Temperature = 0;				// Inverter Temperature
     int32_t	MeteringGridMsTotWOut;		// Power grid feed-in (Out)
     int32_t MeteringGridMsTotWIn;		// Power grid reference (In)
     bool hasBattery;					// Smart Energy device

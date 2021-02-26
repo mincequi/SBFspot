@@ -26,6 +26,7 @@ set(COMMON_SOURCES
     Export.cpp
     Import.cpp
     Inverter.cpp
+    InverterDataStorage.cpp
     SBFNet.cpp
     SBFspot.cpp
     TagDefs.cpp
