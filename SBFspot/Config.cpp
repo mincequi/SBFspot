@@ -330,7 +330,7 @@ int Config::parseCmdline(int argc, char **argv)
             this->ble = 1;
 
         else if (stricmp(argv[i], "-loop") == 0)
-            this->loop = true;
+            this->daemon = true;
 
         //Show Help
         else if (stricmp(argv[i], "-?") == 0)
@@ -965,7 +965,7 @@ void Config::sayHello(int ShowHelp)
         std::cout << " -settime            Sync inverter time with host time\n";
         std::cout << " -mqtt               Publish spot data to MQTT broker\n";
         //std::cout << " -ble                Publish spot data via Bluetooth LE\n" << std::endl;
-        std::cout << " -loop               Run SBF spot in a loop (daemon mode)\n" << std::endl;
+        std::cout << " -loop               Run SBF spot in daemon mode\n" << std::endl;
 
         std::cout << "Libraries used:\n";
 #if defined(USE_SQLITE)

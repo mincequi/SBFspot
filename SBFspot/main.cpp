@@ -75,7 +75,7 @@ int main(int argc, char **argv)
     if (VERBOSE_NORMAL) print_error(stdout, PROC_INFO, "Starting...\n");
 
     Timer timer(cfg);
-    if (!timer.isBright() && (cfg.forceInq == 0) && (!cfg.loop))
+    if (!timer.isBright() && (cfg.forceInq == 0) && (!cfg.daemon))
     {
         if (quiet == 0) puts("Nothing to do... it's dark. Use -finq to force inquiry.");
         return 0;
@@ -88,15 +88,20 @@ int main(int argc, char **argv)
         return(2);
     }
 
+    Inverter inverter(cfg);
     do
     {
-        auto timePoint = timer.nextTimePoint();
+        bool isStartOfDay = false;
+        auto timePoint = timer.nextTimePoint(&isStartOfDay);
+        if (isStartOfDay)
+        {
+            inverter.reset();
+        }
         std::this_thread::sleep_until(timePoint);
 
-        Inverter inverter(cfg);
         inverter.process(timePoint.time_since_epoch() / std::chrono::seconds(1));
     }
-    while(cfg.loop);
+    while(cfg.daemon);
 
     if (VERBOSE_NORMAL) print_error(stdout, PROC_INFO, "Done.\n");
 

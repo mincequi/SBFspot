@@ -62,11 +62,11 @@ bool Timer::isBright() const
     return true;
 }
 
-std::chrono::system_clock::time_point Timer::nextTimePoint() const
+std::chrono::system_clock::time_point Timer::nextTimePoint(bool* isStartOfDay)
 {
     std::chrono::system_clock::time_point timePoint;
-    // If we do not loop, we check immediately
-    if (!m_config.loop)
+    // If we are not in daemon mode, we check immediately
+    if (!m_config.daemon)
         timePoint = std::chrono::system_clock::now();
 
     // If dark, compute next time point after sunrise
@@ -86,9 +86,16 @@ std::chrono::system_clock::time_point Timer::nextTimePoint() const
         }
 
         timePoint = std::chrono::system_clock::from_time_t(boost::posix_time::to_time_t(date));
+        m_isEndOfDay = true;
     }
     else
     {
+        if (m_isEndOfDay)
+        {
+            m_isEndOfDay = false;
+            if (isStartOfDay)
+                *isStartOfDay = true;
+        }
         auto seconds = time(nullptr);
         seconds /= m_config.liveInterval;
         ++seconds;
