@@ -34,13 +34,8 @@ DISCLAIMER:
 
 #pragma once
 
-#include <chrono>
-#include <string>
-#include <vector>
-
-struct Config;
-struct DayStats;
-struct InverterData;
+#include <ctime>
+#include "Types.h"
 
 class Export
 {
@@ -72,6 +67,7 @@ public:
 
         // Dynamic properties
         Timestamp = 8,      // Timestamp for this data set: uint32
+        Interval = 13,      // Interval (in seconds) for this data set.
         YieldTotal = 9,     // Total yield in Wh: float16, float32, uint32
         YieldToday = 10,    // Today's yield in Wh: float16, float32, uint16, uint32
         Power = 11,         // Current power: float16, float32, uint16, uint32
@@ -87,6 +83,7 @@ public:
         StringPowerMax = PowerMax, // Peak power
 
         // Dynamic
+        StringInterval = Interval,
         StringPower = Power,    // Current power
         StringPowerMaxToday = PowerMaxToday,
 
@@ -102,4 +99,6 @@ public:
                                const std::vector<DayStats>& dayStats);
     virtual int exportLiveData(std::time_t timestamp,
                                const std::vector<InverterData>& inverterData) = 0;
+    virtual int exportDayData(std::time_t timestamp,
+                              const DataPerInverter& inverterData);
 };

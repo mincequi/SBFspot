@@ -42,8 +42,33 @@ DISCLAIMER:
 #include <algorithm>
 #include <thread>
 
+
+#include <msgpack.hpp>
+
+enum your_enum {
+    elem1 = 129,
+    elem2 = 151
+};
+MSGPACK_ADD_ENUM(your_enum);
+
+struct gps {
+    int lat = 233453;
+    int lon = 342322;
+    int alt = 344;
+MSGPACK_DEFINE(lat,lon,alt);
+};
+
+
 int main()
 {
+    msgpack::sbuffer sbuf;
+    msgpack::packer<msgpack::sbuffer> packer(sbuf);
+    packer.pack(gps());
+
+    std::vector<uint8_t> buffer(sbuf.size());
+    std::memcpy(buffer.data(), sbuf.data(), sbuf.size());
+    std::cerr << "buffersize: " << buffer.size() << std::endl;
+
     debug = 5;
     verbose = 5;
 

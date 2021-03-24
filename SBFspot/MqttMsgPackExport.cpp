@@ -220,6 +220,63 @@ int MqttMsgPackExport::exportLiveData(std::time_t timestamp,
     return 0;
 }
 
+int MqttMsgPackExport::exportDayData(std::time_t timestamp, const DataPerInverter& inverterData)
+{
+    connectToHost();
+
+    for (const auto& inv : inverterData)
+    {
+        std::string topic = m_config.mqtt_topic;
+        boost::replace_first(topic, "{plantname}", m_config.plantname);
+        boost::replace_first(topic, "{serial}", std::to_string(inv.first));
+        topic += "/day/data";
+
+        // Pack manually (because a float in map gets stored as double and timestamp is not supported yet).
+        msgpack::sbuffer sbuf;
+        msgpack::packer<msgpack::sbuffer> packer(sbuf);
+        // Map with number of elements
+        packer.pack_map(3);
+        // 1. Protocol version
+        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Version));
+        packer.pack_uint8(0);
+        // 2. Timestamp
+        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Timestamp));
+        packer.pack_array(inv.second.size());
+        for (const auto& p : inv.second) {
+            auto t = htonl(p.InverterDatetime);
+            packer.pack_ext(4, -1); // Timestamp type
+            packer.pack_ext_body((const char*)(&t), 4);
+        }
+        // 3. Power AC
+        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Power));
+        packer.pack_array(inv.second.size());
+        for (const auto& p : inv.second) {
+            packer.pack_unsigned_int(p.TotalPac);
+        }
+        // 4. Power DC
+        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Strings));
+        packer.pack_array(2);   // Store an array to provide data for each Mpp.
+        // 4.1 MPP1
+        packer.pack_map(1);
+        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Power));
+        packer.pack_array(inv.second.size());
+        for (const auto& p : inv.second) {
+            packer.pack_unsigned_int(p.Pdc1);
+        }
+        // 4.2 MPP2
+        packer.pack_map(1);
+        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Power));
+        packer.pack_array(inv.second.size());
+        for (const auto& p : inv.second) {
+            packer.pack_unsigned_int(p.Pdc2);
+        }
+
+        publish(topic, sbuf, 0);
+    }
+
+    return 0;
+}
+
 void MqttMsgPackExport::connectToHost()
 {
     if (m_isConnected)

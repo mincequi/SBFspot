@@ -46,3 +46,9 @@ int Export::exportDayStats(std::time_t /*timestamp*/,
 {
     return 0;
 }
+
+int Export::exportDayData(std::time_t /*timestamp*/,
+                          const DataPerInverter& /*inverterData*/)
+{
+    return 0;
+}

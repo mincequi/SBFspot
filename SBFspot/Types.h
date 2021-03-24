@@ -34,6 +34,8 @@ DISCLAIMER:
 
 #pragma once
 
+#include <list>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -338,3 +340,5 @@ typedef enum
     E_LOGONFAILED	= -11,	// Logon failed, other than Invalid Password (E_INVPASSW)
     E_COMM			= -12	// General communication error
 } E_SBFSPOT;
+
+using DataPerInverter = std::map<uint32_t, std::list<InverterData>>;

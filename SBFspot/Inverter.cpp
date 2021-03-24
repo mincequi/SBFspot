@@ -104,8 +104,9 @@ int Inverter::process(std::time_t timestamp)
 #endif
 
     rc = importSpotData(timestamp);
-    if (rc != 0)
-        return rc;
+    if (rc != 0) {
+        std::cerr << "Importing live data failed." << std::endl;
+    }
     exportConfig();
     exportSpotData(timestamp);
 
@@ -753,7 +754,22 @@ void Inverter::exportSpotData(std::time_t timestamp)
             ExportBatteryDataToCSV(&m_config, m_inverters);
 
         if (!m_config.nosql)
+        {
             exportSpotDataDb(timestamp);
+
+            if (m_config.mqtt == 1)
+            {
+                // Create timestamp for start of day
+                std::tm* lt = std::localtime(&timestamp);
+                lt->tm_hour = 0;
+                lt->tm_min = 0;
+                lt->tm_sec = 0;
+                auto tsStart = mktime(lt);
+                // Get data from DB
+                auto data = m_db.getInverterData(tsStart, timestamp);
+                m_mqtt.exportDayData(tsStart, data);
+            }
+        }
     }
 }
 

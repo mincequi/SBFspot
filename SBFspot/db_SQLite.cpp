@@ -363,6 +363,41 @@ int db_SQL_Base::get_config(const std::string key, int &value)
 	return rc;
 }
 
+DataPerInverter db_SQL_Base::getInverterData(std::time_t startTime, std::time_t endTime)
+{
+    std::stringstream sql;
+    sql << "SELECT TimeStamp,Serial,Pdc1,Pdc2,Pac1,Pac2,Pac3 FROM SpotData WHERE"
+        " TimeStamp >= " << startTime <<
+        " AND TimeStamp <= " << endTime;
+
+    sqlite3_stmt *pStmt = nullptr;
+    auto rc = sqlite3_prepare_v2(m_dbHandle, sql.str().c_str(), -1, &pStmt, NULL);
+    if (pStmt == nullptr || rc != SQLITE_OK)
+    {
+        std::cerr << "SQL error: " << rc;
+        return {};
+    }
+
+    DataPerInverter out;
+    while (sqlite3_step(pStmt) == SQLITE_ROW)
+    {
+        InverterData data;
+        data.InverterDatetime = sqlite3_column_int64(pStmt, 0);
+        data.Serial = sqlite3_column_int64(pStmt, 1);
+        data.Pdc1 = sqlite3_column_int(pStmt, 2);
+        data.Pdc2 = sqlite3_column_int(pStmt, 3);
+        data.Pac1 = sqlite3_column_int(pStmt, 4);
+        data.Pac2 = sqlite3_column_int(pStmt, 5);
+        data.Pac3 = sqlite3_column_int(pStmt, 6);
+        data.TotalPac = data.Pac1 + data.Pac2 + data.Pac3;
+        out[data.Serial].push_back(data);
+    }
+
+    sqlite3_finalize(pStmt);
+
+    return out;
+}
+
 std::string db_SQL_Base::timestamp(void)
 {
     char buffer[100];

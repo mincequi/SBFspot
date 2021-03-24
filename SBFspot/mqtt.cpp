@@ -204,3 +204,15 @@ int MqttExport::exportLiveData(std::time_t timestamp,
 
 	return rc;
 }
+
+int MqttExport::exportDayData(std::time_t timestamp, const DataPerInverter& inverterData)
+{
+    if (m_config.mqtt_item_format != "MSGPACK")
+        return 0;
+
+#if(!defined MOSQUITTO_FOUND || !defined MSGPACK_FOUND)
+    return 0;
+#else
+    return m_msgPackExport.exportDayData(timestamp, inverterData);
+#endif
+}

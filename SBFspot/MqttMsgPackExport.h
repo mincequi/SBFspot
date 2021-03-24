@@ -60,6 +60,8 @@ public:
                        const std::vector<DayStats>& dayStats) override;
     int exportLiveData(std::time_t timestamp,
                        const std::vector<InverterData>& inverterData) override;
+    int exportDayData(std::time_t timestamp,
+                      const DataPerInverter& inverterData) override;
 
 private:
     void publish(const std::string& topic, const msgpack::sbuffer& buffer, uint8_t qos = 0);

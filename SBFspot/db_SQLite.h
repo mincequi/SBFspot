@@ -80,6 +80,8 @@ public:
 	int set_config(const std::string key, const std::string value);
 	int get_config(const std::string key, std::string &value);
 	int get_config(const std::string key, int &value);
+    // Obtain InverterData set for given time span
+    DataPerInverter getInverterData(std::time_t startTime, std::time_t endTime);
 
 protected:
 	std::string s_quoted(std::string str) { return "'" + str + "'"; }
