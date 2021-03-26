@@ -74,3 +74,5 @@ extern unsigned long AppSerial;
 extern unsigned int cmdcode;
 
 extern TagDefs tagdefs;
+
+extern SOCKET sock;

@@ -72,7 +72,6 @@ DISCLAIMER:
 #include "Defines.h"
 #include "misc.h"
 
-SOCKET sock = 0;
 struct sockaddr_in addr_in, addr_out;
 
 int ethConnect(short port)

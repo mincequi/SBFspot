@@ -58,3 +58,5 @@ unsigned long AppSerial = 0;
 unsigned int cmdcode = 0;
 
 TagDefs tagdefs = TagDefs();
+
+SOCKET sock = 0;
