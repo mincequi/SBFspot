@@ -1,0 +1,3 @@
+[submodule "SBFspot/thirdparty/sma-emeter-and-inverter-to-influxdb-cpp"]
+	path = SBFspot/thirdparty/sma-emeter-and-inverter-to-influxdb-cpp
+	url = https://github.com/mincequi/sma-emeter-and-inverter-to-influxdb-cpp.git

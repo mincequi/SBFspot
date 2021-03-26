@@ -36,6 +36,7 @@ set(COMMON_SOURCES
     misc.cpp
     mqtt.cpp
     sunrise_sunset.cpp
+    sma/EnergyMeter.cpp
 )
 
 FILE(GLOB SQLITE_RESOURCES *SQLite.sql)
@@ -109,10 +110,17 @@ if (Mosquitto_FOUND)
 endif()
 
 add_subdirectory(tests)
+add_subdirectory(thirdparty/sma-emeter-and-inverter-to-influxdb-cpp)
+
+target_include_directories(${PROJECT_NAME}
+PRIVATE
+    ./
+)
 
 target_link_libraries(${PROJECT_NAME}
     Boost::date_time
     ${COMMON_LIBRARIES}
+    emeter-grabber
 )
 
 install(TARGETS ${PROJECT_NAME}

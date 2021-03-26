@@ -35,6 +35,7 @@ DISCLAIMER:
 #include "MqttMsgPackExport.h"
 
 #include "Config.h"
+#include "LiveData.h"
 #include "SBFspot.h"
 
 #include <chrono>
@@ -216,6 +217,44 @@ int MqttMsgPackExport::exportLiveData(std::time_t timestamp,
 
         publish(topic, sbuf, 0);
     }
+
+    return 0;
+}
+
+int MqttMsgPackExport::exportLiveData(const LiveData& liveData)
+{
+    if (!liveData.isValid) {
+        return -1;
+    }
+
+    connectToHost();
+
+    std::string topic = m_config.mqtt_topic;
+    boost::replace_first(topic, "{plantname}", m_config.plantname);
+    boost::replace_first(topic, "{serial}", std::to_string(liveData.serial));
+    topic += "/live";
+
+    // Pack manually (because a float in map gets stored as double and timestamp is not supported yet).
+    msgpack::sbuffer sbuf;
+    msgpack::packer<msgpack::sbuffer> packer(sbuf);
+    // Map with number of elements
+    packer.pack_map(4);
+    // 1. Protocol version
+    packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Version));
+    packer.pack_uint8(0);
+    // 2. Protocol version
+    packer.pack_uint8(static_cast<uint8_t>(InverterProperty::DeviceType));
+    packer.pack_uint8(static_cast<uint8_t>(liveData.deviceType));
+    // 3. Timestamp
+    packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Timestamp));
+    uint32_t t = htonl(liveData.timestamp);
+    packer.pack_ext(4, -1); // Timestamp type
+    packer.pack_ext_body((const char*)(&t), 4);
+    // 4. Power AC
+    packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Power));
+    packer.pack(liveData.powerTotal);
+
+    publish(topic, sbuf, 0);
 
     return 0;
 }

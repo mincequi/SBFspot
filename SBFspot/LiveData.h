@@ -34,39 +34,19 @@ DISCLAIMER:
 
 #pragma once
 
-#include "Export.h"
-#if(defined MOSQUITTO_FOUND && defined MSGPACK_FOUND)
-#include <mosquittopp.h>
-#include "MqttMsgPackExport.h"
-#endif
+#include "Types.h"
 
-struct Config;
-struct InverterData;
+#include <ctime>
 
-class MqttExport : public Export
-#if(defined MOSQUITTO_FOUND && defined MSGPACK_FOUND)
-        , mosqpp::mosquittopp
-#endif
-{
-public:
-    MqttExport(const Config& config);
-    ~MqttExport();
+struct LiveData {
+    // Type specific members
+    bool isValid = false;
 
-    std::string name() const override;
+    // Static device specific members
+    DEVICECLASS deviceType = AllDevices;
+    uint32_t serial = 0;
 
-    int exportConfig(const std::vector<InverterData>& inverterData) override;
-    int exportDayStats(std::time_t timestamp,
-                       const std::vector<DayStats>& inverterData) override;
-    int exportLiveData(std::time_t timestamp,
-                       const std::vector<InverterData>& inverterData) override;
-    int exportLiveData(const LiveData& liveData) override;
-    int exportDayData(std::time_t timestamp,
-                      const DataPerInverter& inverterData) override;
-
-private:
-    const Config& m_config;
-
-#if(defined MOSQUITTO_FOUND && defined MSGPACK_FOUND)
-    MqttMsgPackExport m_msgPackExport;
-#endif
+    // Dynamic device specific members
+    std::time_t timestamp = 0;
+    int32_t powerTotal = 0;
 };

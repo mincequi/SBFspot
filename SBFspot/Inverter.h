@@ -35,8 +35,10 @@ DISCLAIMER:
 #pragma once
 
 #include "InverterDataStorage.h"
+#include "LiveData.h"
 #include "SQLselect.h"
 #include "mqtt.h"
+#include "sma/EnergyMeter.h"
 
 struct Config;
 struct InverterData;
@@ -82,5 +84,7 @@ private:
     db_SQL_Export m_db;
 #endif
     MqttExport m_mqtt;
+    sma::EnergyMeter m_smaEnergyMeter;
+    LiveData    m_smaEnergyMeterLiveData;
 };
 

@@ -60,6 +60,7 @@ public:
                        const std::vector<DayStats>& dayStats) override;
     int exportLiveData(std::time_t timestamp,
                        const std::vector<InverterData>& inverterData) override;
+    int exportLiveData(const LiveData& emeterData) override;
     int exportDayData(std::time_t timestamp,
                       const DataPerInverter& inverterData) override;
 

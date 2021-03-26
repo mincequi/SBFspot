@@ -74,6 +74,9 @@ void Inverter::exportConfig()
 
 int Inverter::process(std::time_t timestamp)
 {
+    m_smaEnergyMeterLiveData = m_smaEnergyMeter.importLiveData();
+    m_smaEnergyMeterLiveData.timestamp = timestamp;
+
     int rc = logOn();
     if (rc != 0)
     {
@@ -854,6 +857,11 @@ void Inverter::exportSpotDataMqtt(std::time_t timestamp)
     }
 
     auto rc = m_mqtt.exportLiveData(timestamp, inverterData);
+    if (rc != 0)
+    {
+        std::cout << "Error " << rc << " while publishing to MQTT Broker" << std::endl;
+    }
+    rc = m_mqtt.exportLiveData(m_smaEnergyMeterLiveData);
     if (rc != 0)
     {
         std::cout << "Error " << rc << " while publishing to MQTT Broker" << std::endl;

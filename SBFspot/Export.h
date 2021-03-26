@@ -37,6 +37,8 @@ DISCLAIMER:
 #include <ctime>
 #include "Types.h"
 
+struct LiveData;
+
 class Export
 {
 public:
@@ -64,14 +66,15 @@ public:
         Latitude = 3,   // float16, float32
         Longitude = 4,  // float16, float32
         PowerMax = 5,   // uint16, uint32
+        DeviceType = 6,
 
         // Dynamic properties
         Timestamp = 8,      // Timestamp for this data set: uint32
-        Interval = 13,      // Interval (in seconds) for this data set.
-        YieldTotal = 9,     // Total yield in Wh: float16, float32, uint32
-        YieldToday = 10,    // Today's yield in Wh: float16, float32, uint16, uint32
-        Power = 11,         // Current power: float16, float32, uint16, uint32
-        PowerMaxToday = 12, // Today's maximum power: float16, float32, uint16, uint32
+        Interval = 9,      // Interval (in seconds) for this data set.
+        YieldTotal = 10,     // Total yield in Wh: float16, float32, uint32
+        YieldToday = 11,    // Today's yield in Wh: float16, float32, uint16, uint32
+        Power = 12,         // Current power: float16, float32, uint16, uint32
+        PowerMaxToday = 13, // Today's maximum power: float16, float32, uint16, uint32
 
         // Key for PV string properties (stored in array of maps)
         Strings = 16,       // Data per PV array: map (max length 15)
@@ -90,6 +93,12 @@ public:
         PropertyMax = 128 // Should be 24
     };
 
+    enum class DeviceType : uint8_t {
+        Unknown = 0,
+        SolarInverter = 1,
+        EnergyMeter = 2
+    };
+
     virtual ~Export() = default;
 
     virtual std::string name() const = 0;
@@ -99,6 +108,7 @@ public:
                                const std::vector<DayStats>& dayStats);
     virtual int exportLiveData(std::time_t timestamp,
                                const std::vector<InverterData>& inverterData) = 0;
+    virtual int exportLiveData(const LiveData& emeterData) = 0;
     virtual int exportDayData(std::time_t timestamp,
                               const DataPerInverter& inverterData);
 };

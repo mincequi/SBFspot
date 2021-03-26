@@ -80,7 +80,7 @@ int MqttExport::exportDayStats(std::time_t timestamp,
 }
 
 int MqttExport::exportLiveData(std::time_t timestamp,
-                                   const std::vector<InverterData>& inverterData)
+                               const std::vector<InverterData>& inverterData)
 {
     if (m_config.mqtt_item_format == "MSGPACK") {
 #if(!defined MOSQUITTO_FOUND || !defined MSGPACK_FOUND)
@@ -203,6 +203,19 @@ int MqttExport::exportLiveData(std::time_t timestamp,
     } // for (const auto& inv : inverterData)
 
 	return rc;
+}
+
+int MqttExport::exportLiveData(const LiveData& liveData)
+{
+    if (m_config.mqtt_item_format == "MSGPACK") {
+#if(!defined MOSQUITTO_FOUND || !defined MSGPACK_FOUND)
+        return 0;
+#else
+        return m_msgPackExport.exportLiveData(liveData);
+#endif
+    }
+
+    return 0;
 }
 
 int MqttExport::exportDayData(std::time_t timestamp, const DataPerInverter& inverterData)
