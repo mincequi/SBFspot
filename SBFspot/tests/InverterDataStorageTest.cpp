@@ -35,6 +35,8 @@ DISCLAIMER:
 #include "../InverterDataStorage.h"
 #include "../Types.h"
 
+#include <cassert>
+
 int main()
 {
     InverterDataStorage storage;
