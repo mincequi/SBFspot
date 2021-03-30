@@ -32,6 +32,8 @@ DISCLAIMER:
 
 ************************************************************************************************/
 
+#include "osselect.h"
+
 #include "Config.h"
 #include "Inverter.h"
 #include "Timer.h"

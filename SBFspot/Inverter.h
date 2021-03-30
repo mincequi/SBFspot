@@ -34,6 +34,8 @@ DISCLAIMER:
 
 #pragma once
 
+#include "osselect.h"
+
 #include "InverterDataStorage.h"
 #include "LiveData.h"
 #include "SQLselect.h"

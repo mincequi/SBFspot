@@ -34,6 +34,7 @@ DISCLAIMER:
 
 #pragma once
 
+#include "osselect.h"
 #include <string>
 
 struct Config;

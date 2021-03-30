@@ -19,11 +19,11 @@
 #define _USE_32BIT_TIME_T
 
 #pragma region Includes
-#include <stdio.h>
-#include <windows.h>
 #include "ServiceInstaller.h"
 #include "ServiceBase.h"
 #include "UploadService.h"
+#include <stdio.h>
+#include <windows.h>
 #pragma endregion
 
 void WriteEventLogEntry(PWSTR pszMessage, WORD wType);

@@ -76,6 +76,12 @@
     <ClCompile Include="mqtt.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="InverterDataStorage.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sma\EnergyMeter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="bluetooth.h">
@@ -160,6 +166,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="mqtt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="InverterDataStorage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sma\EnergyMeter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
