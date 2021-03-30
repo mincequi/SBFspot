@@ -32,61 +32,28 @@ DISCLAIMER:
 
 ************************************************************************************************/
 
-#pragma once
+#include "Ethernet_qt.h"
 
-#include "osselect.h"
+#include <QNetworkDatagram>
 
-#include "Cache.h"
-#include "LiveData.h"
-#include "SQLselect.h"
-#include "mqtt.h"
-#include "sma/EnergyMeter.h"
+#include "Processor.h"
 
-struct Config;
-struct InverterData;
-
-class Inverter
+Ethernet_qt::Ethernet_qt(Processor& processor)
+    : m_processor(processor)
 {
-public:
-    Inverter(const Config& config);
-    ~Inverter();
+    m_udpSocket.bind(QHostAddress::AnyIPv4, 9522, QUdpSocket::ShareAddress);
+    m_udpSocket.joinMulticastGroup(QHostAddress("239.12.255.254"));
 
-    void exportConfig();
-    int process(std::time_t timestamp);
-    void reset();
+    QObject::connect(&m_udpSocket, &QUdpSocket::readyRead, this, &Ethernet_qt::onReadyRead);
+}
 
-private:
-    int logOn();
-    void logOff();
-
-    bool dbOpen();
-    void dbClose();
-
-    int importSpotData(std::time_t timestamp);
-    void importDayData();
-    void importMonthData();
-    void importEventData();
-
-    void exportSpotData(std::time_t timestamp);
-    void exportDayData();
-    void exportMonthData();
-    void exportEventData(const std::string& dt_range_csv);
-
-    void exportSpotDataDb(std::time_t timestamp);
-    void exportSpotDataMqtt(std::time_t timestamp);
-
-    const Config& m_config;
-
-    // TODO: transform this to a C++ container
-    InverterData **m_inverters;
-    Cache m_storage;
-    std::vector<DayStats>   m_dayStats;
-
-#if defined(USE_SQLITE) || defined(USE_MYSQL)
-    db_SQL_Export m_db;
-#endif
-    MqttExport m_mqtt;
-    sma::EnergyMeter m_smaEnergyMeter;
-    LiveData    m_smaEnergyMeterLiveData;
-};
-
+void Ethernet_qt::onReadyRead()
+{
+    while (m_udpSocket.hasPendingDatagrams()) {
+        QNetworkDatagram datagram = m_udpSocket.receiveDatagram();
+        qInfo("Received datagram. size: %i", datagram.data().size());
+        if (datagram.data().size() == 600) {
+            m_processor.onProcessEnergyMeterPacket(datagram.data());
+        }
+    }
+}

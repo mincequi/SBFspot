@@ -34,6 +34,9 @@ DISCLAIMER:
 
 #pragma once
 
+#include <cstdint>
+#include <vector>
+
 struct LiveData;
 
 namespace sma {
@@ -44,6 +47,9 @@ public:
     ~EnergyMeter();
 
     LiveData importLiveData() const;
+    static LiveData poll_emeters(int timeout);
+
+    static LiveData parsePacket(const char* data, uint16_t size);
 };
 
 }

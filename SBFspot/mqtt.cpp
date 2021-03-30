@@ -114,7 +114,7 @@ int MqttExport::exportLiveData(std::time_t timestamp,
 
 		// Fill host/port/topic
         boost::replace_first(mqtt_command_line, "{host}", m_config.mqtt_host);
-        boost::replace_first(mqtt_command_line, "{port}", m_config.mqtt_port);
+        boost::replace_first(mqtt_command_line, "{port}", std::to_string(m_config.mqtt_port));
         boost::replace_first(mqtt_command_line, "{topic}", m_config.mqtt_topic);
 
 		mqtt_message.str("");

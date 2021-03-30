@@ -32,40 +32,13 @@ DISCLAIMER:
 
 ************************************************************************************************/
 
-#include "../InverterDataStorage.h"
-#include "../Types.h"
+#pragma once
 
-#include <cassert>
+#include <vector>
 
-int main()
-{
-    InverterDataStorage storage;
-    InverterData data11, data12, data21, data22, data31, data32, data41, data42;
-    data11.Pdc1 = 10000;
-    data12.Pdc1 = 30000;
-    data21.Pdc1 = 30000;
-    data21.Serial = 12;
-    data22.Pdc1 = 50000;
-    data31.Pdc1 = 20000;
-    data31.Serial = 34;
-    data32.Pdc1 = 10000;
-    data41.Pdc1 = 40000;
-    data42.Pdc1 = 30000;
+class LiveData;
 
-    storage.addInverterData(10, { data11, data12 });
-    storage.addInverterData(20, { data21, data22 });
-    storage.addInverterData(30, { data31, data32 });
-    storage.addInverterData(40, { data41, data42 });
-
-    auto result = storage.getInverterData(20, 30);
-    assert(result.at(0).Pdc1 == 25000);
-    assert(result.at(0).Serial == 34);
-    assert(result.at(1).Pdc1 == 30000);
-
-    result = storage.getInverterData(11, 25); // -> 20
-    assert(result.at(0).Pdc1 == 30000);
-    assert(result.at(0).Serial == 12);
-    assert(result.at(1).Pdc1 == 50000);
-
-    return 0;
-}
+class Serializer {
+public:
+    virtual std::vector<char> serialize(const LiveData& liveData) const = 0;
+};

@@ -48,7 +48,7 @@ DISCLAIMER:
 
 int64_t get_longlong(uint8_t *buf)
 {
-    register int64_t lnglng = 0;
+    int64_t lnglng = 0;
 
     lnglng += *(buf+7);
     lnglng <<= 8;
@@ -71,7 +71,7 @@ int64_t get_longlong(uint8_t *buf)
 
 int32_t get_long(uint8_t *buf)
 {
-    register int32_t lng = 0;
+    int32_t lng = 0;
 
     lng += *(buf+3);
     lng <<= 8;
@@ -86,7 +86,7 @@ int32_t get_long(uint8_t *buf)
 
 short get_short(uint8_t *buf)
 {
-    register short shrt = 0;
+    short shrt = 0;
 
     shrt += *(buf+1);
     shrt <<= 8;
@@ -122,12 +122,12 @@ char *strfgmtime_t (const char *format, const time_t rawtime)
 }
 
 //Print time as local time
-char *strftime_t (const char *format, const time_t rawtime)
+char *strftime_t (const std::string& format, const time_t rawtime)
 {
     static char buffer[256];
     struct tm tm_struct;
     memcpy(&tm_struct, localtime(&rawtime), sizeof(tm_struct));
-    strftime(buffer, sizeof(buffer), format, &tm_struct);
+    strftime(buffer, sizeof(buffer), format.c_str(), &tm_struct);
     return buffer;
 }
 

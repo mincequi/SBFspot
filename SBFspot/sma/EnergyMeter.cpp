@@ -50,15 +50,29 @@ DISCLAIMER:
 #include <SpeedwireEmeterProtocol.hpp>
 #include <ObisFilter.hpp>
 
-/**
- +  poll all configured sockets for emeter udp packets and pass emeter data to the obis filter
- */
-static bool poll_emeters(const std::vector<SpeedwireSocket>& sockets,
-                         struct pollfd* const fds,
-                         const int timeout,
-                         ObisFilter& filter,
-                         LiveData* liveData) {
-    unsigned char multicast_packet[1024];
+namespace sma {
+
+EnergyMeter::EnergyMeter() {
+}
+
+EnergyMeter::~EnergyMeter() {
+}
+
+LiveData EnergyMeter::importLiveData() const {
+    return {};
+}
+
+
+LiveData EnergyMeter::poll_emeters(const int timeout) {
+    // open socket(s) to receive sma emeter packets from any local interface
+    LocalHost localhost;
+    const std::vector<SpeedwireSocket> sockets = SpeedwireSocketFactory::getInstance(localhost)->getRecvSockets(SpeedwireSocketFactory::MULTICAST, localhost.getLocalIPv4Addresses());
+
+    // allocate pollfd struct(s) for the socket(s)
+    struct pollfd *const fds = (struct pollfd *const) malloc(sizeof(struct pollfd) * sockets.size());
+
+    // poll sockets for inbound emeter packets
+    char multicast_packet[1024];
 
     // prepare the pollfd structure
     for (int j = 0; j < sockets.size(); ++j) {
@@ -70,7 +84,8 @@ static bool poll_emeters(const std::vector<SpeedwireSocket>& sockets,
     // wait for a packet on the configured socket
     if (poll(fds, sockets.size(), timeout) < 0) {
         perror("poll failure");
-        return false;
+        free(fds);
+        return {};
     }
 
     // determine if the socket received a packet
@@ -89,82 +104,18 @@ static bool poll_emeters(const std::vector<SpeedwireSocket>& sockets,
                 struct sockaddr_in6 src;
                 nbytes = socket.recvfrom(multicast_packet, sizeof(multicast_packet), src);
             }
-            // check if it is an sma emeter packet
-            SpeedwireHeader protocol(multicast_packet, nbytes);
-            bool valid = protocol.checkHeader();
-            if (valid) {
-                uint32_t group = protocol.getGroup();
-                uint16_t length = protocol.getLength();
-                uint16_t protocolID = protocol.getProtocolID();
-                int      offset = protocol.getPayloadOffset();
 
-                if (protocolID == SpeedwireHeader::sma_emeter_protocol_id) {
-                    printf("RECEIVED EMETER PACKET  time 0x%016llx\n", LocalHost::getTickCountInMs());
-                    SpeedwireEmeterProtocol emeter(multicast_packet + offset, nbytes - offset);
-                    uint16_t susyid = emeter.getSusyID();
-                    uint32_t serial = emeter.getSerialNumber();
-                    uint32_t timer = emeter.getTime();
-
-                    // extract obis data from the emeter packet and pass each obis data element to the obis filter
-                    int32_t signed_power_total = 0, signed_power_l1 = 0, signed_power_l2 = 0, signed_power_l3 = 0;
-                    void* obis = emeter.getFirstObisElement();
-                    while (obis != NULL) {
-                        //emeter.printObisElement(obis, stderr);
-                        // ugly hack to calculate the signed power value
-                        if (SpeedwireEmeterProtocol::getObisType(obis) == 4) {
-                            uint32_t value = SpeedwireEmeterProtocol::getObisValue4(obis);
-                            switch (SpeedwireEmeterProtocol::getObisIndex(obis)) {
-                            case  1: signed_power_total += value;  break;
-                            case  2: signed_power_total -= value;  break;
-                            case 21: signed_power_l1    += value;  break;
-                            case 22: signed_power_l1    -= value;  break;
-                            case 41: signed_power_l2    += value;  break;
-                            case 42: signed_power_l2    -= value;  break;
-                            case 61: signed_power_l3    += value;  break;
-                            case 62: signed_power_l3    -= value;  break;
-                            }
-                        }
-                        // send the obis value to the obis filter before proceeding with then next obis element
-                        filter.consume(obis, timer);
-                        obis = emeter.getNextObisElement(obis);
-                    }
-                    // send the calculated signed power values to the obis filter
-                    std::array<uint8_t, 8> obis_signed_power_total = ObisData::SignedActivePowerTotal.toByteArray();
-                    std::array<uint8_t, 8> obis_signed_power_L1    = ObisData::SignedActivePowerL1.toByteArray();
-                    std::array<uint8_t, 8> obis_signed_power_L2    = ObisData::SignedActivePowerL2.toByteArray();
-                    std::array<uint8_t, 8> obis_signed_power_L3    = ObisData::SignedActivePowerL3.toByteArray();
-                    SpeedwireByteEncoding::setUint32BigEndian(&obis_signed_power_total[4], signed_power_total);
-                    SpeedwireByteEncoding::setUint32BigEndian(&obis_signed_power_L1   [4], signed_power_l1);
-                    SpeedwireByteEncoding::setUint32BigEndian(&obis_signed_power_L2   [4], signed_power_l2);
-                    SpeedwireByteEncoding::setUint32BigEndian(&obis_signed_power_L3   [4], signed_power_l3);
-                    filter.consume(obis_signed_power_total.data(), timer);
-                    filter.consume(obis_signed_power_L1.data(), timer);
-                    filter.consume(obis_signed_power_L2.data(), timer);
-                    filter.consume(obis_signed_power_L3.data(), timer);
-                    if (liveData) {
-                        liveData->isValid = true;
-                        liveData->deviceType = ElectricityMeter;
-                        liveData->serial = serial;
-                        liveData->powerTotal = signed_power_total/10;
-                    }
-                    return true;
-                }
-            }
+            free(fds);
+            return parsePacket(multicast_packet, nbytes);
         }
     }
 
-    return false;
+    free(fds);
+    return {};
 }
 
-namespace sma {
-
-EnergyMeter::EnergyMeter() {
-}
-
-EnergyMeter::~EnergyMeter() {
-}
-
-LiveData EnergyMeter::importLiveData() const {
+LiveData EnergyMeter::parsePacket(const char* data, uint16_t size)
+{
     // define measurement filters for sma emeter packet filtering
     ObisFilter filter;
     //filter.addFilter(ObisData::PositiveActivePowerTotal);
@@ -198,22 +149,68 @@ LiveData EnergyMeter::importLiveData() const {
     filter.addFilter(ObisData::SignedActivePowerL2);      // calculated value that is not provided by emeter
     filter.addFilter(ObisData::SignedActivePowerL3);      // calculated value that is not provided by emeter
 
-    // open socket(s) to receive sma emeter packets from any local interface
-    LocalHost localhost;
-    const std::vector<SpeedwireSocket> sockets = SpeedwireSocketFactory::getInstance(localhost)->getRecvSockets(SpeedwireSocketFactory::MULTICAST, localhost.getLocalIPv4Addresses());
+    // check if it is an sma emeter packet
+    SpeedwireHeader protocol(data, size);
+    bool valid = protocol.checkHeader();
+    if (valid) {
+        uint32_t group = protocol.getGroup();
+        uint16_t length = protocol.getLength();
+        uint16_t protocolID = protocol.getProtocolID();
+        int      offset = protocol.getPayloadOffset();
 
-    // allocate pollfd struct(s) for the socket(s)
-    struct pollfd *const fds = (struct pollfd *const) malloc(sizeof(struct pollfd) * sockets.size());
+        if (protocolID == SpeedwireHeader::sma_emeter_protocol_id) {
+            printf("RECEIVED EMETER PACKET  time 0x%016llx\n", LocalHost::getTickCountInMs());
+            SpeedwireEmeterProtocol emeter(data + offset, size - offset);
+            uint16_t susyid = emeter.getSusyID();
+            uint32_t serial = emeter.getSerialNumber();
+            uint32_t timer = emeter.getTime();
 
-    // poll sockets for inbound emeter packets
-    LiveData liveData;
-    if (!poll_emeters(sockets, fds, 1000, filter, &liveData)) {
-        perror("Error polling emeter");
+            // extract obis data from the emeter packet and pass each obis data element to the obis filter
+            int32_t signed_power_total = 0, signed_power_l1 = 0, signed_power_l2 = 0, signed_power_l3 = 0;
+            void* obis = emeter.getFirstObisElement();
+            while (obis != NULL) {
+                //emeter.printObisElement(obis, stderr);
+                // ugly hack to calculate the signed power value
+                if (SpeedwireEmeterProtocol::getObisType(obis) == 4) {
+                    uint32_t value = SpeedwireEmeterProtocol::getObisValue4(obis);
+                    switch (SpeedwireEmeterProtocol::getObisIndex(obis)) {
+                    case  1: signed_power_total += value;  break;
+                    case  2: signed_power_total -= value;  break;
+                    case 21: signed_power_l1    += value;  break;
+                    case 22: signed_power_l1    -= value;  break;
+                    case 41: signed_power_l2    += value;  break;
+                    case 42: signed_power_l2    -= value;  break;
+                    case 61: signed_power_l3    += value;  break;
+                    case 62: signed_power_l3    -= value;  break;
+                    }
+                }
+                // send the obis value to the obis filter before proceeding with then next obis element
+                filter.consume(obis, timer);
+                obis = emeter.getNextObisElement(obis);
+            }
+            // send the calculated signed power values to the obis filter
+            std::array<uint8_t, 8> obis_signed_power_total = ObisData::SignedActivePowerTotal.toByteArray();
+            std::array<uint8_t, 8> obis_signed_power_L1    = ObisData::SignedActivePowerL1.toByteArray();
+            std::array<uint8_t, 8> obis_signed_power_L2    = ObisData::SignedActivePowerL2.toByteArray();
+            std::array<uint8_t, 8> obis_signed_power_L3    = ObisData::SignedActivePowerL3.toByteArray();
+            SpeedwireByteEncoding::setUint32BigEndian(&obis_signed_power_total[4], signed_power_total);
+            SpeedwireByteEncoding::setUint32BigEndian(&obis_signed_power_L1   [4], signed_power_l1);
+            SpeedwireByteEncoding::setUint32BigEndian(&obis_signed_power_L2   [4], signed_power_l2);
+            SpeedwireByteEncoding::setUint32BigEndian(&obis_signed_power_L3   [4], signed_power_l3);
+            filter.consume(obis_signed_power_total.data(), timer);
+            filter.consume(obis_signed_power_L1.data(), timer);
+            filter.consume(obis_signed_power_L2.data(), timer);
+            filter.consume(obis_signed_power_L3.data(), timer);
+            LiveData liveData;
+            liveData.isValid = true;
+            liveData.deviceType = ElectricityMeter;
+            liveData.serial = serial;
+            liveData.powerTotal = signed_power_total/10;
+            return liveData;
+        }
     }
 
-    free(fds);
-
-    return liveData;
+    return {};
 }
 
 }

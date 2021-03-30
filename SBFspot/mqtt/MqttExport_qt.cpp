@@ -32,61 +32,68 @@ DISCLAIMER:
 
 ************************************************************************************************/
 
-#pragma once
+#include "MqttExport_qt.h"
 
-#include "osselect.h"
+#include <QHostAddress>
+#include <qmqtt_message.h>
 
-#include "Cache.h"
+#include "Config.h"
 #include "LiveData.h"
-#include "SQLselect.h"
-#include "mqtt.h"
-#include "sma/EnergyMeter.h"
+#include "Serializer.h"
 
-struct Config;
-struct InverterData;
+namespace mqtt {
 
-class Inverter
+MqttExport_qt::MqttExport_qt(const Config& config, const Serializer& serializer)
+    : m_config(config),
+      m_serializer(serializer),
+      m_client(QString::fromStdString(config.mqtt_host), config.mqtt_port, false, false)
 {
-public:
-    Inverter(const Config& config);
-    ~Inverter();
+    QObject::connect(&m_client, &QMQTT::Client::error, this, &MqttExport_qt::onError);
+    m_client.connectToHost();
+}
 
-    void exportConfig();
-    int process(std::time_t timestamp);
-    void reset();
+MqttExport_qt::~MqttExport_qt()
+{
+}
 
-private:
-    int logOn();
-    void logOff();
+std::string MqttExport_qt::name() const
+{
+    return "MqttExport_qt";
+}
 
-    bool dbOpen();
-    void dbClose();
+int MqttExport_qt::exportLiveData(std::time_t /*timestamp*/,
+                                  const std::vector<InverterData>& /*inverterData*/)
+{
+    return 0;
+}
 
-    int importSpotData(std::time_t timestamp);
-    void importDayData();
-    void importMonthData();
-    void importEventData();
+int MqttExport_qt::exportLiveData(const LiveData& liveData)
+{
+    if (!m_client.isConnectedToHost()) {
+        m_client.connectToHost();
+    }
 
-    void exportSpotData(std::time_t timestamp);
-    void exportDayData();
-    void exportMonthData();
-    void exportEventData(const std::string& dt_range_csv);
+    static quint16 id = 0;
+    std::string topic = m_config.mqtt_topic;
+    boost::replace_first(topic, "{plantname}", m_config.plantname);
+    boost::replace_first(topic, "{serial}", std::to_string(liveData.serial));
+    topic += "/live";
 
-    void exportSpotDataDb(std::time_t timestamp);
-    void exportSpotDataMqtt(std::time_t timestamp);
+    auto data = m_serializer.serialize(liveData);
+    QMQTT::Message message(++id,
+                           QString::fromStdString(topic),
+                           QByteArray::fromRawData(data.data(), data.size()),
+                           0,
+                           true);
 
-    const Config& m_config;
+    m_client.publish(message);
 
-    // TODO: transform this to a C++ container
-    InverterData **m_inverters;
-    Cache m_storage;
-    std::vector<DayStats>   m_dayStats;
+    return 0;
+}
 
-#if defined(USE_SQLITE) || defined(USE_MYSQL)
-    db_SQL_Export m_db;
-#endif
-    MqttExport m_mqtt;
-    sma::EnergyMeter m_smaEnergyMeter;
-    LiveData    m_smaEnergyMeterLiveData;
-};
+void MqttExport_qt::onError(const QMQTT::ClientError error)
+{
+    qDebug() << "MQTT error:" << error;
+}
 
+}

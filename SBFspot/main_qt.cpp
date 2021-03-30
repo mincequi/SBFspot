@@ -32,61 +32,28 @@ DISCLAIMER:
 
 ************************************************************************************************/
 
-#pragma once
+#include <QCoreApplication>
 
-#include "osselect.h"
+#include "Config.h"
+#include "Ethernet_qt.h"
+#include "Processor.h"
 
-#include "Cache.h"
-#include "LiveData.h"
-#include "SQLselect.h"
-#include "mqtt.h"
-#include "sma/EnergyMeter.h"
-
-struct Config;
-struct InverterData;
-
-class Inverter
+int main(int argc, char *argv[])
 {
-public:
-    Inverter(const Config& config);
-    ~Inverter();
+    // Read the command line and store settings in config struct
+    Config config;
+    int rc = config.parseCmdline(argc, argv);
+    if (rc == -1) return 1;	// Invalid commandline - Quit, error
+    if (rc == 1) return 0;  // Nothing to do - Quit, no error
 
-    void exportConfig();
-    int process(std::time_t timestamp);
-    void reset();
+    // Read config file and store settings in config struct
+    rc = config.readConfig();   // Config struct contains fullpath to config file
+    if (rc != 0) return rc;
 
-private:
-    int logOn();
-    void logOff();
+    QCoreApplication app(argc, argv);
 
-    bool dbOpen();
-    void dbClose();
+    Processor processor(config);
+    Ethernet_qt ethernet(processor);
 
-    int importSpotData(std::time_t timestamp);
-    void importDayData();
-    void importMonthData();
-    void importEventData();
-
-    void exportSpotData(std::time_t timestamp);
-    void exportDayData();
-    void exportMonthData();
-    void exportEventData(const std::string& dt_range_csv);
-
-    void exportSpotDataDb(std::time_t timestamp);
-    void exportSpotDataMqtt(std::time_t timestamp);
-
-    const Config& m_config;
-
-    // TODO: transform this to a C++ container
-    InverterData **m_inverters;
-    Cache m_storage;
-    std::vector<DayStats>   m_dayStats;
-
-#if defined(USE_SQLITE) || defined(USE_MYSQL)
-    db_SQL_Export m_db;
-#endif
-    MqttExport m_mqtt;
-    sma::EnergyMeter m_smaEnergyMeter;
-    LiveData    m_smaEnergyMeterLiveData;
-};
-
+    return app.exec();
+}

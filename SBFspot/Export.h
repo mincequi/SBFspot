@@ -108,7 +108,7 @@ public:
                                const std::vector<DayStats>& dayStats);
     virtual int exportLiveData(std::time_t timestamp,
                                const std::vector<InverterData>& inverterData) = 0;
-    virtual int exportLiveData(const LiveData& emeterData) = 0;
+    virtual int exportLiveData(const LiveData& liveData) = 0;
     virtual int exportDayData(std::time_t timestamp,
                               const DataPerInverter& inverterData);
 };

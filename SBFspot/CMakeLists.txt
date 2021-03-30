@@ -1,9 +1,11 @@
 project(SBFspot)
 
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.6)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+set(qmqtt_SHARED OFF)
 
 find_package(PkgConfig)
 find_package(Boost REQUIRED COMPONENTS date_time)
@@ -26,13 +28,12 @@ set(COMMON_SOURCES
     Export.cpp
     Import.cpp
     Inverter.cpp
-    InverterDataStorage.cpp
+    Cache.cpp
     SBFNet.cpp
     SBFspot.cpp
     TagDefs.cpp
     Timer.cpp
     boost_ext.cpp
-    main.cpp
     misc.cpp
     mqtt.cpp
     sunrise_sunset.cpp
@@ -93,6 +94,7 @@ endif()
 
 add_executable(${PROJECT_NAME}
     ${COMMON_SOURCES}
+    main.cpp
 )
 
 # Optional libs
@@ -110,17 +112,13 @@ if (Mosquitto_FOUND)
 endif()
 
 add_subdirectory(tests)
-add_subdirectory(thirdparty/sma-emeter-and-inverter-to-influxdb-cpp)
-
-target_include_directories(${PROJECT_NAME}
-PRIVATE
-    ./
-)
+add_subdirectory(thirdparty/libspeedwire)
+add_subdirectory(thirdparty/qmqtt)
 
 target_link_libraries(${PROJECT_NAME}
     Boost::date_time
     ${COMMON_LIBRARIES}
-    emeter-grabber
+    speedwire
 )
 
 install(TARGETS ${PROJECT_NAME}
@@ -136,4 +134,32 @@ install(FILES
     SBFspot.cfg
     DESTINATION bin/sbfspot.3
     RENAME SBFspot.default.cfg
+)
+
+# Qt specific stuff
+set(CMAKE_AUTOMOC ON)
+
+find_package(Qt5
+COMPONENTS
+    Network REQUIRED
+)
+
+add_executable(${PROJECT_NAME}_qt
+    Config.cpp
+    Defines.cpp
+    Ethernet_qt.cpp
+    Export.cpp
+    Processor.cpp
+    main_qt.cpp
+    misc.cpp
+    mqtt/MqttExport_qt.cpp
+    msgpack/MsgPackSerializer.cpp
+    sma/EnergyMeter.cpp
+)
+
+target_link_libraries(${PROJECT_NAME}_qt
+    Boost::date_time
+    Qt5::Network
+    qmqtt
+    speedwire
 )

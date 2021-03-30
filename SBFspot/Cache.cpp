@@ -32,13 +32,13 @@ DISCLAIMER:
 
 ************************************************************************************************/
 
-#include "InverterDataStorage.h"
+#include "Cache.h"
 
-InverterDataStorage::InverterDataStorage()
+Cache::Cache()
 {
 }
 
-void InverterDataStorage::addInverterData(std::time_t time, const std::vector<InverterData>& inverterData)
+void Cache::addInverterData(std::time_t time, const std::vector<InverterData>& inverterData)
 {
     if (!m_inverterData.empty() && inverterData.size() != m_inverterData.begin()->second.size()) {
         return;
@@ -47,7 +47,7 @@ void InverterDataStorage::addInverterData(std::time_t time, const std::vector<In
     m_inverterData[time] = inverterData;
 }
 
-std::vector<InverterData> InverterDataStorage::getInverterData(std::time_t startTime, std::time_t endTime)
+std::vector<InverterData> Cache::getInverterData(std::time_t startTime, std::time_t endTime)
 {
     std::vector<InverterData> inverterData(m_inverterData.begin()->second.size());
 
@@ -111,7 +111,7 @@ std::vector<InverterData> InverterDataStorage::getInverterData(std::time_t start
     return inverterData;
 }
 
-void InverterDataStorage::clear()
+void Cache::clear()
 {
     m_inverterData.clear();
 }

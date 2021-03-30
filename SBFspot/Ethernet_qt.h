@@ -34,59 +34,21 @@ DISCLAIMER:
 
 #pragma once
 
-#include "osselect.h"
+#include <QUdpSocket>
 
-#include "Cache.h"
-#include "LiveData.h"
-#include "SQLselect.h"
-#include "mqtt.h"
-#include "sma/EnergyMeter.h"
+class Processor;
 
-struct Config;
-struct InverterData;
-
-class Inverter
+class Ethernet_qt : public QObject
 {
-public:
-    Inverter(const Config& config);
-    ~Inverter();
+    Q_OBJECT
 
-    void exportConfig();
-    int process(std::time_t timestamp);
-    void reset();
+public:
+    Ethernet_qt(class Processor& processor);
 
 private:
-    int logOn();
-    void logOff();
+    void onReadyRead();
 
-    bool dbOpen();
-    void dbClose();
+    Processor& m_processor;
 
-    int importSpotData(std::time_t timestamp);
-    void importDayData();
-    void importMonthData();
-    void importEventData();
-
-    void exportSpotData(std::time_t timestamp);
-    void exportDayData();
-    void exportMonthData();
-    void exportEventData(const std::string& dt_range_csv);
-
-    void exportSpotDataDb(std::time_t timestamp);
-    void exportSpotDataMqtt(std::time_t timestamp);
-
-    const Config& m_config;
-
-    // TODO: transform this to a C++ container
-    InverterData **m_inverters;
-    Cache m_storage;
-    std::vector<DayStats>   m_dayStats;
-
-#if defined(USE_SQLITE) || defined(USE_MYSQL)
-    db_SQL_Export m_db;
-#endif
-    MqttExport m_mqtt;
-    sma::EnergyMeter m_smaEnergyMeter;
-    LiveData    m_smaEnergyMeterLiveData;
+    QUdpSocket m_udpSocket;
 };
-

@@ -34,28 +34,35 @@ DISCLAIMER:
 
 #pragma once
 
-#include "osselect.h"
+#include <QObject>
+#include <Export.h>
+#include <qmqtt_client.h>
 
-#include <ctime>
-#include <map>
+class Config;
+class Serializer;
 
-#include "EventData.h"
-#include "Types.h"
+namespace mqtt {
 
-class InverterDataStorage
+class MqttExport_qt : public QObject, public Export
 {
+    Q_OBJECT
+
 public:
-    InverterDataStorage();
-
-    // Add InverterData set for given time
-    void addInverterData(std::time_t time, const std::vector<InverterData>& inverterData);
-
-    // Obtain InverterData set for given time span
-    std::vector<InverterData> getInverterData(std::time_t startTime, std::time_t endTime);
-
-    void clear();
+    MqttExport_qt(const Config& config, const Serializer& serializer);
+    virtual ~MqttExport_qt();
 
 private:
-    std::map<std::time_t, std::vector<InverterData>> m_inverterData;
+    virtual std::string name() const override;
+    virtual int exportLiveData(std::time_t timestamp,
+                               const std::vector<InverterData>& inverterData) override;
+    virtual int exportLiveData(const LiveData& liveData) override;
+
+    void onError(const QMQTT::ClientError error);
+
+    const Config& m_config;
+    const Serializer& m_serializer;
+
+    QMQTT::Client m_client;
 };
 
+}

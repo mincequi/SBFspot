@@ -378,7 +378,6 @@ int Config::readConfig()
     this->outputPath[0] = 0;
     this->outputPath_Events[0] = 0;
     if (this->userGroup == UG_USER) this->SMA_Password[0] = 0;
-    this->plantname[0] = 0;
 
     strcpy(this->DateTimeFormat, "%d/%m/%Y %H:%M:%S");
     strcpy(this->DateFormat, "%d/%m/%Y");
@@ -396,17 +395,11 @@ int Config::readConfig()
     this->synchTimeLow = 1;
     this->synchTimeHigh = 3600;
     // MQTT default values
-    this->mqtt_host = "localhost";
-    this->mqtt_port = ""; // mosquitto: 1883/8883 for TLS
 #if defined(WIN32)
     this->mqtt_publish_exe = "%ProgramFiles%\\mosquitto\\mosquitto_pub.exe";
 #else
     this->mqtt_publish_exe = "/usr/bin/mosquitto_pub";
 #endif
-    this->mqtt_topic = "sbfspot";
-    this->mqtt_publish_args = "-h {host} -t {topic} -m \"{{message}}\"";
-    this->mqtt_publish_data = "Timestamp,SunRise,SunSet,InvSerial,InvName,InvStatus,EToday,ETotal,PACTot,UDC1,UDC2,IDC1,IDC2,PDC1,PDC2";
-    this->mqtt_item_format = "\"{key}\": {value}";
 
     this->sqlPort = 3306;
 
@@ -492,22 +485,14 @@ int Config::readConfig()
                         strncpy(this->SMA_Password, value, sizeof(this->SMA_Password) - 1);
                     }
                 }
-                else if (stricmp(variable, "OutputPath") == 0)
-                {
-                    memset(this->outputPath, 0, sizeof(this->outputPath));
-                    strncpy(this->outputPath, value, sizeof(this->outputPath) - 1);
-                }
-                else if (stricmp(variable, "OutputPathEvents") == 0)
-                {
-                    memset(this->outputPath_Events, 0, sizeof(this->outputPath_Events));
-                    strncpy(this->outputPath_Events, value, sizeof(this->outputPath_Events) - 1);
-                }
-                else if(stricmp(variable, "Latitude") == 0) this->latitude = (float)atof(value);
-                else if(stricmp(variable, "Longitude") == 0) this->longitude = (float)atof(value);
-                else if(stricmp(variable, "LiveInterval") == 0) this->liveInterval = (uint16_t)atoi(value);
-                else if(stricmp(variable, "ArchiveInterval") == 0) this->archiveInterval = (uint16_t)atoi(value);
+                else if (stricmp(variable, "OutputPath") == 0) this->outputPath = value;
+                else if (stricmp(variable, "OutputPathEvents") == 0) this->outputPath_Events = value;
+                else if (stricmp(variable, "Latitude") == 0) this->latitude = (float)atof(value);
+                else if (stricmp(variable, "Longitude") == 0) this->longitude = (float)atof(value);
+                else if (stricmp(variable, "LiveInterval") == 0) this->liveInterval = (uint16_t)atoi(value);
+                else if (stricmp(variable, "ArchiveInterval") == 0) this->archiveInterval = (uint16_t)atoi(value);
                 else if (stricmp(variable, "Plantname") == 0) this->plantname = value;
-                else if(stricmp(variable, "CalculateMissingSpotValues") == 0)
+                else if (stricmp(variable, "CalculateMissingSpotValues") == 0)
                 {
                     lValue = strtol(value, &pEnd, 10);
                     if (((lValue == 0) || (lValue == 1)) && (*pEnd == 0))
@@ -752,7 +737,7 @@ int Config::readConfig()
                 else if (stricmp(variable, "MQTT_Host") == 0)
                     this->mqtt_host = value;
                 else if (stricmp(variable, "MQTT_Port") == 0)
-                    this->mqtt_port = value;
+                    this->mqtt_port = atoi(value);
                 else if (stricmp(variable, "MQTT_Publisher") == 0)
                     this->mqtt_publish_exe = value;
                 else if (stricmp(variable, "MQTT_PublisherArgs") == 0)
@@ -815,15 +800,15 @@ int Config::readConfig()
     if (this->CSV_ExtendedHeader == 1)
         this->CSV_Header = 1;
 
-    if (strlen(this->outputPath) == 0)
+    if (this->outputPath.empty())
     {
         fprintf(stderr, "Missing OutputPath.\n");
         rc = -2;
     }
 
     //If OutputPathEvents is omitted, use OutputPath
-    if (strlen(this->outputPath_Events) == 0)
-        strcpy(this->outputPath_Events, this->outputPath);
+    if (this->outputPath_Events.empty())
+        this->outputPath_Events = this->outputPath;
 
     if (plantname.empty())
     {
@@ -839,7 +824,7 @@ int Config::readConfig()
     //force settings to prepare for live loading to http://pvoutput.org/loadlive.jsp
     if (this->loadlive == 1)
     {
-        strncat(this->outputPath, "/LoadLive", sizeof(this->outputPath));
+        this->outputPath.append("/LoadLive");
         strcpy(this->DateTimeFormat, "%H:%M");
         this->CSV_Export = 1;
         this->decimalpoint = '.';
@@ -971,17 +956,6 @@ void Config::sayHello(int ShowHelp)
         std::cout << " -loop               Run SBF spot in daemon mode\n" << std::endl;
 
         std::cout << "Libraries used:\n";
-#if defined(USE_SQLITE)
-        std::cout << "\tSQLite V" << sqlite3_libversion() << std::endl;
-#endif
-#if defined(USE_MYSQL)
-        unsigned long mysql_version = mysql_get_client_version();
-        std::cout << "\tMySQL V"
-            << mysql_version / 10000     << "."	// major
-            << mysql_version / 100 % 100 << "." // minor
-            << mysql_version % 100	     << " (Client)" // build
-            << std::endl;
-#endif
         std::cout << "\tBOOST V"
             << BOOST_VERSION / 100000     << "."  // major
             << BOOST_VERSION / 100 % 1000 << "."  // minor

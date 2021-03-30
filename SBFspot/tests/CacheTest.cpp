@@ -32,61 +32,40 @@ DISCLAIMER:
 
 ************************************************************************************************/
 
-#pragma once
+#include "../Cache.h"
+#include "../Types.h"
 
-#include "osselect.h"
+#include <cassert>
 
-#include "Cache.h"
-#include "LiveData.h"
-#include "SQLselect.h"
-#include "mqtt.h"
-#include "sma/EnergyMeter.h"
-
-struct Config;
-struct InverterData;
-
-class Inverter
+int main()
 {
-public:
-    Inverter(const Config& config);
-    ~Inverter();
+    Cache storage;
+    InverterData data11, data12, data21, data22, data31, data32, data41, data42;
+    data11.Pdc1 = 10000;
+    data12.Pdc1 = 30000;
+    data21.Pdc1 = 30000;
+    data21.Serial = 12;
+    data22.Pdc1 = 50000;
+    data31.Pdc1 = 20000;
+    data31.Serial = 34;
+    data32.Pdc1 = 10000;
+    data41.Pdc1 = 40000;
+    data42.Pdc1 = 30000;
 
-    void exportConfig();
-    int process(std::time_t timestamp);
-    void reset();
+    storage.addInverterData(10, { data11, data12 });
+    storage.addInverterData(20, { data21, data22 });
+    storage.addInverterData(30, { data31, data32 });
+    storage.addInverterData(40, { data41, data42 });
 
-private:
-    int logOn();
-    void logOff();
+    auto result = storage.getInverterData(20, 30);
+    assert(result.at(0).Pdc1 == 25000);
+    assert(result.at(0).Serial == 34);
+    assert(result.at(1).Pdc1 == 30000);
 
-    bool dbOpen();
-    void dbClose();
+    result = storage.getInverterData(11, 25); // -> 20
+    assert(result.at(0).Pdc1 == 30000);
+    assert(result.at(0).Serial == 12);
+    assert(result.at(1).Pdc1 == 50000);
 
-    int importSpotData(std::time_t timestamp);
-    void importDayData();
-    void importMonthData();
-    void importEventData();
-
-    void exportSpotData(std::time_t timestamp);
-    void exportDayData();
-    void exportMonthData();
-    void exportEventData(const std::string& dt_range_csv);
-
-    void exportSpotDataDb(std::time_t timestamp);
-    void exportSpotDataMqtt(std::time_t timestamp);
-
-    const Config& m_config;
-
-    // TODO: transform this to a C++ container
-    InverterData **m_inverters;
-    Cache m_storage;
-    std::vector<DayStats>   m_dayStats;
-
-#if defined(USE_SQLITE) || defined(USE_MYSQL)
-    db_SQL_Export m_db;
-#endif
-    MqttExport m_mqtt;
-    sma::EnergyMeter m_smaEnergyMeter;
-    LiveData    m_smaEnergyMeterLiveData;
-};
-
+    return 0;
+}

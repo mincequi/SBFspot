@@ -1,3 +1,6 @@
-[submodule "SBFspot/thirdparty/sma-emeter-and-inverter-to-influxdb-cpp"]
-	path = SBFspot/thirdparty/sma-emeter-and-inverter-to-influxdb-cpp
-	url = https://github.com/mincequi/sma-emeter-and-inverter-to-influxdb-cpp.git
+[submodule "SBFspot/thirdparty/libspeedwire"]
+	path = SBFspot/thirdparty/libspeedwire
+	url = https://github.com/RalfOGit/libspeedwire.git
+[submodule "SBFspot/thirdparty/qmqtt"]
+	path = SBFspot/thirdparty/qmqtt
+	url = https://github.com/emqx/qmqtt.git

@@ -78,8 +78,8 @@ struct Config
     char	delimiter = ';';    // CSV field delimiter
     int		precision = 3;      // CSV value precision
     char	decimalpoint = ','; // CSV decimal point
-    char	outputPath[MAX_PATH];
-    char	outputPath_Events[MAX_PATH];
+    std::string outputPath;
+    std::string outputPath_Events;
     std::string	plantname;
     std::string sqlDatabase;
     std::string sqlHostname;
@@ -111,12 +111,12 @@ struct Config
 
     // MQTT Stuff -- Using mosquitto (https://mosquitto.org/)
     std::string mqtt_publish_exe;	// default /usr/bin/mosquitto_pub ("%ProgramFiles%\mosquitto\mosquitto_pub.exe" on Windows)
-    std::string mqtt_host;			// default localhost
-    std::string mqtt_port;			// default 1883 (8883 for MQTT over TLS)
-    std::string mqtt_topic;			// default sbfspot
-    std::string mqtt_publish_args;	// default and optional arguments for mosquitto_pub (-d for debug messages)
-    std::string mqtt_publish_data;	// comma delimited list of spot data to publish (Timestamp,Serial,MeteringDyWhOut,GridMsTotW,...)
-    std::string mqtt_item_format;   // default "{key}": {value}
+    std::string mqtt_host = "localhost";
+    uint16_t    mqtt_port = 1883;   // default 1883 (8883 for MQTT over TLS)
+    std::string mqtt_topic = "sbfspot";
+    std::string mqtt_publish_args = "-h {host} -t {topic} -m \"{{message}}\"";
+    std::string mqtt_publish_data = "Timestamp,SunRise,SunSet,InvSerial,InvName,InvStatus,EToday,ETotal,PACTot,UDC1,UDC2,IDC1,IDC2,PDC1,PDC2";
+    std::string mqtt_item_format = "\"{key}\": {value}";
     std::string mqtt_item_delimiter;// default comma
 
     //Commandline settings
