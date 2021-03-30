@@ -34,6 +34,8 @@ DISCLAIMER:
 
 #pragma once
 
+#include "osselect.h"
+
 #include <ctime>
 #include <map>
 

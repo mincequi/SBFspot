@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include "../SBFspot/osselect.h"
 
 //
 //   FUNCTION: InstallService

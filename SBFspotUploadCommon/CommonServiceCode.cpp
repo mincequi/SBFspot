@@ -34,8 +34,6 @@ DISCLAIMER:
 
 #include "CommonServiceCode.h"
 
-const uint32_t MAX_INVERTERS = 20;
-
 void CommonServiceCode(void)
 {
 	CURLcode rc_curl = CURLE_OK;
@@ -74,9 +72,9 @@ void CommonServiceCode(void)
                         batch_datelimit = PVO.batch_datelimit();
                         batch_statuslimit = PVO.batch_statuslimit();
                         nextStatusCheck = now + timeBetweenChecks;
-                        db.set_config(SQL_BATCH_DATELIMIT, db.intToString(batch_datelimit));
-                        db.set_config(SQL_BATCH_STATUSLIMIT, db.intToString(batch_statuslimit));
-                        db.set_config(SQL_NEXTSTATUSCHECK, db.intToString(nextStatusCheck));
+                        db.set_config(SQL_BATCH_DATELIMIT, std::to_string(batch_datelimit));
+                        db.set_config(SQL_BATCH_STATUSLIMIT, std::to_string(batch_statuslimit));
+                        db.set_config(SQL_NEXTSTATUSCHECK, std::to_string(nextStatusCheck));
 
                         if (!PVO.isTeamMember())
                         {

@@ -56,10 +56,6 @@ extern unsigned int sleep (unsigned int __seconds); // See unistd.h
 #include <netinet/in.h> //SpeedWire
 #include <sys/stat.h>
 
-#ifndef MAX_PATH
-# define MAX_PATH 256
-#endif
-
 #define MAXULONGLONG ((unsigned long long)~((unsigned long long)0))
 
 //Not needed with BOOST

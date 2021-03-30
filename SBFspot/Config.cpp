@@ -36,6 +36,9 @@ DISCLAIMER:
 
 #include "SBFspot.h"
 #include "version.h"
+#ifdef WIN32
+#include "bluetooth.h"
+#endif	/* WIN32 */
 
 // Fix undefined reference to 'boost::system::system_category()' introduced with PR #361
 #define BOOST_ERROR_CODE_HEADER_ONLY

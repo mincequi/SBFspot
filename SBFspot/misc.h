@@ -34,8 +34,9 @@ DISCLAIMER:
 
 #pragma once
 
-#include "Defines.h"
 #include "osselect.h"
+
+#include "Defines.h"
 #include <stdlib.h>
 #include <errno.h>
 #include <stdio.h>

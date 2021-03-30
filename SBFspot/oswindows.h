@@ -49,6 +49,7 @@ DISCLAIMER:
 
 #include <time.h>
 #include <string.h>
+#include <WinSock2.h>
 
 typedef __int16 int16_t;
 typedef unsigned __int16 uint16_t;

@@ -38,7 +38,6 @@ DISCLAIMER:
 #include "SBFspot.h"
 
 int bytes_in_buffer = 0;
-int bufptr = 0;
 
 E_SBFSPOT bthInitConnection(const char *BTAddress, InverterData *inverters[], int MIS)
 {
