@@ -34,6 +34,8 @@ DISCLAIMER:
 
 #include "Defines.h"
 
+#include "Types.h"
+
 int debug = 0;
 int verbose = 0;
 int quiet = 0;

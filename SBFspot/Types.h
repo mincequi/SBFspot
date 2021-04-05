@@ -39,14 +39,9 @@ DISCLAIMER:
 #include <string>
 #include <vector>
 
-class EventData;
+#include "Defines.h"
 
-typedef enum
-{
-    CT_NONE = 0,
-    CT_BLUETOOTH = 1,
-    CT_ETHERNET  = 2
-} CONNECTIONTYPE;
+class EventData;
 
 typedef enum
 {
@@ -86,7 +81,7 @@ typedef struct
     const char *fullText;
 } CodeToMeta;
 
-enum getInverterDataType
+enum SmaInverterDataSet
 {
     EnergyProduction	= 1 << 0,
     SpotDCPower			= 1 << 1,
@@ -110,7 +105,12 @@ enum getInverterDataType
     sbftest             = 1 << 31
 };
 
-typedef enum
+enum SmaUserGroup : int32_t {
+    UG_USER         = 0x07L,
+    UG_INSTALLER    = 0x0AL
+};
+
+enum DEVICECLASS : uint16_t
 {
     AllDevices = 8000,          // DevClss0
     SolarInverter = 8001,       // DevClss1
@@ -120,7 +120,7 @@ typedef enum
     SensorSystem = 8064,        // DevClss64
     ElectricityMeter = 8065,    // DevClss65
     CommunicationProduct = 8128 // DevClss128
-} DEVICECLASS;
+};
 
 typedef enum
 {
@@ -133,26 +133,26 @@ typedef enum
 
 struct InverterData
 {
-    char DeviceName[33];    //32 bytes + terminating zero
+    std::string DeviceName;    //32 bytes + terminating zero
     unsigned char BTAddress[6];
-    char IPAddress[20];
-    unsigned short SUSyID;
-    unsigned long Serial;
-    unsigned char NetID;
+    std::string IPAddress;
+    unsigned short SUSyID = 0;
+    unsigned long Serial = 0;
+    unsigned char NetID = 0;
     float BT_Signal = 0.0f;
-    time_t InverterDatetime;
-    time_t WakeupTime;
-    time_t SleepTime;
+    time_t InverterDatetime = 0;
+    time_t WakeupTime = 0;
+    time_t SleepTime = 0;
     long Pdc1 = 0;
     long Pdc2 = 0;
     long Udc1 = 0;
     long Udc2 = 0;
     long Idc1 = 0;
     long Idc2 = 0;
-    long Pmax1;
-    long Pmax2;
-    long Pmax3;
-    long TotalPac;
+    long Pmax1 = 0;
+    long Pmax2 = 0;
+    long Pmax3 = 0;
+    long TotalPac = 0;
     long Pac1 = 0;
     long Pac2 = 0;
     long Pac3 = 0;
@@ -167,36 +167,35 @@ struct InverterData
     long long FeedInTime = 0;
     long long EToday = 0;
     long long ETotal = 0;
-    unsigned short modelID;
-    char DeviceType[64];
-    char DeviceClass[64];
-    DEVICECLASS DevClass;
-    char SWVersion[16];	//"03.01.05.R"
+    unsigned short modelID = 0;
+    std::string DeviceType;
+    std::string DeviceClass;
+    DEVICECLASS DevClass = AllDevices;
+    std::string SWVersion;  //"03.01.05.R"
     int DeviceStatus = 0;
     int GridRelayStatus = 0;
-    int flags;
+    int flags = 0;
     DayData dayData[288];
-    bool hasDayData;
+    bool hasDayData = false;
     MonthData monthData[31];
-    bool hasMonthData;
-    time_t monthDataOffset;	// Issue 115
+    bool hasMonthData = false;
+    time_t monthDataOffset = 0;	// Issue 115
     std::vector<EventData> eventData;
-    long calPdcTot;
-    long calPacTot;
-    float calEfficiency;
-    unsigned long BatChaStt;			// Current battery charge status
-    unsigned long BatDiagCapacThrpCnt;	// Number of battery charge throughputs
-    unsigned long BatDiagTotAhIn;		// Amp hours counter for battery charge
-    unsigned long BatDiagTotAhOut;		// Amp hours counter for battery discharge
-    unsigned long BatTmpVal;			// Battery temperature
-    unsigned long BatVol;				// Battery voltage
-    long BatAmp;						// Battery current
+    long calPdcTot = 0;
+    long calPacTot = 0;
+    float calEfficiency = 0;
+    unsigned long BatChaStt = 0;        // Current battery charge status
+    unsigned long BatDiagCapacThrpCnt = 0;  // Number of battery charge throughputs
+    unsigned long BatDiagTotAhIn = 0;   // Amp hours counter for battery charge
+    unsigned long BatDiagTotAhOut = 0;  // Amp hours counter for battery discharge
+    unsigned long BatTmpVal = 0;        // Battery temperature
+    unsigned long BatVol = 0;           // Battery voltage
+    long BatAmp = 0;                    // Battery current
     long Temperature = 0;				// Inverter Temperature
-    int32_t	MeteringGridMsTotWOut;		// Power grid feed-in (Out)
-    int32_t MeteringGridMsTotWIn;		// Power grid reference (In)
-    bool hasBattery;					// Smart Energy device
-    int logonStatus;
-	uint32_t multigateID; 
+    int32_t	MeteringGridMsTotWOut = 0;  // Power grid feed-in (Out)
+    int32_t MeteringGridMsTotWIn = 0;   // Power grid reference (In)
+    bool hasBattery = false;            // Smart Energy device
+    uint32_t multigateIndex = NaN_U32;
 };
 
 //SMA Structs must be aligned on byte boundaries

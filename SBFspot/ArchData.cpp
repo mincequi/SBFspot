@@ -43,7 +43,12 @@ using namespace boost::date_time;
 using namespace boost::posix_time;
 using namespace boost::gregorian;
 
-E_SBFSPOT ArchiveDayData(InverterData* const inverters[], time_t startTime)
+ArchData::ArchData(Import& import) :
+    m_import(import)
+{
+}
+
+E_SBFSPOT ArchData::ArchiveDayData(std::vector<InverterData>& inverters, time_t startTime)
 {
     if (VERBOSE_NORMAL)
     {
@@ -69,13 +74,15 @@ E_SBFSPOT ArchiveDayData(InverterData* const inverters[], time_t startTime)
     if (VERBOSE_NORMAL)
         printf("startTime = %08lX -> %s\n", startTime, strftime_t("%d/%m/%Y %H:%M:%S", startTime));
 
-    for (uint32_t inv=0; inverters[inv]!=NULL && inv<MAX_INVERTERS; inv++)
+    for (auto& inverter : inverters)
 	{
-		if (inverters[inv]->SUSyID == SID_MULTIGATE) hasMultigate = true;
-		inverters[inv]->hasDayData = false;
-        for(unsigned int i=0; i<sizeof(inverters[inv]->dayData)/sizeof(DayData); i++)
+        if (inverter.SUSyID == SID_MULTIGATE)
+            hasMultigate = true;
+
+        inverter.hasDayData = false;
+        for(unsigned int i=0; i<sizeof(inverter.dayData)/sizeof(DayData); i++)
 		{
-			DayData *pdayData = &inverters[inv]->dayData[i];
+            DayData *pdayData = &inverter.dayData[i];
             pdayData->datetime = 0;
 			pdayData->totalWh = 0;
 			pdayData->watt = 0;
@@ -87,15 +94,15 @@ E_SBFSPOT ArchiveDayData(InverterData* const inverters[], time_t startTime)
 
     E_SBFSPOT hasData = E_ARCHNODATA;
 
-    for (uint32_t inv=0; inverters[inv]!=NULL && inv<MAX_INVERTERS; inv++)
+    for (auto& inverter : inverters)
     {
-		if ((inverters[inv]->DevClass != CommunicationProduct) && (inverters[inv]->SUSyID != SID_MULTIGATE))
+        if ((inverter.DevClass != CommunicationProduct) && (inverter.SUSyID != SID_MULTIGATE))
 		{
 			do
 			{
 				pcktID++;
-				writePacketHeader(pcktBuf, 0x01, inverters[inv]->BTAddress);
-				writePacket(pcktBuf, 0x09, 0xE0, 0, inverters[inv]->SUSyID, inverters[inv]->Serial);
+                writePacketHeader(pcktBuf, 0x01, inverter.BTAddress);
+                writePacket(pcktBuf, 0x09, 0xE0, 0, inverter.SUSyID, inverter.Serial);
 				writeLong(pcktBuf, 0x70000200);
 				writeLong(pcktBuf, startTime - 300);
 				writeLong(pcktBuf, startTime + 86100);
@@ -104,7 +111,7 @@ E_SBFSPOT ArchiveDayData(InverterData* const inverters[], time_t startTime)
 			}
 			while (!isCrcValid(pcktBuf[packetposition-3], pcktBuf[packetposition-2]));
 
-            Import::send(pcktBuf, inverters[inv]->IPAddress);
+            m_import.send(pcktBuf, inverter.IPAddress);
 
 			do
 			{
@@ -119,7 +126,7 @@ E_SBFSPOT ArchiveDayData(InverterData* const inverters[], time_t startTime)
 
 				do
 				{
-                    rc = Import::getPacket(inverters[inv]->BTAddress, 1);
+                    rc = m_import.getPacket(inverter.BTAddress, 1);
 					if (rc != E_OK) return rc;
 
 					packetcount = pcktBuf[25];
@@ -157,26 +164,26 @@ E_SBFSPOT ArchiveDayData(InverterData* const inverters[], time_t startTime)
 										if (start_tm.tm_mday == timeinfo.tm_mday)
 										{
 											unsigned int idx = (timeinfo.tm_hour * 12) + (timeinfo.tm_min / 5);
-											if (idx < sizeof(inverters[inv]->dayData)/sizeof(DayData))
+                                            if (idx < sizeof(inverter.dayData)/sizeof(DayData))
 											{
 												if (VERBOSE_HIGHEST && dblrecord)
 												{
 													std::cout << "Overwriting existing record: " << strftime_t("%d/%m/%Y %H:%M:%S", datetime);
-													std::cout << " - " << std::fixed << std::setprecision(3) << (double)inverters[inv]->dayData[idx].totalWh/1000 << "kWh";
-													std::cout << " - " << std::fixed << std::setprecision(0) << inverters[inv]->dayData[idx].watt << "W" << std::endl;
+                                                    std::cout << " - " << std::fixed << std::setprecision(3) << (double)inverter.dayData[idx].totalWh/1000 << "kWh";
+                                                    std::cout << " - " << std::fixed << std::setprecision(0) << inverter.dayData[idx].watt << "W" << std::endl;
 												}
 												if (VERBOSE_HIGHEST && ((datetime - datetime_prev) > 300))
 												{
 													std::cout << "Missing records in datastream " << strftime_t("%d/%m/%Y %H:%M:%S", datetime_prev);
 													std::cout << " -> " << strftime_t("%H:%M:%S", datetime) << std::endl;
 												}
-												inverters[inv]->dayData[idx].datetime = datetime;
-												inverters[inv]->dayData[idx].totalWh = totalWh;
-												//inverters[inv]->dayData[idx].watt = (totalWh - totalWh_prev) * 12;	// 60:5
+                                                inverter.dayData[idx].datetime = datetime;
+                                                inverter.dayData[idx].totalWh = totalWh;
+                                                //inverter.dayData[idx].watt = (totalWh - totalWh_prev) * 12;	// 60:5
 												// Fix Issue 105 - Don't assume each interval is 5 mins
 												// This is also a bug in SMA's Sunny Explorer V1.07.17 and before
-												inverters[inv]->dayData[idx].watt = (totalWh - totalWh_prev) * 3600 / (datetime - datetime_prev);
-												inverters[inv]->hasDayData = true;
+                                                inverter.dayData[idx].watt = (totalWh - totalWh_prev) * 3600 / (datetime - datetime_prev);
+                                                inverter.hasDayData = true;
 											}
 										}
 									}
@@ -207,22 +214,22 @@ E_SBFSPOT ArchiveDayData(InverterData* const inverters[], time_t startTime)
 		
 		if (VERBOSE_HIGHEST) std::cout << "Consolidating daydata of micro-inverters into multigate..." << std::endl;
 
-		for (uint32_t mg=0; inverters[mg]!=NULL && mg<MAX_INVERTERS; mg++)
+        for (uint32_t mg=0; mg < inverters.size(); mg++)
 		{
-			InverterData *pmg = inverters[mg];
-			if (pmg->SUSyID == SID_MULTIGATE)
+            InverterData& pmg = inverters[mg];
+            if (pmg.SUSyID == SID_MULTIGATE)
 			{
-				pmg->hasDayData = true;
-				for (uint32_t sb240=0; inverters[sb240]!=NULL && sb240<MAX_INVERTERS; sb240++)
+                pmg.hasDayData = true;
+                for (uint32_t sb240=0; mg < inverters.size(); sb240++)
 				{
-					InverterData *psb = inverters[sb240];
-					if ((psb->SUSyID == SID_SB240) && (psb->multigateID == mg))
+                    const InverterData& psb = inverters[sb240];
+                    if ((psb.SUSyID == SID_SB240) && (psb.multigateIndex == mg))
 					{
-						for (unsigned int dd=0; dd < ARRAYSIZE(inverters[0]->dayData); dd++)
+                        for (unsigned int dd=0; dd < ARRAYSIZE(inverters[0].dayData); dd++)
 						{
-							pmg->dayData[dd].datetime = psb->dayData[dd].datetime;
-							pmg->dayData[dd].totalWh += psb->dayData[dd].totalWh;
-							pmg->dayData[dd].watt += psb->dayData[dd].watt;
+                            pmg.dayData[dd].datetime = psb.dayData[dd].datetime;
+                            pmg.dayData[dd].totalWh += psb.dayData[dd].totalWh;
+                            pmg.dayData[dd].watt += psb.dayData[dd].watt;
 						}
 					}
 				}
@@ -233,7 +240,7 @@ E_SBFSPOT ArchiveDayData(InverterData* const inverters[], time_t startTime)
     return hasData;
 }
 
-E_SBFSPOT ArchiveMonthData(InverterData *inverters[], tm *start_tm)
+E_SBFSPOT ArchData::ArchiveMonthData(std::vector<InverterData>& inverters, tm *start_tm)
 {
     if (VERBOSE_NORMAL)
     {
@@ -256,39 +263,39 @@ E_SBFSPOT ArchiveMonthData(InverterData *inverters[], tm *start_tm)
     if (VERBOSE_NORMAL)
         printf("startTime = %08lX -> %s\n", startTime, strftime_t("%d/%m/%Y %H:%M:%S", startTime));
 
-    for (uint32_t inv=0; inverters[inv]!=NULL && inv<MAX_INVERTERS; inv++)
+    for (auto& inverter : inverters)
 	{
-		if (inverters[inv]->SUSyID == SID_MULTIGATE) hasMultigate = true;
-		inverters[inv]->hasMonthData = false;
-        for(unsigned int i=0; i<sizeof(inverters[inv]->monthData)/sizeof(MonthData); i++)
+        if (inverter.SUSyID == SID_MULTIGATE) hasMultigate = true;
+        inverter.hasMonthData = false;
+        for(unsigned int i=0; i<sizeof(inverter.monthData)/sizeof(MonthData); i++)
 		{
-            inverters[inv]->monthData[i].datetime = 0;
-			inverters[inv]->monthData[i].dayWh = 0;
-			inverters[inv]->monthData[i].totalWh = 0;
+            inverter.monthData[i].datetime = 0;
+            inverter.monthData[i].dayWh = 0;
+            inverter.monthData[i].totalWh = 0;
 		}
 	}
 
     int packetcount = 0;
     int validPcktID = 0;
 
-    for (uint32_t inv=0; inverters[inv]!=NULL && inv<MAX_INVERTERS; inv++)
+    for (auto& inverter : inverters)
     {
-		if ((inverters[inv]->DevClass != CommunicationProduct) && (inverters[inv]->SUSyID != SID_MULTIGATE))
+        if ((inverter.DevClass != CommunicationProduct) && (inverter.SUSyID != SID_MULTIGATE))
 		{
 			do
 			{
 				pcktID++;
-				writePacketHeader(pcktBuf, 0x01, inverters[inv]->BTAddress);
-				writePacket(pcktBuf, 0x09, 0xE0, 0, inverters[inv]->SUSyID, inverters[inv]->Serial);
+                writePacketHeader(pcktBuf, 0x01, inverter.BTAddress);
+                writePacket(pcktBuf, 0x09, 0xE0, 0, inverter.SUSyID, inverter.Serial);
 				writeLong(pcktBuf, 0x70200200);
 				writeLong(pcktBuf, startTime - 86400 - 86400);
-				writeLong(pcktBuf, startTime + 86400 * (sizeof(inverters[inv]->monthData)/sizeof(MonthData) +1));
+                writeLong(pcktBuf, startTime + 86400 * (sizeof(inverter.monthData)/sizeof(MonthData) +1));
 				writePacketTrailer(pcktBuf);
 				writePacketLength(pcktBuf);
 			}
 			while (!isCrcValid(pcktBuf[packetposition-3], pcktBuf[packetposition-2]));
 
-            Import::send(pcktBuf, inverters[inv]->IPAddress);
+            m_import.send(pcktBuf, inverter.IPAddress);
 
 			do
 			{
@@ -300,7 +307,7 @@ E_SBFSPOT ArchiveMonthData(InverterData *inverters[], tm *start_tm)
 				unsigned int idx = 0;
 				do
 				{
-                    rc = Import::getPacket(inverters[inv]->BTAddress, 1);
+                    rc = m_import.getPacket(inverter.BTAddress, 1);
 					if (rc != E_OK) return rc;
 
                     //TODO: Move checksum validation to bthGetPacket
@@ -318,7 +325,7 @@ E_SBFSPOT ArchiveMonthData(InverterData *inverters[], tm *start_tm)
 							{
 								datetime = (time_t)get_long(pcktBuf + x);
 								//datetime -= (datetime % 86400) + 43200; // 3.0 - Round to UTC 12:00 - Removed 3.0.1 see issue C54
-								datetime += inverters[inv]->monthDataOffset; // Issues 115/130
+                                datetime += inverter.monthDataOffset; // Issues 115/130
 								totalWh = get_longlong(pcktBuf + x + 4);
 								if (totalWh != MAXULONGLONG)
 								{
@@ -328,12 +335,12 @@ E_SBFSPOT ArchiveMonthData(InverterData *inverters[], tm *start_tm)
 										memcpy(&utc_tm, gmtime(&datetime), sizeof(utc_tm));
 										if (utc_tm.tm_mon == start_tm->tm_mon)
 										{
-											if (idx < sizeof(inverters[inv]->monthData)/sizeof(MonthData))
+                                            if (idx < sizeof(inverter.monthData)/sizeof(MonthData))
 											{
-												inverters[inv]->hasMonthData = true;
-												inverters[inv]->monthData[idx].datetime = datetime;
-												inverters[inv]->monthData[idx].totalWh = totalWh;
-												inverters[inv]->monthData[idx].dayWh = totalWh - totalWh_prev;
+                                                inverter.hasMonthData = true;
+                                                inverter.monthData[idx].datetime = datetime;
+                                                inverter.monthData[idx].totalWh = totalWh;
+                                                inverter.monthData[idx].dayWh = totalWh - totalWh_prev;
 												idx++;
 											}
 										}
@@ -366,22 +373,22 @@ E_SBFSPOT ArchiveMonthData(InverterData *inverters[], tm *start_tm)
 
 		if (VERBOSE_HIGHEST) std::cout << "Consolidating monthdata of micro-inverters into multigate..." << std::endl;
 
-		for (uint32_t mg=0; inverters[mg]!=NULL && mg<MAX_INVERTERS; mg++)
+        for (uint32_t mg=0; mg < inverters.size(); mg++)
 		{
-			InverterData *pmg = inverters[mg];
-			if (pmg->SUSyID == SID_MULTIGATE)
+            InverterData& pmg = inverters[mg];
+            if (pmg.SUSyID == SID_MULTIGATE)
 			{
-				pmg->hasMonthData = true;
-				for (uint32_t sb240=0; inverters[sb240]!=NULL && sb240<MAX_INVERTERS; sb240++)
+                pmg.hasMonthData = true;
+                for (uint32_t sb240=0; sb240 < inverters.size(); sb240++)
 				{
-					InverterData *psb = inverters[sb240];
-					if ((psb->SUSyID == SID_SB240) && (psb->multigateID == mg))
+                    const InverterData& psb = inverters[sb240];
+                    if ((psb.SUSyID == SID_SB240) && (psb.multigateIndex == mg))
 					{
-						for (unsigned int md=0; md < ARRAYSIZE(inverters[0]->monthData); md++)
+                        for (unsigned int md=0; md < ARRAYSIZE(inverters[0].monthData); md++)
 						{
-							pmg->monthData[md].datetime = psb->monthData[md].datetime;
-							pmg->monthData[md].totalWh += psb->monthData[md].totalWh;
-							pmg->monthData[md].dayWh += psb->monthData[md].dayWh;
+                            pmg.monthData[md].datetime = psb.monthData[md].datetime;
+                            pmg.monthData[md].totalWh += psb.monthData[md].totalWh;
+                            pmg.monthData[md].dayWh += psb.monthData[md].dayWh;
 						}
 					}
 				}
@@ -392,7 +399,7 @@ E_SBFSPOT ArchiveMonthData(InverterData *inverters[], tm *start_tm)
     return E_OK;
 }
 
-E_SBFSPOT ArchiveEventData(InverterData *inverters[], boost::gregorian::date startDate, unsigned long UserGroup)
+E_SBFSPOT ArchData::ArchiveEventData(std::vector<InverterData>& inverters, boost::gregorian::date startDate, unsigned long UserGroup)
 {
     E_SBFSPOT rc = E_OK;
 
@@ -402,13 +409,13 @@ E_SBFSPOT ArchiveEventData(InverterData *inverters[], boost::gregorian::date sta
 	time_t startTime = to_time_t(startDate);
 	time_t endTime = startTime + 86400 * startDate.end_of_month().day();
 
-    for (uint32_t inv=0; inverters[inv]!=NULL && inv<MAX_INVERTERS; inv++)
+    for (auto& inverter : inverters)
     {
         do
         {
             pcktID++;
-            writePacketHeader(pcktBuf, 0x01, inverters[inv]->BTAddress);
-            writePacket(pcktBuf, 0x09, 0xE0, 0, inverters[inv]->SUSyID, inverters[inv]->Serial);
+            writePacketHeader(pcktBuf, 0x01, inverter.BTAddress);
+            writePacket(pcktBuf, 0x09, 0xE0, 0, inverter.SUSyID, inverter.Serial);
 			writeLong(pcktBuf, UserGroup == UG_USER ? 0x70100200 : 0x70120200);
 			writeLong(pcktBuf, startTime);
             writeLong(pcktBuf, endTime);
@@ -417,14 +424,14 @@ E_SBFSPOT ArchiveEventData(InverterData *inverters[], boost::gregorian::date sta
         }
         while (!isCrcValid(pcktBuf[packetposition-3], pcktBuf[packetposition-2]));
 
-        Import::send(pcktBuf, inverters[inv]->IPAddress);
+        m_import.send(pcktBuf, inverter.IPAddress);
 
 		bool FIRST_EVENT_FOUND = false;
         do
         {
             do
             {
-                rc = Import::getPacket(inverters[inv]->BTAddress, 1);
+                rc = m_import.getPacket(inverter.BTAddress, 1);
                 if (rc != E_OK) return rc;
 
                 //TODO: Move checksum validation to bthGetPacket
@@ -442,7 +449,7 @@ E_SBFSPOT ArchiveEventData(InverterData *inverters[], boost::gregorian::date sta
 							SMA_EVENTDATA *pEventData = (SMA_EVENTDATA *)(pcktBuf + x);
 							if (pEventData->DateTime > 0)	// Fix Issue 89
 							{
-								inverters[inv]->eventData.push_back(EventData(UserGroup, pEventData));
+                                inverter.eventData.push_back(EventData(UserGroup, pEventData));
 								if (pEventData->EntryID == 1)
 								{
 									FIRST_EVENT_FOUND = true;
@@ -469,7 +476,7 @@ E_SBFSPOT ArchiveEventData(InverterData *inverters[], boost::gregorian::date sta
 }
 
 //Issues 115/130
-E_SBFSPOT getMonthDataOffset(InverterData *inverters[])
+E_SBFSPOT ArchData::getMonthDataOffset(std::vector<InverterData>& inverters)
 {
 	E_SBFSPOT rc = E_OK;
 
@@ -485,31 +492,31 @@ E_SBFSPOT getMonthDataOffset(InverterData *inverters[])
 
 	if (rc == E_OK)
 	{
-	    for (uint32_t inv=0; inverters[inv]!=NULL && inv<MAX_INVERTERS; inv++)
+        for (auto& inverter : inverters)
 		{
-			inverters[inv]->monthDataOffset = 0;
-			if (inverters[inv]->hasMonthData)
+            inverter.monthDataOffset = 0;
+            if (inverter.hasMonthData)
 			{
 				// Get last record of monthdata
 				for(int i = 30; i > 0; i--)
 				{
-					if (inverters[inv]->monthData[i].datetime != 0)
+                    if (inverter.monthData[i].datetime != 0)
 					{
 						now = time(NULL);
 						memcpy(&now_tm, gmtime(&now), sizeof(now_tm));
 
 						struct tm inv_tm;
-						memcpy(&inv_tm, gmtime(&inverters[inv]->monthData[i].datetime), sizeof(inv_tm));
+                        memcpy(&inv_tm, gmtime(&inverter.monthData[i].datetime), sizeof(inv_tm));
 
 						if (now_tm.tm_yday == inv_tm.tm_yday)
-							inverters[inv]->monthDataOffset = -86400;
+                            inverter.monthDataOffset = -86400;
 
 						break;
 					}
 				}
 			}
 			if ((DEBUG_HIGHEST) && (!quiet))
-				std::cout << inverters[inv]->SUSyID << ":" << inverters[inv]->Serial << " monthDataOffset=" << inverters[inv]->monthDataOffset << std::endl;
+                std::cout << inverter.SUSyID << ":" << inverter.Serial << " monthDataOffset=" << inverter.monthDataOffset << std::endl;
 		}
 	}
 

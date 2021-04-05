@@ -65,7 +65,7 @@ std::vector<char> MsgPackSerializer::serialize(const LiveData& liveData) const
     packer.pack_uint8(0);
     // 2. Protocol version
     packer.pack_uint8(static_cast<uint8_t>(Export::InverterProperty::DeviceType));
-    packer.pack_uint8(static_cast<uint8_t>(liveData.deviceType));
+    packer.pack_uint16(liveData.deviceType);
     // 3. Timestamp
     packer.pack_uint8(static_cast<uint8_t>(Export::InverterProperty::Timestamp));
     uint32_t t = htonl(liveData.timestamp);

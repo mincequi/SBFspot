@@ -374,7 +374,6 @@ int Config::readConfig()
     //Initialise config structure and set default values
     strncpy(this->prgVersion, VERSION, sizeof(this->prgVersion));
     memset(this->BT_Address, 0, sizeof(this->BT_Address));
-    memset(this->IP_Address, 0, sizeof(this->IP_Address));
     this->outputPath[0] = 0;
     this->outputPath_Events[0] = 0;
     if (this->userGroup == UG_USER) this->SMA_Password[0] = 0;
@@ -469,12 +468,6 @@ int Config::readConfig()
                             rc = -2;
                             break;
                         }
-                    }
-
-                    if (rc == 0)
-                    {
-                        memset(this->IP_Address, 0, sizeof(this->IP_Address));
-                        strncpy(this->IP_Address, this->ip_addresslist[0].c_str(), sizeof(this->IP_Address) - 1);
                     }
                 }
                 else if(stricmp(variable, "Password") == 0)
@@ -855,10 +848,15 @@ int Config::readConfig()
 void Config::showConfig()
 {
     std::cout << "Configuration settings:";
-    if (strlen(this->IP_Address) == 0)	// No IP address -> Show BT address
+    if (strlen(this->BT_Address) == 0) { // No BT address -> Show IP addresses
+        std::cout << "\nIP_Address=";
+        for (const auto& ip : this->ip_addresslist) {
+            std::cout << ip << ", ";
+        }
+    }
+    else
         std::cout << "\nBTAddress=" << this->BT_Address;
-    if (strlen(this->BT_Address) == 0)	// No BT address -> Show IP address
-        std::cout << "\nIP_Address=" << this->IP_Address;
+
     std::cout << "\nPassword=<undisclosed>" << \
         "\nMIS_Enabled=" << this->MIS_Enabled << \
         "\nPlantname=" << this->plantname << \

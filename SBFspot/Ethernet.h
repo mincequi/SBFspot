@@ -34,9 +34,16 @@ DISCLAIMER:
 
 #pragma once
 
-//Function prototypes
-int ethConnect(short port);
-int ethClose(void);
-int getLocalIP(unsigned char IPAddress[4]);
-int ethSend(unsigned char *buffer, const char *toIP);
-int ethRead(unsigned char *buf, unsigned int bufsize);
+#include "Types.h"
+
+class Ethernet {
+public:
+    int ethConnect(short port);
+    int ethClose(void);
+    int ethSend(const unsigned char *buffer, const std::string& toIP);
+    int ethRead(unsigned char *buf, unsigned int bufsize);
+
+    E_SBFSPOT ethGetPacket(void);
+};
+
+

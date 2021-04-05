@@ -14,7 +14,7 @@ pkg_check_modules(Bluetooth IMPORTED_TARGET bluez)
 pkg_check_modules(MessagePack IMPORTED_TARGET msgpack)
 pkg_check_modules(Mosquitto IMPORTED_TARGET libmosquittopp)
 
-set(CMAKE_CXX_FLAGS "-Wno-deprecated-declarations")
+set(CMAKE_CXX_FLAGS "-Wno-deprecated-declarations -DQT_NO_DEBUG_OUTPUT")
 
 set(DB "SQLITE" CACHE STRING "DB backend to use: NOSQL, SQLITE, MYSQL, MARIADB")
 
@@ -33,11 +33,11 @@ set(COMMON_SOURCES
     SBFspot.cpp
     TagDefs.cpp
     Timer.cpp
+    Types.cpp
     boost_ext.cpp
     misc.cpp
     mqtt.cpp
     sunrise_sunset.cpp
-    sma/EnergyMeter.cpp
 )
 
 FILE(GLOB SQLITE_RESOURCES *SQLite.sql)
@@ -141,7 +141,7 @@ set(CMAKE_AUTOMOC ON)
 
 find_package(Qt5
 COMPONENTS
-    Network REQUIRED
+    Concurrent Network REQUIRED
 )
 
 add_executable(${PROJECT_NAME}_qt
@@ -149,16 +149,22 @@ add_executable(${PROJECT_NAME}_qt
     Defines.cpp
     Ethernet_qt.cpp
     Export.cpp
-    Processor.cpp
+    SBFNet.cpp
+    SBFspot.cpp
+    Timer.cpp
     main_qt.cpp
     misc.cpp
+    sunrise_sunset.cpp
     mqtt/MqttExport_qt.cpp
     msgpack/MsgPackSerializer.cpp
-    sma/EnergyMeter.cpp
+    sma/SmaEnergyMeter.cpp
+    sma/SmaInverter.cpp
+    sma/SmaManager.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}_qt
     Boost::date_time
+    Qt5::Concurrent
     Qt5::Network
     qmqtt
     speedwire

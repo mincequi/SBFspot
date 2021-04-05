@@ -35,7 +35,10 @@ DISCLAIMER:
 #include "osselect.h"
 
 #include "Config.h"
+#include "Ethernet.h"
+#include "Import.h"
 #include "Inverter.h"
+#include "SBFspot.h"
 #include "Timer.h"
 
 #include <thread>
@@ -50,47 +53,50 @@ int main(int argc, char **argv)
 #endif
 
     //Read the command line and store settings in config struct
-    Config cfg;
-    int rc = cfg.parseCmdline(argc, argv);
+    Config config;
+    int rc = config.parseCmdline(argc, argv);
     if (rc == -1) return 1;	//Invalid commandline - Quit, error
     if (rc == 1) return 0;	//Nothing to do - Quit, no error
 
     //Read config file and store settings in config struct
-    rc = cfg.readConfig();	//Config struct contains fullpath to config file
+    rc = config.readConfig();	//Config struct contains fullpath to config file
     if (rc != 0) return rc;
 
     //Copy some config settings to public variables
-    debug = cfg.debug;
-    verbose = cfg.verbose;
-    quiet = cfg.quiet;
-    ConnType = cfg.ConnectionType;
+    debug = config.debug;
+    verbose = config.verbose;
+    quiet = config.quiet;
+    ConnType = config.ConnectionType;
 
-    if ((ConnType != CT_BLUETOOTH) && (cfg.settime == 1))
+    if ((ConnType != CT_BLUETOOTH) && (config.settime == 1))
     {
         std::cout << "-settime is only supported for Bluetooth devices" << std::endl;
         return 0;
     }
 
-    strncpy(DateTimeFormat, cfg.DateTimeFormat, sizeof(DateTimeFormat));
-    strncpy(DateFormat, cfg.DateFormat, sizeof(DateFormat));
+    strncpy(DateTimeFormat, config.DateTimeFormat, sizeof(DateTimeFormat));
+    strncpy(DateFormat, config.DateFormat, sizeof(DateFormat));
 
     if (VERBOSE_NORMAL) print_error(stdout, PROC_INFO, "Starting...\n");
 
-    Timer timer(cfg);
-    if (!timer.isBright() && (cfg.forceInq == 0) && (!cfg.daemon))
+    Timer timer(config);
+    if (!timer.isBright() && (config.forceInq == 0) && (!config.daemon))
     {
         if (quiet == 0) puts("Nothing to do... it's dark. Use -finq to force inquiry.");
         return 0;
     }
 
-    int status = tagdefs.readall(cfg.AppPath, cfg.locale);
+    int status = tagdefs.readall(config.AppPath, config.locale);
     if (status != TagDefs::READ_OK)
     {
         printf("Error reading tags\n");
         return(2);
     }
 
-    Inverter inverter(cfg);
+    Ethernet ethernet;
+    Import import(config, ethernet);
+    SbfSpot sbfSpot(ethernet, import);
+    Inverter inverter(config, ethernet, import, sbfSpot);
     do
     {
         bool isStartOfDay = false;
@@ -99,11 +105,11 @@ int main(int argc, char **argv)
         {
             inverter.reset();
         }
-        std::this_thread::sleep_until(timePoint);
+        std::this_thread::sleep_until(std::chrono::system_clock::from_time_t(timePoint));
 
-        inverter.process(timePoint.time_since_epoch() / std::chrono::seconds(1));
+        inverter.process(timePoint);
     }
-    while(cfg.daemon);
+    while(config.daemon);
 
     if (VERBOSE_NORMAL) print_error(stdout, PROC_INFO, "Done.\n");
 

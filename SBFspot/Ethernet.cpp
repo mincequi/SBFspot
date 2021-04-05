@@ -70,11 +70,13 @@ DISCLAIMER:
 
 #include "Config.h"
 #include "Defines.h"
+#include "SBFNet.h"
+#include "endianness.h"
 #include "misc.h"
 
 struct sockaddr_in addr_in, addr_out;
 
-int ethConnect(short port)
+int Ethernet::ethConnect(short port)
 {
     int ret = 0;
 
@@ -124,7 +126,7 @@ int ethConnect(short port)
     return 0; //OK
 }
 
-int ethRead(unsigned char *buf, unsigned int bufsize)
+int Ethernet::ethRead(unsigned char *buf, unsigned int bufsize)
 {
     int bytes_read;
     short timeout = 5;
@@ -183,11 +185,11 @@ int ethRead(unsigned char *buf, unsigned int bufsize)
     return bytes_read;
 }
 
-int ethSend(unsigned char *buffer, const char *toIP)
+int Ethernet::ethSend(const unsigned char *buffer, const std::string& toIP)
 {
     if (DEBUG_NORMAL) HexDump(buffer, packetposition, 10);
 
-    addr_out.sin_addr.s_addr = inet_addr(toIP);
+    addr_out.sin_addr.s_addr = inet_addr(toIP.c_str());
     size_t bytes_sent = sendto(sock, (const char*)buffer, packetposition, 0, (struct sockaddr *)&addr_out, sizeof(addr_out));
 
     if (DEBUG_NORMAL) std::cout << bytes_sent << " Bytes sent to IP [" << inet_ntoa(addr_out.sin_addr) << "]" << std::endl;
@@ -196,7 +198,7 @@ int ethSend(unsigned char *buffer, const char *toIP)
 }
 
 #ifdef WIN32
-int ethClose()
+int Ethernet::ethClose()
 {
     if (sock != 0)
     {
@@ -210,7 +212,7 @@ int ethClose()
 #endif
 
 #if defined (linux) || defined (__APPLE__)
-int ethClose()
+int Ethernet::ethClose()
 {
     if (sock != 0)
     {
@@ -219,41 +221,62 @@ int ethClose()
     }
     return 0;
 }
+#endif
 
-int getLocalIP(unsigned char IPaddress[4])
+E_SBFSPOT Ethernet::ethGetPacket(void)
 {
-    int rc = 0;
-    struct ifaddrs *myaddrs;
-    struct in_addr *inaddr;
+    if (DEBUG_NORMAL) printf("ethGetPacket()\n");
+    E_SBFSPOT rc = E_OK;
 
-    if(getifaddrs(&myaddrs) == 0)
+    ethPacketHeaderL1L2 *pkHdr = (ethPacketHeaderL1L2 *)CommBuf;
+
+    do
     {
-        for (struct ifaddrs *ifa = myaddrs; ifa != NULL; ifa = ifa->ifa_next)
+        int bib = ethRead(CommBuf, sizeof(CommBuf));
+
+        if (bib <= 0)
         {
-            if (ifa->ifa_addr != NULL)
+            if (DEBUG_NORMAL) printf("No data!\n");
+            rc = E_NODATA;
+        }
+        else
+        {
+            unsigned short pkLen = (pkHdr->pcktHdrL1.hiPacketLen << 8) + pkHdr->pcktHdrL1.loPacketLen;
+
+            //More data after header?
+            if (pkLen > 0)
             {
-                // Find the active network adapter
-                if ((ifa->ifa_addr->sa_family == AF_INET) && (ifa->ifa_flags & IFF_UP) && (stricmp(ifa->ifa_name, "lo") != 0))
+                if (DEBUG_HIGH) HexDump(CommBuf, bib, 10);
+                if (btohl(pkHdr->pcktHdrL2.MagicNumber) == ETH_L2SIGNATURE)
                 {
-                    struct sockaddr_in *s4 = (struct sockaddr_in *)ifa->ifa_addr;
-                    inaddr = &s4->sin_addr;
+                    // Copy CommBuf to packetbuffer
+                    // Dummy byte to align with BTH (7E)
+                    pcktBuf[0]= 0;
+                    // We need last 6 bytes of ethPacketHeader too
+                    memcpy(pcktBuf+1, CommBuf + sizeof(ethPacketHeaderL1), bib - sizeof(ethPacketHeaderL1));
+                    // Point packetposition at last byte in our buffer
+                    // This is different from BTH
+                    packetposition = bib - sizeof(ethPacketHeaderL1);
 
-                    unsigned long ipaddr = inaddr->s_addr;
-                    IPaddress[3] = ipaddr & 0xFF;
-                    IPaddress[2] = (ipaddr >> 8) & 0xFF;
-                    IPaddress[1] = (ipaddr >> 16) & 0xFF;
-                    IPaddress[0] = (ipaddr >> 24) & 0xFF;
+                    if (DEBUG_HIGH)
+                    {
+                        printf("<<<====== Content of pcktBuf =======>>>\n");
+                        HexDump(pcktBuf, packetposition, 10);
+                        printf("<<<=================================>>>\n");
+                    }
 
-                    break;
+                    rc = E_OK;
+                }
+                else
+                {
+                    if (DEBUG_NORMAL) printf("L2 header not found.\n");
+                    rc = E_RETRY;
                 }
             }
+            else
+                rc = E_NODATA;
         }
-
-        freeifaddrs(myaddrs);
-    }
-    else
-        rc = -1;
+    } while (rc == E_RETRY);
 
     return rc;
 }
-#endif

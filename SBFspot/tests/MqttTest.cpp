@@ -91,7 +91,7 @@ int main()
     Timer timer(config);
 
     InverterData inverterData;
-    strncpy(inverterData.DeviceName, "STP 12000TL-10", 14);
+    inverterData.DeviceName = "STP 12000TL-10";
     //strncpy(inverterData.DeviceName, "123456789012345678901234567890", 30);
     inverterData.Serial = 1234567890;
     inverterData.Pmax1 = 10000;
@@ -105,13 +105,13 @@ int main()
     {
         auto timePoint = timer.nextTimePoint();
         inverterData.ETotal = (rand()%5000)*(rand()%5000);
-        inverterData.EToday = std::chrono::system_clock::to_time_t(timePoint)%100*1000;
+        inverterData.EToday = timePoint%100*1000;
         inverterData.Pdc1 = rand()%11111;
         inverterData.Pdc2 = rand()%12433;
         dayStats.stringPowerMax[0] += 0.5 * (inverterData.Pdc1 - dayStats.stringPowerMax[0]);
         dayStats.stringPowerMax[1] += 0.5 * (inverterData.Pdc2 - dayStats.stringPowerMax[1]);
         inverterData.TotalPac = inverterData.Pdc1 + inverterData.Pdc2 - rand()%1000;
-        std::this_thread::sleep_until(timePoint);
+        std::this_thread::sleep_until(std::chrono::system_clock::from_time_t(timePoint));
 
         auto now = std::time(nullptr);
         now -= rand()%1728000;

@@ -41,10 +41,10 @@ struct LiveData;
 
 namespace sma {
 
-class EnergyMeter {
+class SmaEnergyMeter {
 public:
-    EnergyMeter();
-    ~EnergyMeter();
+    SmaEnergyMeter();
+    ~SmaEnergyMeter();
 
     LiveData importLiveData() const;
     static LiveData poll_emeters(int timeout);

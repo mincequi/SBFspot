@@ -32,21 +32,61 @@ DISCLAIMER:
 
 ************************************************************************************************/
 
-#include "Processor.h"
+#pragma once
 
-#include <QByteArray>
+#include <QTimer>
 
-#include "Config.h"
-#include "LiveData.h"
+#include "Ethernet_qt.h"
+#include "Timer.h"
+#include "sma/SmaInverter.h"
+#include "sma/SmaEnergyMeter.h"
+#include "mqtt/MqttExport_qt.h"
+#include "msgpack/MsgPackSerializer.h"
 
-Processor::Processor(const Config& config)
-    : m_config(config),
-      m_mqttExport(config, m_msgPackSerializer)
+class QByteArray;
+
+class Config;
+
+namespace sma {
+
+class SmaManager : public QObject
 {
-}
+    Q_OBJECT
 
-void Processor::onProcessEnergyMeterPacket(const QByteArray& buffer)
-{
-    auto liveData = m_energyMeter.parsePacket(buffer.data(), buffer.size());
-    static_cast<Export&>(m_mqttExport).exportLiveData(liveData);
-}
+public:
+    SmaManager(Config& config);
+
+    void discoverInverters();
+
+    const std::map<uint32_t, SmaInverter>& inverters() const;
+
+private:
+    void initInverter(uint32_t ip);
+
+    void onEnergyMeterDatagram(const QNetworkDatagram& datagram);
+    void onDiscoveryResponseDatagram(const QNetworkDatagram& datagram);
+    void onUnknownDatagram(const QNetworkDatagram& datagram);
+
+    void startNextLiveTimer();
+    void onLiveTimeout();
+    void timerEvent(QTimerEvent *event) override;
+
+    const Config& m_config;
+    Ethernet_qt m_ethernet;
+
+    msgpack::MsgPackSerializer m_msgPackSerializer;
+    mqtt::MqttExport_qt m_mqttExport;
+    sma::SmaEnergyMeter    m_energyMeter;
+
+    int m_discoverTimer = 0;
+    std::map<uint32_t, SmaInverter> m_inverters;
+
+    Timer  m_timeComputation;
+    QTimer m_liveTimer;
+    QTimer m_archiveTimer;
+    std::time_t m_currentTimePoint = 0;
+
+    friend class ::Ethernet_qt;
+};
+
+} // namespace sma

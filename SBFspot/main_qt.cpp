@@ -35,8 +35,9 @@ DISCLAIMER:
 #include <QCoreApplication>
 
 #include "Config.h"
+#include "Defines.h"
 #include "Ethernet_qt.h"
-#include "Processor.h"
+#include "sma/SmaManager.h"
 
 int main(int argc, char *argv[])
 {
@@ -50,10 +51,16 @@ int main(int argc, char *argv[])
     rc = config.readConfig();   // Config struct contains fullpath to config file
     if (rc != 0) return rc;
 
+    // We are always a daemon
+    config.daemon = true;
+
+    // Set Ethernet
+    ConnType = CT_ETHERNET;
+
     QCoreApplication app(argc, argv);
 
-    Processor processor(config);
-    Ethernet_qt ethernet(processor);
+    sma::SmaManager processor(config);
+    processor.discoverInverters();
 
     return app.exec();
 }

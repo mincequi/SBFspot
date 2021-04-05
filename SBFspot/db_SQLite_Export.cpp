@@ -36,7 +36,7 @@ DISCLAIMER:
 
 #include "db_SQLite_Export.h"
 
-int db_SQL_Export::exportDayData(InverterData *inverters[])
+int db_SQL_Export::exportDayData(const std::vector<InverterData>& inverters)
 {
     const char *sql = "INSERT INTO DayData(TimeStamp,Serial,TotalYield,Power,PVoutput) VALUES(?1,?2,?3,?4,?5)";
     int rc = SQLITE_OK;
@@ -46,14 +46,14 @@ int db_SQL_Export::exportDayData(InverterData *inverters[])
     {
         exec_query("BEGIN IMMEDIATE TRANSACTION");
 
-        for (uint32_t inv=0; inverters[inv]!=NULL && inv<MAX_INVERTERS; inv++)
+        for (const auto& inverter : inverters)
         {
-            const unsigned int numelements = sizeof(inverters[inv]->dayData)/sizeof(DayData);
+            const unsigned int numelements = sizeof(inverter.dayData)/sizeof(DayData);
             unsigned int first_rec, last_rec;
             // Find first record with production data
             for (first_rec = 0; first_rec < numelements; first_rec++)
             {
-                if ((inverters[inv]->dayData[first_rec].datetime == 0) || (inverters[inv]->dayData[first_rec].watt != 0))
+                if ((inverter.dayData[first_rec].datetime == 0) || (inverter.dayData[first_rec].watt != 0))
                 {
                     // Include last zero record, just before production starts
                     if (first_rec > 0) first_rec--;
@@ -64,12 +64,12 @@ int db_SQL_Export::exportDayData(InverterData *inverters[])
             // Find last record with production data
             for (last_rec = numelements-1; last_rec > first_rec; last_rec--)
             {
-                if ((inverters[inv]->dayData[last_rec].datetime != 0) && (inverters[inv]->dayData[last_rec].watt != 0))
+                if ((inverter.dayData[last_rec].datetime != 0) && (inverter.dayData[last_rec].watt != 0))
                     break;
             }
 
             // Include zero record, just after production stopped
-            if ((last_rec < numelements - 1) && (inverters[inv]->dayData[last_rec + 1].datetime != 0))
+            if ((last_rec < numelements - 1) && (inverter.dayData[last_rec + 1].datetime != 0))
                 last_rec++;
 
             if (first_rec < last_rec) // Production data found or all zero?
@@ -78,15 +78,15 @@ int db_SQL_Export::exportDayData(InverterData *inverters[])
                 for (unsigned int idx = first_rec; idx <= last_rec; idx++)
                 {
                     // Invalid dates are not written to db
-                    if (inverters[inv]->dayData[idx].datetime > 0)
+                    if (inverter.dayData[idx].datetime > 0)
                     {
-                        sqlite3_bind_int(pStmt, 1, inverters[inv]->dayData[idx].datetime);
+                        sqlite3_bind_int(pStmt, 1, inverter.dayData[idx].datetime);
                         // Fix #269
                         // To store unsigned int32 serial numbers, we're using sqlite3_bind_int64
                         // SQLite will store these uint32 in 4 bytes
-                        sqlite3_bind_int64(pStmt, 2, inverters[inv]->Serial);
-                        sqlite3_bind_int64(pStmt, 3, inverters[inv]->dayData[idx].totalWh);
-                        sqlite3_bind_int64(pStmt, 4, inverters[inv]->dayData[idx].watt);
+                        sqlite3_bind_int64(pStmt, 2, inverter.Serial);
+                        sqlite3_bind_int64(pStmt, 3, inverter.dayData[idx].totalWh);
+                        sqlite3_bind_int64(pStmt, 4, inverter.dayData[idx].watt);
                         sqlite3_bind_null(pStmt, 5);
 
                         rc = sqlite3_step(pStmt);
@@ -118,7 +118,7 @@ int db_SQL_Export::exportDayData(InverterData *inverters[])
     return rc;
 }
 
-int db_SQL_Export::exportMonthData(InverterData *inverters[])
+int db_SQL_Export::exportMonthData(const std::vector<InverterData>& inverters)
 {
     const char *sql = "INSERT INTO MonthData(TimeStamp,Serial,TotalYield,DayYield) VALUES(?1,?2,?3,?4)";
     int rc = SQLITE_OK;
@@ -128,16 +128,16 @@ int db_SQL_Export::exportMonthData(InverterData *inverters[])
     {
         exec_query("BEGIN IMMEDIATE TRANSACTION");
 
-        for (uint32_t inv=0; inverters[inv]!=NULL && inv<MAX_INVERTERS; inv++)
+        for (const auto& inverter : inverters)
         {
             //Fix Issue 74: Double data in Monthdata tables
-            tm *ptm = gmtime(&inverters[inv]->monthData[0].datetime);
+            tm *ptm = gmtime(&inverter.monthData[0].datetime);
             char dt[32];
             strftime(dt, sizeof(dt), "%Y-%m", ptm);
 
             std::stringstream rmvsql;
             rmvsql.str("");
-            rmvsql << "DELETE FROM MonthData WHERE Serial=" << inverters[inv]->Serial << " AND strftime('%Y-%m',datetime(TimeStamp, 'unixepoch'))='" << dt << "';";
+            rmvsql << "DELETE FROM MonthData WHERE Serial=" << inverter.Serial << " AND strftime('%Y-%m',datetime(TimeStamp, 'unixepoch'))='" << dt << "';";
 
             rc = exec_query(rmvsql.str().c_str());
             if (rc != SQLITE_OK)
@@ -146,17 +146,17 @@ int db_SQL_Export::exportMonthData(InverterData *inverters[])
                 break;
             }
 
-            for (unsigned int idx = 0; idx < sizeof(inverters[inv]->monthData)/sizeof(MonthData); idx++)
+            for (unsigned int idx = 0; idx < sizeof(inverter.monthData)/sizeof(MonthData); idx++)
             {
-                if (inverters[inv]->monthData[idx].datetime > 0)
+                if (inverter.monthData[idx].datetime > 0)
                 {
-                    sqlite3_bind_int(pStmt, 1, inverters[inv]->monthData[idx].datetime);
+                    sqlite3_bind_int(pStmt, 1, inverter.monthData[idx].datetime);
                     // Fix #269
                     // To store unsigned int32 serial numbers, we're using sqlite3_bind_int64
                     // SQLite will store these uint32 in 4 bytes
-                    sqlite3_bind_int64(pStmt, 2, inverters[inv]->Serial);
-                    sqlite3_bind_int64(pStmt, 3, inverters[inv]->monthData[idx].totalWh);
-                    sqlite3_bind_int64(pStmt, 4, inverters[inv]->monthData[idx].dayWh);
+                    sqlite3_bind_int64(pStmt, 2, inverter.Serial);
+                    sqlite3_bind_int64(pStmt, 3, inverter.monthData[idx].totalWh);
+                    sqlite3_bind_int64(pStmt, 4, inverter.monthData[idx].dayWh);
 
                     rc = sqlite3_step(pStmt);
                     if ((rc != SQLITE_DONE) && (rc != SQLITE_CONSTRAINT))
@@ -232,7 +232,7 @@ int db_SQL_Export::exportSpotData(std::time_t timestamp, const std::vector<Inver
     return rc;
 }
 
-int db_SQL_Export::exportEventData(InverterData *inv[], TagDefs& tags)
+int db_SQL_Export::exportEventData(const std::vector<InverterData>& inverters, TagDefs& tags)
 {
     const char *sql = "INSERT INTO EventData(EntryID,TimeStamp,Serial,SusyID,EventCode,EventType,Category,EventGroup,Tag,OldValue,NewValue,UserGroup) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)";
     int rc = SQLITE_OK;
@@ -242,9 +242,9 @@ int db_SQL_Export::exportEventData(InverterData *inv[], TagDefs& tags)
     {
         exec_query("BEGIN IMMEDIATE TRANSACTION");
 
-        for (uint32_t i=0; inv[i]!=NULL && i<MAX_INVERTERS; i++)
+        for (const auto& inverter : inverters)
         {
-            for (std::vector<EventData>::iterator it=inv[i]->eventData.begin(); it!=inv[i]->eventData.end(); ++it)
+            for (auto it=inverter.eventData.begin(); it!=inverter.eventData.end(); ++it)
             {
                 std::string grp = tags.getDesc(it->Group());
                 std::string tag = tags.getDesc(it->Tag());
@@ -320,7 +320,7 @@ int db_SQL_Export::exportEventData(InverterData *inv[], TagDefs& tags)
     return rc;
 }
 
-int db_SQL_Export::exportBatteryData(InverterData *inverters[], time_t spottime)
+int db_SQL_Export::exportBatteryData(const std::vector<InverterData>& inverters, time_t spottime)
 {
     const char *sql = "INSERT INTO SpotDataX(TimeStamp,Serial,Key,Value) VALUES(?1,?2,?3,?4)";
     int rc = SQLITE_OK;
@@ -330,20 +330,19 @@ int db_SQL_Export::exportBatteryData(InverterData *inverters[], time_t spottime)
     {
         exec_query("BEGIN IMMEDIATE TRANSACTION");
 
-        for (uint32_t inv=0; inverters[inv]!=NULL && inv<MAX_INVERTERS; inv++)
+        for (const auto& inverter : inverters)
         {
-            InverterData* id = inverters[inv];
-            if ((id->DevClass == BatteryInverter) || (id->hasBattery))
+            if ((inverter.DevClass == BatteryInverter) || (inverter.hasBattery))
             {
-                if ((rc = insert_battery_data(pStmt, spottime, id->Serial, BatChaStt >> 8, id->BatChaStt)) != SQLITE_OK) break;
-                if ((rc = insert_battery_data(pStmt, spottime, id->Serial, BatTmpVal >> 8, id->BatTmpVal)) != SQLITE_OK) break;
-                if ((rc = insert_battery_data(pStmt, spottime, id->Serial, BatVol >> 8, id->BatVol)) != SQLITE_OK) break;
-                if ((rc = insert_battery_data(pStmt, spottime, id->Serial, BatAmp >> 8, id->BatAmp)) != SQLITE_OK) break;
-                //if ((rc = insert_battery_data(pStmt, spottime, id->Serial, BatDiagCapacThrpCnt >> 8, id->BatDiagCapacThrpCnt)) != SQLITE_OK) break;
-                //if ((rc = insert_battery_data(pStmt, spottime, id->Serial, BatDiagTotAhIn >> 8, id->BatDiagTotAhIn)) != SQLITE_OK) break;
-                //if ((rc = insert_battery_data(pStmt, spottime, id->Serial, BatDiagTotAhOut >> 8, id->BatDiagTotAhOut)) != SQLITE_OK) break;
-                if ((rc = insert_battery_data(pStmt, spottime, id->Serial, MeteringGridMsTotWIn >> 8, id->MeteringGridMsTotWIn)) != SQLITE_OK) break;
-                if ((rc = insert_battery_data(pStmt, spottime, id->Serial, MeteringGridMsTotWOut >> 8, id->MeteringGridMsTotWOut)) != SQLITE_OK) break;
+                if ((rc = insert_battery_data(pStmt, spottime, inverter.Serial, BatChaStt >> 8, inverter.BatChaStt)) != SQLITE_OK) break;
+                if ((rc = insert_battery_data(pStmt, spottime, inverter.Serial, BatTmpVal >> 8, inverter.BatTmpVal)) != SQLITE_OK) break;
+                if ((rc = insert_battery_data(pStmt, spottime, inverter.Serial, BatVol >> 8, inverter.BatVol)) != SQLITE_OK) break;
+                if ((rc = insert_battery_data(pStmt, spottime, inverter.Serial, BatAmp >> 8, inverter.BatAmp)) != SQLITE_OK) break;
+                //if ((rc = insert_battery_data(pStmt, spottime, inverter.Serial, BatDiagCapacThrpCnt >> 8, inverter.BatDiagCapacThrpCnt)) != SQLITE_OK) break;
+                //if ((rc = insert_battery_data(pStmt, spottime, inverter.Serial, BatDiagTotAhIn >> 8, inverter.BatDiagTotAhIn)) != SQLITE_OK) break;
+                //if ((rc = insert_battery_data(pStmt, spottime, inverter.Serial, BatDiagTotAhOut >> 8, inverter.BatDiagTotAhOut)) != SQLITE_OK) break;
+                if ((rc = insert_battery_data(pStmt, spottime, inverter.Serial, MeteringGridMsTotWIn >> 8, inverter.MeteringGridMsTotWIn)) != SQLITE_OK) break;
+                if ((rc = insert_battery_data(pStmt, spottime, inverter.Serial, MeteringGridMsTotWOut >> 8, inverter.MeteringGridMsTotWOut)) != SQLITE_OK) break;
             }
         }
 

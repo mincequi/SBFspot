@@ -38,7 +38,6 @@ DISCLAIMER:
 #include "osselect.h"
 
 #define BTH_L2SIGNATURE 0x656003FF
-#define ETH_L2SIGNATURE 0x65601000
 
 //Function prototypes
 //void ethWritePacketHeader(unsigned char *buf);

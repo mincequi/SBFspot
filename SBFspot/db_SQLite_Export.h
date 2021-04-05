@@ -45,11 +45,11 @@ extern int verbose;
 class db_SQL_Export : public db_SQL_Base
 {
 public:
-    int exportDayData(InverterData *inverters[]);
-    int exportMonthData(InverterData *inverters[]);
+    int exportDayData(const std::vector<InverterData>& inverters);
+    int exportMonthData(const std::vector<InverterData>& inverters);
     int exportSpotData(std::time_t timestamp, const std::vector<InverterData>& data);
-    int exportEventData(InverterData *inv[], TagDefs& tags);
-    int exportBatteryData(InverterData *inverters[], time_t spottime);
+    int exportEventData(const std::vector<InverterData>& inverters, TagDefs& tags);
+    int exportBatteryData(const std::vector<InverterData>& inverters, time_t spottime);
 
 private:
     int insert_battery_data(sqlite3_stmt* pStmt, int32_t tm, int32_t sn, int32_t key, int32_t val);

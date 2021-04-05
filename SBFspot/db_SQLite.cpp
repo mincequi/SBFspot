@@ -132,22 +132,22 @@ int db_SQL_Base::exec_query(string qry)
 	return result;
 }
 
-int db_SQL_Base::type_label(InverterData *inverters[])
+int db_SQL_Base::type_label(const std::vector<InverterData>& inverters)
 {
 	std::stringstream sql;
 	int rc = SQLITE_OK;
 
-    for (uint32_t inv=0; inverters[inv]!=NULL && inv<MAX_INVERTERS; inv++)
+    for (const auto& inverter : inverters)
 	{
 		sql.str("");
 
 		// Instead of using REPLACE which is actually a DELETE followed by INSERT,
 		// we do an INSERT OR IGNORE (for new records) followed by UPDATE (for existing records)
 		sql << "INSERT OR IGNORE INTO Inverters VALUES(" <<
-			inverters[inv]->Serial << ',' <<
-			s_quoted(inverters[inv]->DeviceName) << ',' <<
-			s_quoted(inverters[inv]->DeviceType) << ',' <<
-			s_quoted(inverters[inv]->SWVersion) << ',' <<
+            inverter.Serial << ',' <<
+            s_quoted(inverter.DeviceName) << ',' <<
+            s_quoted(inverter.DeviceType) << ',' <<
+            s_quoted(inverter.SWVersion) << ',' <<
 			"0,0,0,0,0,0,'','',0)";
 
 		if ((rc = exec_query(sql.str())) != SQLITE_OK)
@@ -156,10 +156,10 @@ int db_SQL_Base::type_label(InverterData *inverters[])
 		sql.str("");
 
 		sql << "UPDATE Inverters SET" <<
-			" Name=" << s_quoted(inverters[inv]->DeviceName) <<
-			",Type=" << s_quoted(inverters[inv]->DeviceType) <<
-			",SW_Version=" << s_quoted(inverters[inv]->SWVersion) <<
-			" WHERE Serial=" << inverters[inv]->Serial;
+            " Name=" << s_quoted(inverter.DeviceName) <<
+            ",Type=" << s_quoted(inverter.DeviceType) <<
+            ",SW_Version=" << s_quoted(inverter.SWVersion) <<
+            " WHERE Serial=" << inverter.Serial;
 
 		if ((rc = exec_query(sql.str())) != SQLITE_OK)
 			print_error("exec_query() returned", sql.str());
@@ -168,7 +168,7 @@ int db_SQL_Base::type_label(InverterData *inverters[])
 	return rc;
 }
 
-int db_SQL_Base::device_status(InverterData *inverters[], time_t spottime)
+int db_SQL_Base::device_status(const std::vector<InverterData>& inverters, time_t spottime)
 {
 	std::stringstream sql;
 	int rc = SQLITE_OK;
@@ -176,21 +176,21 @@ int db_SQL_Base::device_status(InverterData *inverters[], time_t spottime)
 	// Take time from computer instead of inverter
 	//time_t spottime = cfg->SpotTimeSource == 0 ? inverters[0]->InverterDatetime : time(NULL);
 
-    for (uint32_t inv=0; inverters[inv]!=NULL && inv<MAX_INVERTERS; inv++)
+    for (const auto& inverter : inverters)
 	{
 		sql.str("");
 
 		sql << "UPDATE Inverters SET" <<
             " TimeStamp=" << std::to_string(spottime) <<
-			",TotalPac=" << inverters[inv]->TotalPac <<
-			",EToday=" << inverters[inv]->EToday <<
-			",ETotal=" << inverters[inv]->ETotal <<
-			",OperatingTime=" << (double)inverters[inv]->OperationTime/3600 <<
-			",FeedInTime=" << (double)inverters[inv]->FeedInTime/3600 <<
-			",Status=" << s_quoted(status_text(inverters[inv]->DeviceStatus)) <<
-			",GridRelay=" << s_quoted(status_text(inverters[inv]->GridRelayStatus)) <<
-			",Temperature=" << (float)inverters[inv]->Temperature/100 <<
-			" WHERE Serial=" << inverters[inv]->Serial;
+            ",TotalPac=" << inverter.TotalPac <<
+            ",EToday=" << inverter.EToday <<
+            ",ETotal=" << inverter.ETotal <<
+            ",OperatingTime=" << (double)inverter.OperationTime/3600 <<
+            ",FeedInTime=" << (double)inverter.FeedInTime/3600 <<
+            ",Status=" << s_quoted(status_text(inverter.DeviceStatus)) <<
+            ",GridRelay=" << s_quoted(status_text(inverter.GridRelayStatus)) <<
+            ",Temperature=" << (float)inverter.Temperature/100 <<
+            " WHERE Serial=" << inverter.Serial;
 
 		if ((rc = exec_query(sql.str())) != SQLITE_OK)
 			print_error("exec_query() returned", sql.str());

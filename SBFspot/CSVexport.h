@@ -36,18 +36,24 @@ DISCLAIMER:
 
 #include "osselect.h"
 #include <string>
+#include <vector>
 
 struct Config;
 struct InverterData;
 
 const char *linebreak2txt(void);
 char *DateTimeFormatToDMY(const char *dtf);
-int ExportDayDataToCSV(const Config *cfg, InverterData* const inverters[]);
-int ExportEventsToCSV(const Config *cfg, InverterData* const inverters[], std::string dt_range_csv);
-int ExportMonthDataToCSV(const Config *cfg, InverterData* const inverters[]);
-int ExportSpotDataToCSV(const Config *cfg, InverterData* const inverters[]);
-int ExportSpotDataToWSL(const Config *cfg, InverterData* const inverters[]);
-int	ExportSpotDataTo123s(const Config *cfg, InverterData* const inverters[]);
-int	ExportInformationDataTo123s(const Config *cfg, InverterData* const inverters[]);
-int	ExportStateDataTo123s(const Config *cfg, InverterData* const inverters[]);
-int ExportBatteryDataToCSV(const Config *cfg, InverterData* const inverters[]);
+
+int ExportDayDataToCSV(const Config *cfg, const std::vector<InverterData>& inverters);
+int ExportMonthDataToCSV(const Config *cfg, const std::vector<InverterData>& inverters);
+int ExportSpotDataToCSV(const Config *cfg, const std::vector<InverterData>& inverters);
+int ExportEventsToCSV(const Config *cfg, std::vector<InverterData>& inverters, std::string dt_range_csv);
+int ExportBatteryDataToCSV(const Config *cfg, const std::vector<InverterData>& inverters);
+
+// Undocumented - For WebSolarLog usage only
+int ExportSpotDataToWSL(const Config *cfg, const std::vector<InverterData>& inverters);
+
+// Undocumented - For 123Solar Web Solar logger usage only)
+int ExportSpotDataTo123s(const Config *cfg, const std::vector<InverterData>& inverters);
+int ExportInformationDataTo123s(const Config *cfg, const std::vector<InverterData>& inverters);
+int ExportStateDataTo123s(const Config *cfg, const std::vector<InverterData>& inverters);

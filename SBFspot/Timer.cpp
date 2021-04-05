@@ -62,12 +62,12 @@ bool Timer::isBright() const
     return true;
 }
 
-std::chrono::system_clock::time_point Timer::nextTimePoint(bool* isStartOfDay)
+std::time_t Timer::nextTimePoint(bool* isStartOfDay)
 {
-    std::chrono::system_clock::time_point timePoint;
+    std::time_t timePoint;
     // If we are not in daemon mode, we check immediately
     if (!m_config.daemon)
-        timePoint = std::chrono::system_clock::now();
+        timePoint = std::time(nullptr);
 
     // If dark, compute next time point after sunrise
     else if (!isBright())
@@ -85,7 +85,7 @@ std::chrono::system_clock::time_point Timer::nextTimePoint(bool* isStartOfDay)
             date += boost::gregorian::days(1);
         }
 
-        timePoint = std::chrono::system_clock::from_time_t(boost::posix_time::to_time_t(date));
+        timePoint = boost::posix_time::to_time_t(date);
         m_isEndOfDay = true;
     }
     else
@@ -100,13 +100,12 @@ std::chrono::system_clock::time_point Timer::nextTimePoint(bool* isStartOfDay)
         seconds /= m_config.liveInterval;
         ++seconds;
         seconds *= m_config.liveInterval;
-        timePoint = std::chrono::system_clock::from_time_t(seconds);
+        timePoint = seconds;
     }
 
     if (VERBOSE_HIGH)
     {
-        std::time_t t = std::chrono::system_clock::to_time_t(timePoint);
-        std::cout << "Next poll: " << std::ctime(&t) << std::endl;
+        std::cout << "Next poll: " << std::ctime(&timePoint) << std::endl;
     }
 
     return timePoint;

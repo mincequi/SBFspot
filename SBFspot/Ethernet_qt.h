@@ -36,19 +36,24 @@ DISCLAIMER:
 
 #include <QUdpSocket>
 
-class Processor;
+namespace sma {
+class SmaManager;
+}
 
 class Ethernet_qt : public QObject
 {
     Q_OBJECT
 
 public:
-    Ethernet_qt(class Processor& processor);
+    Ethernet_qt(sma::SmaManager& processor);
+
+    void send(const std::vector<uint8_t>& data, uint32_t address, uint16_t port);
+    void send(const QByteArray& datagram, const std::string& address, uint16_t port);
 
 private:
     void onReadyRead();
 
-    Processor& m_processor;
+    sma::SmaManager& m_processor;
 
     QUdpSocket m_udpSocket;
 };

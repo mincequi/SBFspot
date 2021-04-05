@@ -32,7 +32,7 @@ DISCLAIMER:
 
 ************************************************************************************************/
 
-#include "EnergyMeter.h"
+#include "SmaEnergyMeter.h"
 
 #include "LiveData.h"
 
@@ -52,18 +52,18 @@ DISCLAIMER:
 
 namespace sma {
 
-EnergyMeter::EnergyMeter() {
+SmaEnergyMeter::SmaEnergyMeter() {
 }
 
-EnergyMeter::~EnergyMeter() {
+SmaEnergyMeter::~SmaEnergyMeter() {
 }
 
-LiveData EnergyMeter::importLiveData() const {
+LiveData SmaEnergyMeter::importLiveData() const {
     return {};
 }
 
 
-LiveData EnergyMeter::poll_emeters(const int timeout) {
+LiveData SmaEnergyMeter::poll_emeters(const int timeout) {
     // open socket(s) to receive sma emeter packets from any local interface
     LocalHost localhost;
     const std::vector<SpeedwireSocket> sockets = SpeedwireSocketFactory::getInstance(localhost)->getRecvSockets(SpeedwireSocketFactory::MULTICAST, localhost.getLocalIPv4Addresses());
@@ -114,7 +114,7 @@ LiveData EnergyMeter::poll_emeters(const int timeout) {
     return {};
 }
 
-LiveData EnergyMeter::parsePacket(const char* data, uint16_t size)
+LiveData SmaEnergyMeter::parsePacket(const char* data, uint16_t size)
 {
     // define measurement filters for sma emeter packet filtering
     ObisFilter filter;

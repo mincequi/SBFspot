@@ -86,9 +86,7 @@ int MqttMsgPackExport::exportConfig(const std::vector<InverterData>& inverterDat
         packer.pack_uint8(0);
         // 2. Device name
         packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Name));
-        std::string str = inv.DeviceName;
-        packer.pack_str(str.size());
-        packer.pack_str_body(inv.DeviceName, str.size());
+        packer.pack(inv.DeviceName);
         // 3. Latitude
         packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Latitude));
         packer.pack_float(m_config.latitude);
@@ -195,10 +193,10 @@ int MqttMsgPackExport::exportLiveData(std::time_t timestamp,
         packer.pack_ext(4, -1); // Timestamp type
         packer.pack_ext_body((const char*)(&t), 4);
         // 3. Yield Total
-        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::YieldTotal));
+        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::EnergyTotal));
         packer.pack_float(static_cast<float>(inv.ETotal));
         // 4. Yield Today
-        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::YieldToday));
+        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::EnergyToday));
         packer.pack_float(static_cast<float>(inv.EToday));
         // 5. Power AC
         packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Power));

@@ -63,21 +63,21 @@ public:
         Version = 0,    // Protocol version:    uint (max 15)
         Name = 1,       // Device name:         string (max length 23)
         StartOfProduction = 2,  // Timestamp when this inverter got installed: uint32
-        Latitude = 3,   // float16, float32
-        Longitude = 4,  // float16, float32
-        PowerMax = 5,   // uint16, uint32
-        DeviceType = 6,
+        Latitude = 3,   // int: degrees/180*INT_MAX, float: value in degrees
+        Longitude = 4,  // fint: degrees/180*INT_MAX, float: value in degrees
+        PowerMax = 5,   // rated power: any number format
+        DeviceType = 6, // EnergyMeter, SolarInverter
 
         // Dynamic properties
         Timestamp = 8,      // Timestamp for this data set: uint32
-        Interval = 9,      // Interval (in seconds) for this data set.
-        YieldTotal = 10,     // Total yield in Wh: float16, float32, uint32
-        YieldToday = 11,    // Today's yield in Wh: float16, float32, uint16, uint32
-        Power = 12,         // Current power: float16, float32, uint16, uint32
-        PowerMaxToday = 13, // Today's maximum power: float16, float32, uint16, uint32
+        Interval = 9,       // Interval (in seconds) for this data set.
+        EnergyTotal = 10,   // Total yield in Wh: any number format
+        EnergyToday = 11,   // Today's yield in Wh: any number format
+        Power = 12,         // Current power: any number format
+        PowerMaxToday = 13, // Today's maximum power: any number format
 
-        // Key for PV string properties (stored in array of maps)
-        Strings = 16,       // Data per PV array: map (max length 15)
+        // Key for DC string or AC phase properties (stored in array of maps)
+        Strings = 16,       // Data per PV array or AC phase: map (max length 15)
 
         // PV array specific properties - static
         StringName = Name,

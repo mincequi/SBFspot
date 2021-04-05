@@ -36,26 +36,38 @@ DISCLAIMER:
 
 #include "osselect.h"
 
+#include "ArchData.h"
 #include "Cache.h"
 #include "LiveData.h"
 #include "SQLselect.h"
 #include "mqtt.h"
-#include "sma/EnergyMeter.h"
 
 struct Config;
+class Ethernet;
+class Import;
 struct InverterData;
+class SbfSpot;
 
 class Inverter
 {
 public:
-    Inverter(const Config& config);
+    Inverter(const Config& config, Ethernet& ethernet, Import& import, SbfSpot& sbfSpot);
     ~Inverter();
+
+    E_SBFSPOT ethInitConnection();
+    E_SBFSPOT logonSMAInverter(const std::vector<InverterData>& inverters, long userGroup, const char *password);
+    E_SBFSPOT logoffSMAInverter(const InverterData& inverter);
+    E_SBFSPOT logoffMultigateDevices(const std::vector<InverterData>& inverters);
+    E_SBFSPOT getDeviceList(std::vector<InverterData>& inverters, int multigateID);
+    int getInverterData(std::vector<InverterData>& inverters, SmaInverterDataSet type);
 
     void exportConfig();
     int process(std::time_t timestamp);
     void reset();
 
 private:
+    std::string discover();
+
     int logOn();
     void logOff();
 
@@ -75,18 +87,21 @@ private:
     void exportSpotDataDb(std::time_t timestamp);
     void exportSpotDataMqtt(std::time_t timestamp);
 
-    const Config& m_config;
+    void CalcMissingSpot(InverterData& invData);
 
-    // TODO: transform this to a C++ container
-    InverterData **m_inverters;
-    Cache m_storage;
+    const Config& m_config;
+    Ethernet& m_ethernet;
+    Import& m_import;
+    SbfSpot& m_sbfSpot;
+
+    std::vector<InverterData> m_inverters;
+    ArchData m_archData;
+    Cache m_cache;
     std::vector<DayStats>   m_dayStats;
 
 #if defined(USE_SQLITE) || defined(USE_MYSQL)
     db_SQL_Export m_db;
 #endif
     MqttExport m_mqtt;
-    sma::EnergyMeter m_smaEnergyMeter;
-    LiveData    m_smaEnergyMeterLiveData;
 };
 

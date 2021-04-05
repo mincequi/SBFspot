@@ -39,19 +39,24 @@ DISCLAIMER:
 #include "Types.h"
 
 struct Config;
+class Ethernet;
 
+/*
+ * This class serves as an abstraction of Bluetooth and Ethernet to avoid all
+ * those #ifdefs in business logic.
+ */
 class Import
 {
 public:
-    Import(const Config& config);
+    Import(const Config& config, Ethernet& ethernet);
     ~Import();
 
-    // TODO: make these non-static
-    static int close();
-    static E_SBFSPOT getPacket(const unsigned char senderaddr[6], int wait4Command);
-    static int send(unsigned char *buffer, const char *toIP);
+    int close();
+    E_SBFSPOT getPacket(const unsigned char senderaddr[6], int wait4Command);
+    int send(unsigned char *buffer, const std::string& toIP);
 
 private:
     const Config& m_config;
+    Ethernet& m_ethernet;
 };
 

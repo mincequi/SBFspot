@@ -261,7 +261,7 @@ void print_error(FILE *error_file, ERRORLEVEL error_level, const char *error_msg
     fflush(error_file);
 }
 
-void HexDump(unsigned char *buf, int count, int radix)
+void HexDump(const unsigned char *buf, int count, int radix)
 {
     int i, j;
     printf("--------:");
@@ -380,15 +380,4 @@ int isCrcValid(unsigned char lb, unsigned char hb)
     }
     else
         return 1;   //Always true for ethernet
-}
-
-std::vector<InverterData> toStdVector(InverterData* const* const inverters)
-{
-    std::vector<InverterData> inverterData;
-    inverterData.reserve(MAX_INVERTERS);
-
-    for (uint32_t inv = 0; inverters[inv] != NULL && inv < MAX_INVERTERS; inv++)
-        inverterData.push_back(*inverters[inv]);
-
-    return inverterData;
 }

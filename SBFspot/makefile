@@ -116,7 +116,7 @@ $(OBJDIR)%.o: %.cpp
 	$(CXX) $^ $(CFLAGS) -o $@ $(addprefix -I,$(INCDIR))
 
 $(TARGET): $(OBJECTS)
-	$(LD) $^ $(LDFLAGS) -o $@ -Wl,-Bdynamic $(addprefix -l,$(LIBS)) $(addprefix -L,$(LIBDIR))
+	$(LD) $^ $(LDFLAGS) -o $@ -Wl $(addprefix -l,$(LIBS)) $(addprefix -L,$(LIBDIR))
 
 cleanall:
 	$(CMD_RMDIR) nosql

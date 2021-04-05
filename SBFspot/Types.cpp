@@ -32,65 +32,6 @@ DISCLAIMER:
 
 ************************************************************************************************/
 
-#include "Import.h"
+#include "Types.h"
 
-#ifdef BLUETOOTH_FOUND
-#include "bluetooth.h"
-#endif
-
-#include "Config.h"
-#include "Ethernet.h"
-#include "SBFspot.h"
-
-Import::Import(const Config& config, Ethernet& ethernet) :
-    m_config(config),
-    m_ethernet(ethernet)
-{
-}
-
-Import::~Import()
-{
-}
-
-int Import::close()
-{
-#ifdef BLUETOOTH_FOUND
-    return bthClose();
-#else
-    return 0;
-#endif
-}
-
-E_SBFSPOT Import::getPacket(const unsigned char senderaddr[6], int wait4Command)
-{
-    if (ConnType == CT_BLUETOOTH)
-    {
-#ifdef BLUETOOTH_FOUND
-        return bthGetPacket(senderaddr, wait4Command);
-#else
-        std::cout << "Bluetooth not supported on this platform" << std::endl;
-        return E_COMM;
-#endif
-    }
-    else
-    {
-        return m_ethernet.ethGetPacket();
-    }
-}
-
-int Import::send(unsigned char *buffer, const std::string& toIP)
-{
-    if(ConnType == CT_BLUETOOTH)
-    {
-#ifdef BLUETOOTH_FOUND
-        return bthSend(buffer);
-#else
-        std::cout << "Bluetooth not supported on this platform" << std::endl;
-        return 0;
-#endif
-    }
-    else
-    {
-        return m_ethernet.ethSend(buffer, toIP);
-    }
-}
+#include "Defines.h"

@@ -34,27 +34,43 @@ DISCLAIMER:
 
 #pragma once
 
-#include "sma/EnergyMeter.h"
-#include "mqtt/MqttExport_qt.h"
-#include "msgpack/MsgPackSerializer.h"
+#include <cstdint>
+#include <ctime>
 
-class QByteArray;
+#include "Types.h"
 
-class Config;
+class Ethernet_qt;
+class QNetworkDatagram;
 
-class Processor
+namespace sma {
+
+class SmaInverter
 {
-public:
-    Processor(const Config& config);
-
 private:
-    void onProcessEnergyMeterPacket(const QByteArray& buffer);
+    SmaInverter(Ethernet_qt& ioDevice, uint32_t address);
 
-    const Config& m_config;
+    void init();
+    void login();
+    void logout();
+    void requestDataSet(SmaInverterDataSet dataSet);
 
-    msgpack::MsgPackSerializer m_msgPackSerializer;
-    mqtt::MqttExport_qt m_mqttExport;
-    sma::EnergyMeter    m_energyMeter;
+    void onDatagram(const QNetworkDatagram& datagram);
 
-    friend class Ethernet_qt;
+    Ethernet_qt& m_ioDevice;
+
+    uint32_t m_address = 0;
+    uint16_t m_susyId = 0x0078;
+    uint32_t m_serial = 0x3803E8C8;
+    std::time_t m_lastSeen = 0;
+
+    enum class State {
+        Invalid,
+        Initialized,
+        LoggedOut,
+        LoggedIn
+    } m_state = State::Invalid;
+
+    friend class SmaManager;
 };
+
+}

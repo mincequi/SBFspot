@@ -38,7 +38,6 @@ DISCLAIMER:
 #include "SBFNet.h"
 #include "TagDefs.h"
 #include "EventData.h"
-#include "Ethernet.h"
 #include "Types.h"
 #include <time.h>
 #include <vector>
@@ -51,19 +50,6 @@ DISCLAIMER:
 #include "boost/format.hpp"
 
 #include "Rec40S32.h"
-
-#define NaN_S16	0x8000		                    // "Not a Number" representation for SHORT (converted to 0 by SBFspot)
-#define NaN_U16	0xFFFF		                    // "Not a Number" representation for USHORT (converted to 0 by SBFspot)
-#define NaN_S32	(int32_t) 0x80000000	        // "Not a Number" representation for LONG (converted to 0 by SBFspot)
-#define NaN_U32	(uint32_t)0xFFFFFFFF	        // "Not a Number" representation for ULONG (converted to 0 by SBFspot)
-#define NaN_S64	(int64_t) 0x8000000000000000	// "Not a Number" representation for LONGLONG (converted to 0 by SBFspot)
-#define NaN_U64	(uint64_t)0xFFFFFFFFFFFFFFFF	// "Not a Number" representation for ULONGLONG (converted to 0 by SBFspot)
-
-#define NA				"N/A"
-
-//User Group
-#define	UG_USER			0x07L
-#define UG_INSTALLER	0x0AL
 
 //Wellknown SUSyID's
 #define SID_MULTIGATE	175
@@ -81,24 +67,27 @@ DISCLAIMER:
 #define toHz(value32) (float)value32/100
 #define toTemp(value32) (float)value32/100
 
-//Function prototypes
-E_SBFSPOT ethInitConnection(InverterData *inverters[], const char *IP_Address);
-E_SBFSPOT ethInitConnectionMulti(InverterData *inverters[], std::vector<std::string> IPaddresslist);
-void CalcMissingSpot(InverterData *invData);
-int DaysInMonth(int month, int year);
-void freemem(InverterData *inverters[]);
-int getInverterData(InverterData *inverters[], enum getInverterDataType type);
-int getInverterIndexByAddress(InverterData* const inverters[], unsigned char bt_addr[6]);
-int getInverterIndexBySerial(InverterData *inverters[], unsigned short SUSyID, uint32_t Serial);
-int getInverterIndexBySerial(InverterData *inverters[], uint32_t Serial);
-int isValidSender(const unsigned char senderaddr[6], unsigned char address[6]);
-E_SBFSPOT logonSMAInverter(InverterData* const inverters[], long userGroup, const char *password);
-E_SBFSPOT logoffSMAInverter(InverterData* const inverter);
-E_SBFSPOT logoffMultigateDevices(InverterData* const inverters[]);
-E_SBFSPOT ethGetPacket(void);
-void resetInverterData(InverterData *inv);
-E_SBFSPOT getDeviceData(InverterData *inv, LriDef lri, uint16_t cmd, Rec40S32 &data);
-E_SBFSPOT setDeviceData(InverterData *inv, LriDef lri, uint16_t cmd, Rec40S32 &data);
-E_SBFSPOT getDeviceList(InverterData *devList[], int multigateID);
+class Ethernet;
+class Import;
+
+class SbfSpot {
+public:
+    SbfSpot(Ethernet& ethernet, Import& import);
+
+    int DaysInMonth(int month, int year);
+    int getInverterIndexBySerial(const std::vector<InverterData>& inverters, unsigned short SUSyID, uint32_t Serial);
+    int isValidSender(const unsigned char senderaddr[6], unsigned char address[6]);
+
+    static void prepareInit(u_int8_t* buffer);
+    static void prepareLogin(uint8_t* buffer, uint16_t susyId, uint32_t serial, SmaUserGroup userGroup, const std::string& password);
+    static void prepareLogin(std::vector<uint8_t>& buffer, SmaUserGroup userGroup, const std::string& password);
+    static void prepareRequest(uint8_t* buffer, uint16_t susyId, uint32_t serial, SmaInverterDataSet dataSet);
+
+    static void decodeResponse(uint8_t* buffer, InverterData& data);
+
+private:
+    Ethernet& m_ethernet;
+    Import& m_import;
+};
 
 extern const char *IP_Inverter;

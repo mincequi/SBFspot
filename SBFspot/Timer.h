@@ -45,7 +45,7 @@ public:
     Timer(Config& config);
 
     bool isBright() const;
-    std::chrono::system_clock::time_point nextTimePoint(bool* isStartOfDay = nullptr);
+    std::time_t nextTimePoint(bool* isStartOfDay = nullptr);
 
 private:
     Config& m_config;
