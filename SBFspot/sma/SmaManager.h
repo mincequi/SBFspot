@@ -61,8 +61,6 @@ public:
     const std::map<uint32_t, SmaInverter>& inverters() const;
 
 private:
-    void initInverter(uint32_t ip);
-
     void onEnergyMeterDatagram(const QNetworkDatagram& datagram);
     void onDiscoveryResponseDatagram(const QNetworkDatagram& datagram);
     void onUnknownDatagram(const QNetworkDatagram& datagram);

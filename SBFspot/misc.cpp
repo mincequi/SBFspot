@@ -46,7 +46,7 @@ DISCLAIMER:
 #include <limits.h>
 #endif
 
-int64_t get_longlong(uint8_t *buf)
+int64_t get_longlong(const uint8_t *buf)
 {
     int64_t lnglng = 0;
 
@@ -69,7 +69,7 @@ int64_t get_longlong(uint8_t *buf)
     return lnglng;
 }
 
-int32_t get_long(uint8_t *buf)
+int32_t get_long(const uint8_t *buf)
 {
     int32_t lng = 0;
 
@@ -84,7 +84,7 @@ int32_t get_long(uint8_t *buf)
     return lng;
 }
 
-short get_short(uint8_t *buf)
+short get_short(const uint8_t *buf)
 {
     short shrt = 0;
 

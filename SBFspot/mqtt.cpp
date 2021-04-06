@@ -36,6 +36,7 @@ DISCLAIMER:
 
 #include "Config.h"
 #include "SBFspot.h"
+#include "misc.h"
 
 MqttExport::MqttExport(const Config& config)
     : m_config(config)

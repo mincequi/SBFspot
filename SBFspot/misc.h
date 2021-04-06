@@ -49,9 +49,9 @@ struct InverterData;
 #define MAX_PATH          260
 #endif
 
-short get_short(uint8_t *buf);
-int32_t get_long(uint8_t *buf);
-int64_t get_longlong(uint8_t *buf);
+short get_short(const uint8_t *buf);
+int32_t get_long(const uint8_t *buf);
+int64_t get_longlong(const uint8_t *buf);
 const char *delim2txt(const char delim);
 const char *dp2txt(char dp);
 char *strftime_t (const std::string& format, const time_t rawtime);

@@ -48,7 +48,7 @@ SmaManager::SmaManager(Config& config)
     : m_config(config),
       m_ethernet(*this),
       m_mqttExport(config, m_msgPackSerializer),
-      m_discoverTimer(startTimer(1*60*1000)),
+      m_discoverTimer(startTimer(1*60*1000)),   // discover every 60 seconds
       m_timeComputation(config)
 {
     srand(time(nullptr));
@@ -75,10 +75,6 @@ const std::map<uint32_t, SmaInverter>& SmaManager::inverters() const
     return m_inverters;
 }
 
-void SmaManager::initInverter(uint32_t ip)
-{
-}
-
 void SmaManager::onEnergyMeterDatagram(const QNetworkDatagram& buffer)
 {
     auto liveData = m_energyMeter.parsePacket(buffer.data().data(), buffer.data().size());
@@ -90,7 +86,7 @@ void SmaManager::onDiscoveryResponseDatagram(const QNetworkDatagram& datagram)
     auto ip = datagram.senderAddress().toIPv4Address();
     if (!m_inverters.count(ip)) {
         qInfo() << "Found inverter at: " << datagram.senderAddress();
-        m_inverters.emplace(ip, SmaInverter(m_ethernet, ip));
+        m_inverters.emplace(ip, SmaInverter(m_config, m_ethernet, ip));
         m_inverters.at(ip).m_lastSeen = std::time(nullptr);
     } else {
         m_inverters.at(ip).m_lastSeen = std::time(nullptr);
@@ -110,18 +106,18 @@ void SmaManager::startNextLiveTimer()
     m_currentTimePoint = m_timeComputation.nextTimePoint();
     auto now = std::time(nullptr);
     auto ms = (m_currentTimePoint - now)*1000;
-    m_liveTimer.start(ms);
-    //m_liveTimer.start(5000);
+    //m_liveTimer.start(ms);
+    m_liveTimer.start(10000);
 }
 
 void SmaManager::onLiveTimeout()
 {
     qInfo() << "Live timeout:" << m_currentTimePoint;
     for (auto& kv : m_inverters) {
-        if (kv.second.m_state == SmaInverter::State::Invalid) continue;
+        if (kv.second.m_state == SmaInverter::State::Invalid)
+            continue;
 
-        kv.second.login();
-        kv.second.logout();
+        kv.second.poll();
     }
 
     startNextLiveTimer();

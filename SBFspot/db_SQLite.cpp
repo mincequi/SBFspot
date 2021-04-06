@@ -35,6 +35,8 @@ DISCLAIMER:
 #if defined(USE_SQLITE)
 
 #include "db_SQLite.h"
+
+#include <sys/time.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 

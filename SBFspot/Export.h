@@ -75,20 +75,25 @@ public:
         EnergyToday = 11,   // Today's yield in Wh: any number format
         Power = 12,         // Current power: any number format
         PowerMaxToday = 13, // Today's maximum power: any number format
+        Current = 14,       // Current in Ampere
+        Voltage = 15,       // Voltage in Volt
 
         // Key for DC string or AC phase properties (stored in array of maps)
-        Strings = 16,       // Data per PV array or AC phase: map (max length 15)
+        Strings = 16,       // Data per PV array
+        Phases = 17,        // Data per AC phase
 
         // PV array specific properties - static
         StringName = Name,
-        StringAzimuth = 17,     // int16
-        StringElevation = 18,   // int8
+        StringAzimuth = 18,     // int16
+        StringElevation = 19,   // int8
         StringPowerMax = PowerMax, // Peak power
 
         // Dynamic
         StringInterval = Interval,
         StringPower = Power,    // Current power
         StringPowerMaxToday = PowerMaxToday,
+        StringCurrent = Current,
+        StringVoltage = Voltage,
 
         PropertyMax = 128 // Should be 24
     };

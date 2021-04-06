@@ -63,17 +63,26 @@ std::vector<char> MsgPackSerializer::serialize(const LiveData& liveData) const
     // 1. Protocol version
     packer.pack_uint8(static_cast<uint8_t>(Export::InverterProperty::Version));
     packer.pack_uint8(0);
-    // 2. Protocol version
-    packer.pack_uint8(static_cast<uint8_t>(Export::InverterProperty::DeviceType));
-    packer.pack_uint16(liveData.deviceType);
-    // 3. Timestamp
+    // 2. Timestamp
     packer.pack_uint8(static_cast<uint8_t>(Export::InverterProperty::Timestamp));
     uint32_t t = htonl(liveData.timestamp);
     packer.pack_ext(4, -1); // Timestamp type
     packer.pack_ext_body((const char*)(&t), 4);
-    // 4. Power AC
+    // 3. Power AC
     packer.pack_uint8(static_cast<uint8_t>(Export::InverterProperty::Power));
-    packer.pack(liveData.powerTotal);
+    packer.pack(liveData.totalPower);
+    // 4. Data per phase
+    packer.pack_uint8(static_cast<uint8_t>(Export::InverterProperty::Phases));
+    packer.pack_array(3);
+    for (auto i = 0; i < 3; ++i) {
+        packer.pack_map(3);
+        packer.pack_uint8(static_cast<uint8_t>(Export::InverterProperty::Power));
+        packer.pack(liveData.acPower.at(i));
+        packer.pack_uint8(static_cast<uint8_t>(Export::InverterProperty::Current));
+        packer.pack(liveData.acCurrent.at(i));
+        packer.pack_uint8(static_cast<uint8_t>(Export::InverterProperty::Voltage));
+        packer.pack(liveData.acVoltage.at(i));
+    }
 
     return { sbuf.data(), sbuf.data() + sbuf.size() };
 }

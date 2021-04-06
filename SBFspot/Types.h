@@ -37,11 +37,11 @@ DISCLAIMER:
 #include <list>
 #include <map>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include "Defines.h"
-
-class EventData;
+#include "EventData.h"
 
 typedef enum
 {
@@ -81,8 +81,9 @@ typedef struct
     const char *fullText;
 } CodeToMeta;
 
-enum SmaInverterDataSet
+enum SmaInverterDataSet : uint32_t
 {
+    Invalid             = 0,
     EnergyProduction	= 1 << 0,
     SpotDCPower			= 1 << 1,
     SpotDCVoltage		= 1 << 2,
@@ -102,7 +103,7 @@ enum SmaInverterDataSet
     InverterTemperature	= 1 << 16,
     MeteringGridMsTotW	= 1 << 17,
 
-    sbftest             = 1 << 31
+    sbftest             = 1 << 30
 };
 
 enum SmaUserGroup : int32_t {
@@ -234,9 +235,9 @@ typedef struct
 
 typedef struct
 {
-    unsigned short SUSyID;
-    uint32_t       Serial;
-    unsigned short Ctrl;
+    uint16_t SUSyID;
+    uint32_t Serial;
+    uint16_t Ctrl;  // unused
 } ethEndpoint;
 
 typedef struct
@@ -257,7 +258,7 @@ typedef struct ArchiveDataRec
 } ArchDataRec;
 #pragma pack(pop)
 
-typedef enum
+enum LriDef : uint32_t
 {
     OperationHealth                 = 0x00214800,   // *08* Condition (aka INV_STATUS)
     CoolsysTmpNom                   = 0x00237700,   // *40* Operating condition temperatures
@@ -321,7 +322,7 @@ typedef enum
     GridMsPhVphsA2B6100             = 0x00464B00,
     GridMsPhVphsB2C6100             = 0x00464C00,
     GridMsPhVphsC2A6100             = 0x00464D00
-} LriDef;
+};
 
 typedef enum
 {
@@ -341,3 +342,4 @@ typedef enum
 } E_SBFSPOT;
 
 using DataPerInverter = std::map<uint32_t, std::list<InverterData>>;
+using InverterDataMap = std::map<LriDef, float>;

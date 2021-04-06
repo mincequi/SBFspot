@@ -49,8 +49,13 @@ DISCLAIMER:
 
 #include "SBFspot.h"
 
+#include <iostream>
+
 #include "Ethernet.h"
 #include "Import.h"
+#include "SBFNet.h"
+#include "misc.h"
+#include "sma/SmaInverterRequests.h"
 
 using namespace std;
 
@@ -112,7 +117,7 @@ int SbfSpot::isValidSender(const unsigned char senderaddr[6], unsigned char addr
     return 1;
 }
 
-void SbfSpot::prepareInit(u_int8_t* buffer)
+void SbfSpot::encodeInitRequest(u_int8_t* buffer)
 {
     writePacketHeader(buffer, 0, NULL);
     writePacket(buffer, 0x09, 0xA0, 0, anySUSyID, anySerial);
@@ -123,7 +128,7 @@ void SbfSpot::prepareInit(u_int8_t* buffer)
     writePacketLength(buffer);
 }
 
-void SbfSpot::prepareLogin(uint8_t* buffer, uint16_t susyId, uint32_t serial, SmaUserGroup userGroup, const std::string& password)
+void SbfSpot::encodeLoginRequest(uint8_t* buffer, uint16_t susyId, uint32_t serial, SmaUserGroup userGroup, const std::string& password)
 {
 #define MAX_PWLENGTH 12
     unsigned char pw[MAX_PWLENGTH] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -190,7 +195,7 @@ void SbfSpot::prepareLogin(uint8_t* buffer, uint16_t susyId, uint32_t serial, Sm
     return;
 }
 
-void SbfSpot::prepareLogin(std::vector<uint8_t>& buffer, SmaUserGroup userGroup, const std::string& password)
+void SbfSpot::encodeLoginRequest(std::vector<uint8_t>& buffer, SmaUserGroup userGroup, const std::string& password)
 {
     buffer.resize(128);
 
@@ -226,141 +231,24 @@ void SbfSpot::prepareLogin(std::vector<uint8_t>& buffer, SmaUserGroup userGroup,
     buffer.resize(packetposition);
 }
 
-void SbfSpot::prepareRequest(uint8_t* buffer, uint16_t susyId, uint32_t serial, SmaInverterDataSet dataSet)
+void SbfSpot::encodeLogoutRequest(uint8_t* buffer)
 {
-    uint32_t command;
-    uint32_t first;
-    uint32_t last;
-
-    switch (dataSet)
+    do
     {
-    case EnergyProduction:
-        // SPOT_ETODAY, SPOT_ETOTAL
-        command = 0x54000200;
-        first = 0x00260100;
-        last = 0x002622FF;
-        break;
+        pcktID++;
+        writePacketHeader(buffer, 0x01, addr_unknown);
+        writePacket(buffer, 0x08, 0xA0, 0x0300, anySUSyID, anySerial);
+        writeLong(buffer, 0xFFFD010E);
+        writeLong(buffer, 0xFFFFFFFF);
+        writePacketTrailer(buffer);
+        writePacketLength(buffer);
+    }
+    while (!isCrcValid(buffer[packetposition-3], pcktBuf[packetposition-2]));
+}
 
-    case SpotDCPower:
-        // SPOT_PDC1, SPOT_PDC2
-        command = 0x53800200;
-        first = 0x00251E00;
-        last = 0x00251EFF;
-        break;
-
-    case SpotDCVoltage:
-        // SPOT_UDC1, SPOT_UDC2, SPOT_IDC1, SPOT_IDC2
-        command = 0x53800200;
-        first = 0x00451F00;
-        last = 0x004521FF;
-        break;
-
-    case SpotACPower:
-        // SPOT_PAC1, SPOT_PAC2, SPOT_PAC3
-        command = 0x51000200;
-        first = 0x00464000;
-        last =  0x004642FF;
-        break;
-
-    case SpotACVoltage:
-        // SPOT_UAC1, SPOT_UAC2, SPOT_UAC3, SPOT_IAC1, SPOT_IAC2, SPOT_IAC3
-        command = 0x51000200;
-        first = 0x00464800;
-        last =  0x004655FF;
-        break;
-
-    case SpotGridFrequency:
-        // SPOT_FREQ
-        command = 0x51000200;
-        first = 0x00465700;
-        last =  0x004657FF;
-        break;
-
-    case MaxACPower:
-        // INV_PACMAX1, INV_PACMAX2, INV_PACMAX3
-        command = 0x51000200;
-        first = 0x00411E00;
-        last =  0x004120FF;
-        break;
-
-    case MaxACPower2:
-        // INV_PACMAX1_2
-        command = 0x51000200;
-        first = 0x00832A00;
-        last =  0x00832AFF;
-        break;
-
-    case SpotACTotalPower:
-        // SPOT_PACTOT
-        command = 0x51000200;
-        first = 0x00263F00;
-        last =  0x00263FFF;
-        break;
-
-    case TypeLabel:
-        // INV_NAME, INV_TYPE, INV_CLASS
-        command = 0x58000200;
-        first = 0x00821E00;
-        last = 0x008220FF;
-        break;
-
-    case SoftwareVersion:
-        // INV_SWVERSION
-        command = 0x58000200;
-        first = 0x00823400;
-        last =  0x008234FF;
-        break;
-
-    case DeviceStatus:
-        // INV_STATUS
-        command = 0x51800200;
-        first = 0x00214800;
-        last =  0x002148FF;
-        break;
-
-    case GridRelayStatus:
-        // INV_GRIDRELAY
-        command = 0x51800200;
-        first = 0x00416400;
-        last = 0x004164FF;
-        break;
-
-    case OperationTime:
-        // SPOT_OPERTM, SPOT_FEEDTM
-        command = 0x54000200;
-        first = 0x00462E00;
-        last = 0x00462FFF;
-        break;
-
-    case BatteryChargeStatus:
-        command = 0x51000200;
-        first = 0x00295A00;
-        last = 0x00295AFF;
-        break;
-
-    case BatteryInfo:
-        command = 0x51000200;
-        first = 0x00491E00;
-        last = 0x00495DFF;
-        break;
-
-    case InverterTemperature:
-        command = 0x52000200;
-        first = 0x00237700;
-        last = 0x002377FF;
-        break;
-
-    case sbftest:
-        command = 0x64020200;
-        first = 0x00618D00;
-        last = 0x00618DFF;
-
-    case MeteringGridMsTotW:
-        command = 0x51000200;
-        first = 0x00463600;
-        last = 0x004637FF;
-        break;
-    };
+void SbfSpot::encodeDataRequest(uint8_t* buffer, uint16_t susyId, uint32_t serial, SmaInverterDataSet dataSet)
+{
+    auto request = sma::SmaInverterRequests::create(dataSet);
 
     do
     {
@@ -370,16 +258,16 @@ void SbfSpot::prepareRequest(uint8_t* buffer, uint16_t susyId, uint32_t serial, 
             writePacket(buffer, 0x09, 0xE0, 0, susyId, serial);
         else
             writePacket(buffer, 0x09, 0xA0, 0, susyId, serial);
-        writeLong(buffer, command);
-        writeLong(buffer, first);
-        writeLong(buffer, last);
+        writeLong(buffer, request.command);
+        writeLong(buffer, request.first);
+        writeLong(buffer, request.last);
         writePacketTrailer(buffer);
         writePacketLength(buffer);
     }
     while (!isCrcValid(buffer[packetposition-3], buffer[packetposition-2]));
 }
 
-void SbfSpot::decodeResponse(uint8_t* buffer, InverterData& inverter)
+void SbfSpot::decodeResponse(const uint8_t* buffer, InverterDataMap& inverterDataMap, InverterData& inverter, std::set<LriDef>& lris)
 {
     int32_t value = 0;
     int64_t value64 = 0;
@@ -403,11 +291,13 @@ void SbfSpot::decodeResponse(uint8_t* buffer, InverterData& inverter)
         {
             value64 = get_longlong(buffer + ii + 8);
             if ((value64 == (int64_t)NaN_S64) || (value64 == (int64_t)NaN_U64)) value64 = 0;
+            inverterDataMap[lri] = value64;
         }
         else if ((dataType != 0x10) && (dataType != 0x08))	//Not TEXT or STATUS, so it should be DWORD
         {
             value = (int32_t)get_long(buffer + ii + 16);
             if ((value == (int32_t)NaN_S32) || (value == (int32_t)NaN_U32)) value = 0;
+            inverterDataMap[lri] = value;
         }
 
         switch (lri)
@@ -739,6 +629,8 @@ void SbfSpot::decodeResponse(uint8_t* buffer, InverterData& inverter)
 
         default:
             if (recordsize == 0) recordsize = 12;
-        }
+        } // switch (lri)
+
+        lris.erase(lri);
     }
 }

@@ -36,9 +36,11 @@ DISCLAIMER:
 
 #include <cstdint>
 #include <ctime>
+#include <set>
 
 #include "Types.h"
 
+class Config;
 class Ethernet_qt;
 class QNetworkDatagram;
 
@@ -46,17 +48,23 @@ namespace sma {
 
 class SmaInverter
 {
-private:
-    SmaInverter(Ethernet_qt& ioDevice, uint32_t address);
+public:
+    SmaInverter(const Config& config, Ethernet_qt& ioDevice, uint32_t address);
 
+    void poll();
+
+private:
     void init();
     void login();
     void logout();
+    void requestData();
     void requestDataSet(SmaInverterDataSet dataSet);
+    void exportData();
 
     void onDatagram(const QNetworkDatagram& datagram);
 
-    Ethernet_qt& m_ioDevice;
+    const Config&   m_config;
+    Ethernet_qt&    m_ioDevice;
 
     uint32_t m_address = 0;
     uint16_t m_susyId = 0x0078;
@@ -66,9 +74,12 @@ private:
     enum class State {
         Invalid,
         Initialized,
-        LoggedOut,
         LoggedIn
     } m_state = State::Invalid;
+
+    std::set<LriDef> m_pendingLris;
+    InverterData     m_pendingData;
+    InverterDataMap  m_pendingDataMap;
 
     friend class SmaManager;
 };

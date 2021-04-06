@@ -37,6 +37,7 @@ DISCLAIMER:
 #include "Config.h"
 #include "Defines.h"
 #include "SBFspot.h"
+#include "misc.h"
 
 using namespace std;
 

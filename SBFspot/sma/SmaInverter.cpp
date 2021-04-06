@@ -36,51 +36,136 @@ DISCLAIMER:
 
 #include <QDebug>
 #include <QNetworkDatagram>
+#include <QtConcurrent>
 
-#include "Ethernet_qt.h"
-#include "SBFspot.h"
+#include <Config.h>
+#include <Ethernet_qt.h>
+#include <SBFspot.h>
+#include <sma/SmaInverterRequests.h>
 
 namespace sma {
 
-SmaInverter::SmaInverter(Ethernet_qt& ioDevice, uint32_t address) :
+SmaInverter::SmaInverter(const Config& config, Ethernet_qt& ioDevice, uint32_t address) :
+    m_config(config),
     m_ioDevice(ioDevice),
     m_address(address)
 {
     init();
 }
 
+void SmaInverter::poll()
+{
+    if (m_state == State::Invalid) {
+        qWarning() << "Inverter not yet initialized";
+        return;
+    }
+    if (m_state == State::LoggedIn) {
+        qWarning() << "Another poll already running";
+        return;
+    }
+
+    // Send login request to inverter. Once logged in, get all the data.
+    login();
+}
+
 void SmaInverter::init()
 {
-    std::vector<uint8_t> buffer(256);
-    SbfSpot::prepareInit(buffer.data());
-    buffer.resize(packetposition);
-    m_ioDevice.send(buffer, m_address, 9522);
+    QtConcurrent::run([&](){
+        std::vector<uint8_t> buffer(256);
+        SbfSpot::encodeInitRequest(buffer.data());
+        buffer.resize(packetposition);
+        for (auto i = 0; (i < 5) && (m_state == State::Invalid); ++i) {
+            m_ioDevice.send(buffer, m_address, 9522);
+            QThread::sleep(1);
+        }
+    });
 }
 
 void SmaInverter::login()
 {
-    std::vector<uint8_t> buffer;
-    SbfSpot::prepareLogin(buffer, SmaUserGroup::UG_USER, "XXXXXXX");
-    m_ioDevice.send(buffer, m_address, 9522);
+    QtConcurrent::run([&](){
+        std::vector<uint8_t> buffer;
+        SbfSpot::encodeLoginRequest(buffer, m_config.userGroup, std::string(m_config.SMA_Password));
+        for (auto i = 0; (i < 5) && (m_state == State::Initialized); ++i) {
+            m_ioDevice.send(buffer, m_address, 9522);
+            QThread::sleep(1);
+        }
+    });
 }
 
 void SmaInverter::logout()
 {
+    std::vector<uint8_t> buffer(256);
+    SbfSpot::encodeLogoutRequest(buffer.data());
+    buffer.resize(packetposition);
+    m_ioDevice.send(buffer, m_address, 9522);
+    m_state = State::Initialized;
+}
+
+void SmaInverter::requestData()
+{
+    requestDataSet(SoftwareVersion);
+    requestDataSet(TypeLabel);
+    requestDataSet(DeviceStatus);
+    requestDataSet(InverterTemperature);
+    requestDataSet(MaxACPower);
+    requestDataSet(EnergyProduction);
+    requestDataSet(OperationTime);
+    requestDataSet(SpotDCPower);
+    requestDataSet(SpotDCVoltage);
+    requestDataSet(SpotACPower);
+    requestDataSet(SpotACVoltage);
+    requestDataSet(SpotACTotalPower);
+    requestDataSet(SpotGridFrequency);
+
+    QtConcurrent::run([&](){
+        QThread::sleep(1);
+        // TODO: no retry behaviour for now
+        // If some data is still pending, retry
+        // for (auto i = 0; (i < 5) && !m_pendingLris.empty(); ++i) {
+        //     for (const auto lri : m_pendingLris) {
+        //         requestDataSet(SmaInverterRequests::create(lri).dataSet);
+        //     }
+        //     QThread::sleep(1);
+        // }
+        exportData();
+        logout();
+    });
 }
 
 void SmaInverter::requestDataSet(SmaInverterDataSet dataSet)
 {
-    std::vector<uint8_t> buffer(2048);
-    SbfSpot::prepareRequest(buffer.data(), m_susyId, m_serial, dataSet);
+    auto lri = static_cast<LriDef>(SmaInverterRequests::create(dataSet).first);
+    if (lri == 0) {
+        qWarning() << "Illegal LRI";
+    } else {
+        m_pendingLris.insert(lri);
+    }
+
+    std::vector<uint8_t> buffer(1024);
+    SbfSpot::encodeDataRequest(buffer.data(), m_susyId, m_serial, dataSet);
     buffer.resize(packetposition);
     m_ioDevice.send(buffer, m_address, 9522);
 }
 
+void SmaInverter::exportData()
+{
+    qInfo() << "Inverter" << m_serial;
+    for (const auto& kv : m_pendingDataMap) {
+        qInfo() << "    key:" << QByteArray::number(kv.first, 16) << ", value:" << kv.second;
+    }
+
+    m_pendingLris.clear();
+    m_pendingData = InverterData();
+    m_pendingDataMap.clear();
+}
+
 void SmaInverter::onDatagram(const QNetworkDatagram& datagram)
 {
-    qInfo() << "Received datagram from:" << datagram.senderAddress();
+    qDebug() << "Received datagram from:" << datagram.senderAddress();
 
-    ethPacket *pckt = (ethPacket*)(datagram.data().data() + sizeof(ethPacketHeaderL1) - 1);
+    const char* data = datagram.data().data() + sizeof(ethPacketHeaderL1) - 1;
+    ethPacket *pckt = (ethPacket*)data;
     switch (m_state) {
     case State::Invalid:
         m_susyId = pckt->Source.SUSyID;	// Fix Issue 98
@@ -88,26 +173,16 @@ void SmaInverter::onDatagram(const QNetworkDatagram& datagram)
         m_state = State::Initialized;
         return;
     case State::Initialized:
-        m_state = State::LoggedIn;
-        break;
+        if (btohs(pckt->ErrorCode) == 0) {
+            m_state = State::LoggedIn;
+            requestData();
+        } else {
+            qWarning() << "Login error. Password correct?";
+        }
+        return;
     case State::LoggedIn:
-        break;
-    case State::LoggedOut:
-        break;
-    }
-
-    unsigned short retcode = btohs(pckt->ErrorCode);
-    switch (retcode)
-    {
-    case 0:
-        //rc = E_OK;
-        //requestDataSet(SmaInverterDataSet::EnergyProduction);
-        break;
-    case 0x0100:
-        //rc = E_INVPASSW;
-        break;
-    default:
-        //rc = E_LOGONFAILED;
+        SbfSpot::decodeResponse(reinterpret_cast<const uint8_t*>(data), m_pendingDataMap, m_pendingData, m_pendingLris);
+        qDebug() << "Pending LRIs:" << m_pendingLris.size();
         break;
     }
 }

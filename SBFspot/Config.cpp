@@ -36,6 +36,8 @@ DISCLAIMER:
 
 #include "SBFspot.h"
 #include "version.h"
+#include "misc.h"
+
 #ifdef WIN32
 #include "bluetooth.h"
 #endif	/* WIN32 */

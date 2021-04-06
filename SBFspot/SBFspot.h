@@ -34,22 +34,9 @@ DISCLAIMER:
 
 #pragma once
 
-#include "misc.h"
-#include "SBFNet.h"
-#include "TagDefs.h"
-#include "EventData.h"
-#include "Types.h"
-#include <time.h>
-#include <vector>
-#include <algorithm>
-#include <string>
-#include "boost_ext.h"
-#include "boost/date_time/posix_time/posix_time.hpp"
-#include "boost/date_time/local_time/local_time.hpp"
-#include "boost/date_time/gregorian/gregorian.hpp"
-#include "boost/format.hpp"
+#include <set>
 
-#include "Rec40S32.h"
+#include "Types.h"
 
 //Wellknown SUSyID's
 #define SID_MULTIGATE	175
@@ -78,12 +65,13 @@ public:
     int getInverterIndexBySerial(const std::vector<InverterData>& inverters, unsigned short SUSyID, uint32_t Serial);
     int isValidSender(const unsigned char senderaddr[6], unsigned char address[6]);
 
-    static void prepareInit(u_int8_t* buffer);
-    static void prepareLogin(uint8_t* buffer, uint16_t susyId, uint32_t serial, SmaUserGroup userGroup, const std::string& password);
-    static void prepareLogin(std::vector<uint8_t>& buffer, SmaUserGroup userGroup, const std::string& password);
-    static void prepareRequest(uint8_t* buffer, uint16_t susyId, uint32_t serial, SmaInverterDataSet dataSet);
+    static void encodeInitRequest(u_int8_t* buffer);
+    static void encodeLoginRequest(uint8_t* buffer, uint16_t susyId, uint32_t serial, SmaUserGroup userGroup, const std::string& password);
+    static void encodeLoginRequest(std::vector<uint8_t>& buffer, SmaUserGroup userGroup, const std::string& password);
+    static void encodeLogoutRequest(uint8_t* buffer);
+    static void encodeDataRequest(uint8_t* buffer, uint16_t susyId, uint32_t serial, SmaInverterDataSet dataSet);
 
-    static void decodeResponse(uint8_t* buffer, InverterData& data);
+    static void decodeResponse(const uint8_t* buffer, InverterDataMap& inverterDataMap, InverterData& data, std::set<LriDef>& lris);
 
 private:
     Ethernet& m_ethernet;

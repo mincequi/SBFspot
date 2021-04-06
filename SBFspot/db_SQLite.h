@@ -38,6 +38,8 @@ DISCLAIMER:
 
 #include "osselect.h"
 #include "SBFspot.h"
+#include <ctime>
+#include <iostream>
 #include <sqlite3.h>
 
 extern int quiet;

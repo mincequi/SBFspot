@@ -58,62 +58,6 @@ SmaEnergyMeter::SmaEnergyMeter() {
 SmaEnergyMeter::~SmaEnergyMeter() {
 }
 
-LiveData SmaEnergyMeter::importLiveData() const {
-    return {};
-}
-
-
-LiveData SmaEnergyMeter::poll_emeters(const int timeout) {
-    // open socket(s) to receive sma emeter packets from any local interface
-    LocalHost localhost;
-    const std::vector<SpeedwireSocket> sockets = SpeedwireSocketFactory::getInstance(localhost)->getRecvSockets(SpeedwireSocketFactory::MULTICAST, localhost.getLocalIPv4Addresses());
-
-    // allocate pollfd struct(s) for the socket(s)
-    struct pollfd *const fds = (struct pollfd *const) malloc(sizeof(struct pollfd) * sockets.size());
-
-    // poll sockets for inbound emeter packets
-    char multicast_packet[1024];
-
-    // prepare the pollfd structure
-    for (int j = 0; j < sockets.size(); ++j) {
-        fds[j].fd      = sockets[j].getSocketFd();
-        fds[j].events  = POLLIN;
-        fds[j].revents = 0;
-    }
-
-    // wait for a packet on the configured socket
-    if (poll(fds, sockets.size(), timeout) < 0) {
-        perror("poll failure");
-        free(fds);
-        return {};
-    }
-
-    // determine if the socket received a packet
-    for (int j = 0; j < sockets.size(); ++j) {
-        auto& socket = sockets[j];
-
-        if ((fds[j].revents & POLLIN) != 0) {
-            int nbytes = -1;
-
-            // read packet data
-            if (socket.isIpv4()) {
-                struct sockaddr_in src;
-                nbytes = socket.recvfrom(multicast_packet, sizeof(multicast_packet), src);
-            }
-            else if (socket.isIpv6()) {
-                struct sockaddr_in6 src;
-                nbytes = socket.recvfrom(multicast_packet, sizeof(multicast_packet), src);
-            }
-
-            free(fds);
-            return parsePacket(multicast_packet, nbytes);
-        }
-    }
-
-    free(fds);
-    return {};
-}
-
 LiveData SmaEnergyMeter::parsePacket(const char* data, uint16_t size)
 {
     // define measurement filters for sma emeter packet filtering
@@ -138,12 +82,12 @@ LiveData SmaEnergyMeter::parsePacket(const char* data, uint16_t size)
     //filter.addFilter(ObisData::PowerFactorL1);
     //filter.addFilter(ObisData::PowerFactorL2);
     //filter.addFilter(ObisData::PowerFactorL3);
-    //filter.addFilter(ObisData::CurrentL1);
-    //filter.addFilter(ObisData::CurrentL2);
-    //filter.addFilter(ObisData::CurrentL3);
-    //filter.addFilter(ObisData::VoltageL1);
-    //filter.addFilter(ObisData::VoltageL2);
-    //filter.addFilter(ObisData::VoltageL3);
+    filter.addFilter(ObisData::CurrentL1);
+    filter.addFilter(ObisData::CurrentL2);
+    filter.addFilter(ObisData::CurrentL3);
+    filter.addFilter(ObisData::VoltageL1);
+    filter.addFilter(ObisData::VoltageL2);
+    filter.addFilter(ObisData::VoltageL3);
     filter.addFilter(ObisData::SignedActivePowerTotal);   // calculated value that is not provided by emeter
     filter.addFilter(ObisData::SignedActivePowerL1);      // calculated value that is not provided by emeter
     filter.addFilter(ObisData::SignedActivePowerL2);      // calculated value that is not provided by emeter
@@ -159,7 +103,7 @@ LiveData SmaEnergyMeter::parsePacket(const char* data, uint16_t size)
         int      offset = protocol.getPayloadOffset();
 
         if (protocolID == SpeedwireHeader::sma_emeter_protocol_id) {
-            printf("RECEIVED EMETER PACKET  time 0x%016llx\n", LocalHost::getTickCountInMs());
+            //printf("RECEIVED EMETER PACKET  time 0x%016llx\n", LocalHost::getTickCountInMs());
             SpeedwireEmeterProtocol emeter(data + offset, size - offset);
             uint16_t susyid = emeter.getSusyID();
             uint32_t serial = emeter.getSerialNumber();
@@ -167,6 +111,7 @@ LiveData SmaEnergyMeter::parsePacket(const char* data, uint16_t size)
 
             // extract obis data from the emeter packet and pass each obis data element to the obis filter
             int32_t signed_power_total = 0, signed_power_l1 = 0, signed_power_l2 = 0, signed_power_l3 = 0;
+            LiveData liveData;
             void* obis = emeter.getFirstObisElement();
             while (obis != NULL) {
                 //emeter.printObisElement(obis, stderr);
@@ -182,6 +127,12 @@ LiveData SmaEnergyMeter::parsePacket(const char* data, uint16_t size)
                     case 42: signed_power_l2    -= value;  break;
                     case 61: signed_power_l3    += value;  break;
                     case 62: signed_power_l3    -= value;  break;
+                    case 31: liveData.acCurrent.at(0) = value/1000.0f; break;
+                    case 32: liveData.acVoltage.at(0) = value/10.0f; break;
+                    case 51: liveData.acCurrent.at(1) = value/1000.0f; break;
+                    case 52: liveData.acVoltage.at(1) = value/10.0f; break;
+                    case 71: liveData.acCurrent.at(2) = value/1000.0f; break;
+                    case 72: liveData.acVoltage.at(2) = value/10.0f; break;
                     }
                 }
                 // send the obis value to the obis filter before proceeding with then next obis element
@@ -201,11 +152,14 @@ LiveData SmaEnergyMeter::parsePacket(const char* data, uint16_t size)
             filter.consume(obis_signed_power_L1.data(), timer);
             filter.consume(obis_signed_power_L2.data(), timer);
             filter.consume(obis_signed_power_L3.data(), timer);
-            LiveData liveData;
             liveData.isValid = true;
             liveData.deviceType = ElectricityMeter;
             liveData.serial = serial;
-            liveData.powerTotal = signed_power_total/10;
+            liveData.totalPower = signed_power_total/10;
+            liveData.acPower.at(0) = signed_power_l1/10;
+            liveData.acPower.at(1) = signed_power_l2/10;
+            liveData.acPower.at(2) = signed_power_l3/10;
+            liveData.timestamp = time(nullptr);
             return liveData;
         }
     }

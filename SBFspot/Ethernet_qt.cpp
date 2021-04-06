@@ -51,7 +51,7 @@ Ethernet_qt::Ethernet_qt(sma::SmaManager& processor)
 
 void Ethernet_qt::send(const std::vector<uint8_t>& data, uint32_t address, uint16_t port)
 {
-    qInfo() << "Send datagram:" << QByteArray(reinterpret_cast<const char*>(data.data()), data.size()).toHex();
+    //qDebug() << "Send datagram:" << QByteArray(reinterpret_cast<const char*>(data.data()), data.size()).toHex();
     m_udpSocket.writeDatagram(reinterpret_cast<const char*>(data.data()), data.size(), QHostAddress(address), port);
 }
 
@@ -70,16 +70,13 @@ void Ethernet_qt::onReadyRead()
             qDebug("Discord datagram from localhost");
         } else if (datagram.data().size() == 600 || datagram.data().size() == 608) {
             //qDebug("Received energy meter datagram. size: %i", datagram.data().size());
-            //m_processor.onEnergyMeterDatagram(datagram);
+            m_processor.onEnergyMeterDatagram(datagram);
         } else if (datagram.data().startsWith(QByteArray::fromHex("534d4100000402A000000001000200000001"))) {
             qDebug("Received discovery response datagram. size: %i", datagram.data().size());
             m_processor.onDiscoveryResponseDatagram(datagram);
         } else if (datagram.senderAddress() == QHostAddress::LocalHost) {
             qDebug("Discord datagram from localhost");
         } else {
-            qInfo() << "Received unknown datagram:" << datagram.data().toHex();
-            qInfo() << "from" << datagram.senderAddress();
-            qInfo() << "to" << datagram.destinationAddress();
             auto buffer = datagram.data();
             ethPacket *pckt = (ethPacket *)(datagram.data().data() + sizeof(ethPacketHeaderL1) - 1);
             auto susyId = ntohs(pckt->Source.SUSyID);	// Fix Issue 98

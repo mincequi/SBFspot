@@ -36,21 +36,26 @@ DISCLAIMER:
 
 #include "Types.h"
 
-#include <array>
-#include <ctime>
+#include <set>
+#include <vector>
 
-struct LiveData {
-    // Type specific members
-    bool isValid = false;
+namespace sma {
 
-    // Static device specific members
-    DEVICECLASS deviceType = AllDevices;
-    uint32_t serial = 0;
-
-    // Dynamic device specific members
-    std::time_t timestamp = 0;
-    int32_t totalPower = 0;
-    std::array<int32_t, 3> acPower;
-    std::array<float, 3> acCurrent;
-    std::array<float, 3> acVoltage;
+struct SmaInverterRequest {
+    SmaInverterDataSet dataSet = SmaInverterDataSet::Invalid;
+    uint32_t command = 0;
+    uint32_t first = 0;
+    uint32_t last = 0;
 };
+
+class SmaInverterRequests {
+public:
+    static const std::vector<SmaInverterRequest>& all();
+    static SmaInverterRequest create(SmaInverterDataSet dataSet);
+    static SmaInverterRequest create(LriDef lri);
+
+private:
+    static const std::vector<SmaInverterRequest> m_requests;
+};
+
+}

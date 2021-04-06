@@ -37,6 +37,8 @@ DISCLAIMER:
 #include "Defines.h"
 #include "Import.h"
 
+#include "boost_ext.h"
+
 using namespace std;
 using namespace boost;
 using namespace boost::date_time;

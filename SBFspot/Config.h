@@ -37,7 +37,6 @@ DISCLAIMER:
 #include "osselect.h"
 #include "Types.h"
 
-#include <map>
 #include <boost/date_time/local_time/local_time.hpp>
 
 struct StringConfig
@@ -97,7 +96,7 @@ struct Config
     int		CSV_ExtendedHeader;
     int		CSV_SaveZeroPower;
     int		SunRSOffset;			// Offset to start before sunrise and end after sunset
-    int		userGroup;				// USER|INSTALLER
+    SmaUserGroup    userGroup;      // USER|INSTALLER
     char	prgVersion[16];
     int		SpotTimeSource;			// 0=Use inverter time; 1=Use PC time in Spot CSV
     int		SpotWebboxHeader;		// 0=Use standard Spot CSV hdr; 1=Webbox style hdr

@@ -37,6 +37,7 @@ DISCLAIMER:
 #include "Config.h"
 #include "LiveData.h"
 #include "SBFspot.h"
+#include "misc.h"
 
 #include <chrono>
 #include <thread>
@@ -250,7 +251,7 @@ int MqttMsgPackExport::exportLiveData(const LiveData& liveData)
     packer.pack_ext_body((const char*)(&t), 4);
     // 4. Power AC
     packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Power));
-    packer.pack(liveData.powerTotal);
+    packer.pack(liveData.totalPower);
 
     publish(topic, sbuf, 0);
 

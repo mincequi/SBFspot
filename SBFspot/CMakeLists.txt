@@ -38,6 +38,7 @@ set(COMMON_SOURCES
     misc.cpp
     mqtt.cpp
     sunrise_sunset.cpp
+    sma/SmaInverterRequests.cpp
 )
 
 FILE(GLOB SQLITE_RESOURCES *SQLite.sql)
@@ -159,6 +160,7 @@ add_executable(${PROJECT_NAME}_qt
     msgpack/MsgPackSerializer.cpp
     sma/SmaEnergyMeter.cpp
     sma/SmaInverter.cpp
+    sma/SmaInverterRequests.cpp
     sma/SmaManager.cpp
 )
 
