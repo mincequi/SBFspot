@@ -34,7 +34,8 @@ DISCLAIMER:
 
 #include "Cache.h"
 
-Cache::Cache()
+Cache::Cache(/*Exporter& exporter*/)
+    //: m_exporter(exporter)
 {
 }
 

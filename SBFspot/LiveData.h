@@ -34,15 +34,13 @@ DISCLAIMER:
 
 #pragma once
 
-#include "Types.h"
-
 #include <ctime>
 #include <vector>
 
 struct ElectricParameters {
     int32_t power = 0;
-    float   current = 0.0f;
-    float   voltage = 0.0f;
+    float   current = 0.0f; // [A]
+    float   voltage = 0.0f; // [V]
 };
 
 struct LiveData {
@@ -50,11 +48,11 @@ struct LiveData {
     bool isValid = false;
 
     // Static device specific members
-    DEVICECLASS deviceType = AllDevices;
     uint32_t serial = 0;
 
     // Dynamic device specific members
     std::time_t timestamp = 0;
+
     int32_t totalPowerAc = 0;
     int32_t totalPowerDc = 0;
 

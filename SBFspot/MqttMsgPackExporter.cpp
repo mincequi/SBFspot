@@ -233,19 +233,16 @@ int MqttMsgPackExport::exportLiveData(const LiveData& liveData)
     msgpack::sbuffer sbuf;
     msgpack::packer<msgpack::sbuffer> packer(sbuf);
     // Map with number of elements
-    packer.pack_map(4);
+    packer.pack_map(3);
     // 1. Protocol version
     packer.pack_uint8(static_cast<uint8_t>(Property::Version));
     packer.pack_uint8(0);
-    // 2. Device type
-    packer.pack_uint8(static_cast<uint8_t>(Property::DeviceType));
-    packer.pack_uint8(static_cast<uint8_t>(liveData.deviceType));
-    // 3. Timestamp
+    // 2. Timestamp
     packer.pack_uint8(static_cast<uint8_t>(Property::Timestamp));
     uint32_t t = htonl(liveData.timestamp);
     packer.pack_ext(4, -1); // Timestamp type
     packer.pack_ext_body((const char*)(&t), 4);
-    // 4. Power AC
+    // 3. Power AC
     packer.pack_uint8(static_cast<uint8_t>(Property::Power));
     packer.pack(liveData.totalPowerAc);
 

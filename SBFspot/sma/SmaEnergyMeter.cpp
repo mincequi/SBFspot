@@ -154,7 +154,6 @@ LiveData SmaEnergyMeter::parsePacket(const char* data, uint16_t size)
             filter.consume(obis_signed_power_L2.data(), timer);
             filter.consume(obis_signed_power_L3.data(), timer);
             liveData.isValid = true;
-            liveData.deviceType = ElectricityMeter;
             liveData.serial = serial;
             liveData.totalPowerAc = signed_power_total/10;
             liveData.ac.at(0).power = signed_power_l1/10;

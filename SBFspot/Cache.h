@@ -42,10 +42,12 @@ DISCLAIMER:
 #include "EventData.h"
 #include "Types.h"
 
+class Exporter;
+
 class Cache
 {
 public:
-    Cache();
+    Cache(/*Exporter& exporter*/);
 
     // Add InverterData set for given time
     void addInverterData(std::time_t time, const std::vector<InverterData>& inverterData);
@@ -56,6 +58,7 @@ public:
     void clear();
 
 private:
+    //Exporter& m_exporter;
     std::map<std::time_t, std::vector<InverterData>> m_inverterData;
 };
 

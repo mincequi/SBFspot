@@ -369,21 +369,21 @@ void SbfSpot::decodeResponse(const std::vector<uint8_t>& buffer, InverterDataMap
         case GridMsAphsA_1: //SPOT_IAC1
         case GridMsAphsA:
             if (recordsize == 0) recordsize = 28;
-            inverter.ac[0].current = value;
+            inverter.ac[0].current = value/1000.0f;
             // inverter.flags |= type;
             break;
 
         case GridMsAphsB_1: //SPOT_IAC2
         case GridMsAphsB:
             if (recordsize == 0) recordsize = 28;
-            inverter.ac[1].current = value;
+            inverter.ac[1].current = value/1000.0f;
             // inverter.flags |= type;
             break;
 
         case GridMsAphsC_1: //SPOT_IAC3
         case GridMsAphsC:
             if (recordsize == 0) recordsize = 28;
-            inverter.ac[2].current = value;
+            inverter.ac[2].current = value/1000.0f;
             // inverter.flags |= type;
             break;
 
