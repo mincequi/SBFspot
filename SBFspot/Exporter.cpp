@@ -32,37 +32,38 @@ DISCLAIMER:
 
 ************************************************************************************************/
 
-#pragma once
+#include "Exporter.h"
 
-#include <QObject>
-#include <Export.h>
-#include <qmqtt_client.h>
+#include "Config.h"
 
-class Config;
-class Serializer;
-
-namespace mqtt {
-
-class MqttExport_qt : public QObject, public Export
+std::string Exporter::name() const
 {
-    Q_OBJECT
+    return "";
+}
 
-public:
-    MqttExport_qt(const Config& config, const Serializer& serializer);
-    virtual ~MqttExport_qt();
+int Exporter::exportConfig(const InverterData& /*inverterData*/)
+{
+    return 0;
+}
 
-private:
-    virtual std::string name() const override;
-    virtual int exportLiveData(std::time_t timestamp,
-                               const std::vector<InverterData>& inverterData) override;
-    virtual int exportLiveData(const LiveData& liveData) override;
+int Exporter::exportDayStats(std::time_t /*timestamp*/,
+                           const std::vector<DayStats>& /*dayStats*/)
+{
+    return 0;
+}
 
-    void onError(const QMQTT::ClientError error);
+int Exporter::exportDayData(std::time_t /*timestamp*/,
+                          const DataPerInverter& /*inverterData*/)
+{
+    return 0;
+}
 
-    const Config& m_config;
-    const Serializer& m_serializer;
+int Exporter::exportLiveData(std::time_t /*timestamp*/, const std::vector<InverterData>& /*inverterData*/)
+{
+    return 0;
+}
 
-    QMQTT::Client m_client;
-};
-
+int Exporter::exportLiveData(const LiveData& /*liveData*/)
+{
+    return 0;
 }

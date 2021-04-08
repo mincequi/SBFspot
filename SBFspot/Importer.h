@@ -34,39 +34,29 @@ DISCLAIMER:
 
 #pragma once
 
-#include "Exporter.h"
-#if(defined MOSQUITTO_FOUND && defined MSGPACK_FOUND)
-#include <mosquittopp.h>
-#include "MqttMsgPackExporter.h"
-#endif
+#include "osselect.h"
+
+#include "Types.h"
 
 struct Config;
-struct InverterData;
+class Ethernet;
 
-class MqttExporter : public Exporter
-#if(defined MOSQUITTO_FOUND && defined MSGPACK_FOUND)
-        , mosqpp::mosquittopp
-#endif
+/*
+ * This class serves as an abstraction of Bluetooth and Ethernet to avoid all
+ * those #ifdefs in business logic.
+ */
+class Importer
 {
 public:
-    MqttExporter(const Config& config);
-    ~MqttExporter();
+    Importer(const Config& config, Ethernet& ethernet);
+    ~Importer();
 
-    std::string name() const override;
-
-    int exportConfig(const InverterData& inverterData) override;
-    int exportDayStats(std::time_t timestamp,
-                       const std::vector<DayStats>& inverterData) override;
-    int exportLiveData(std::time_t timestamp,
-                       const std::vector<InverterData>& inverterData) override;
-    int exportLiveData(const LiveData& liveData) override;
-    int exportDayData(std::time_t timestamp,
-                      const DataPerInverter& inverterData) override;
+    int close();
+    E_SBFSPOT getPacket(const unsigned char senderaddr[6], int wait4Command);
+    int send(unsigned char *buffer, const std::string& toIP);
 
 private:
     const Config& m_config;
-
-#if(defined MOSQUITTO_FOUND && defined MSGPACK_FOUND)
-    MqttMsgPackExport m_msgPackExporter;
-#endif
+    Ethernet& m_ethernet;
 };
+

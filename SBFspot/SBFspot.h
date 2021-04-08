@@ -55,11 +55,12 @@ DISCLAIMER:
 #define toTemp(value32) (float)value32/100
 
 class Ethernet;
-class Import;
+class Importer;
+class LiveData;
 
 class SbfSpot {
 public:
-    SbfSpot(Ethernet& ethernet, Import& import);
+    SbfSpot(Ethernet& ethernet, Importer& import);
 
     int DaysInMonth(int month, int year);
     int getInverterIndexBySerial(const std::vector<InverterData>& inverters, unsigned short SUSyID, uint32_t Serial);
@@ -71,11 +72,11 @@ public:
     static void encodeLogoutRequest(uint8_t* buffer);
     static void encodeDataRequest(uint8_t* buffer, uint16_t susyId, uint32_t serial, SmaInverterDataSet dataSet);
 
-    static void decodeResponse(const uint8_t* buffer, InverterDataMap& inverterDataMap, InverterData& data, std::set<LriDef>& lris);
+    static void decodeResponse(const std::vector<uint8_t>& buffer, InverterDataMap& inverterDataMap, LiveData& data, std::set<LriDef>& lris);
 
 private:
     Ethernet& m_ethernet;
-    Import& m_import;
+    Importer& m_import;
 };
 
 extern const char *IP_Inverter;

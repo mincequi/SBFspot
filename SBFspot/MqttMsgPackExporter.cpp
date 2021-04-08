@@ -32,7 +32,7 @@ DISCLAIMER:
 
 ************************************************************************************************/
 
-#include "MqttMsgPackExport.h"
+#include "MqttMsgPackExporter.h"
 
 #include "Config.h"
 #include "LiveData.h"
@@ -47,6 +47,10 @@ using namespace std::chrono_literals;
 MqttMsgPackExport::MqttMsgPackExport(const Config& config)
     : m_config(config)
 {
+    // Collect PV array config per serial
+    for (const auto& ac : m_config.pvArrays)
+        m_arrayConfig.insert({ac.inverterSerial, ac});
+
     mosqpp::lib_init();
 }
 
@@ -61,63 +65,55 @@ std::string MqttMsgPackExport::name() const
     return "MqttMsgPackExport";
 }
 
-int MqttMsgPackExport::exportConfig(const std::vector<InverterData>& inverterData)
+int MqttMsgPackExport::exportConfig(const InverterData& inv)
 {
     connectToHost();
 
-    // Collect PV array config per serial
-    std::multimap<uint32_t,StringConfig> arrayConfig;
-    for (const auto& ac : m_config.pvArrays)
-        arrayConfig.insert({ac.inverterSerial, ac});
+    std::string topic = m_config.mqtt_topic;
+    boost::replace_first(topic, "{plantname}", m_config.plantname);
+    boost::replace_first(topic, "{serial}", std::to_string(inv.Serial));
+    topic += "/config";
 
-    for (const auto& inv : inverterData)
+    // Pack manually (because a float in map gets stored as double and timestamp is not supported yet).
+    msgpack::sbuffer sbuf;
+    msgpack::packer<msgpack::sbuffer> packer(sbuf);
+    // Map with number of elements
+    packer.pack_map(6);
+    // 1. Protocol version
+    packer.pack_uint8(static_cast<uint8_t>(Property::Version));
+    packer.pack_uint8(0);
+    // 2. Device name
+    packer.pack_uint8(static_cast<uint8_t>(Property::Name));
+    packer.pack(inv.DeviceName);
+    // 3. Latitude
+    packer.pack_uint8(static_cast<uint8_t>(Property::Latitude));
+    packer.pack_float(m_config.latitude);
+    // 4. Longitude
+    packer.pack_uint8(static_cast<uint8_t>(Property::Longitude));
+    packer.pack_float(m_config.longitude);
+    // 5. Power Max
+    packer.pack_uint8(static_cast<uint8_t>(Property::PowerMax));
+    packer.pack_float(static_cast<float>(inv.Pmax1));
+    // 6. Array config
+    packer.pack_uint8(static_cast<uint8_t>(Property::Strings));
+    packer.pack_array(m_arrayConfig.count(inv.Serial));   // Store an array to provide data for each PV array.
+
+    auto itb = m_arrayConfig.lower_bound(inv.Serial);
+    auto ite = m_arrayConfig.upper_bound(inv.Serial);
+    for (auto it = itb; it != ite; ++it)
     {
-        std::string topic = m_config.mqtt_topic;
-        boost::replace_first(topic, "{plantname}", m_config.plantname);
-        boost::replace_first(topic, "{serial}", std::to_string(inv.Serial));
-        topic += "/config";
-
-        // Pack manually (because a float in map gets stored as double and timestamp is not supported yet).
-        msgpack::sbuffer sbuf;
-        msgpack::packer<msgpack::sbuffer> packer(sbuf);
-        // Map with number of elements
-        packer.pack_map(6);
-        // 1. Protocol version
-        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Version));
-        packer.pack_uint8(0);
-        // 2. Device name
-        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Name));
-        packer.pack(inv.DeviceName);
-        // 3. Latitude
-        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Latitude));
-        packer.pack_float(m_config.latitude);
-        // 4. Longitude
-        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Longitude));
-        packer.pack_float(m_config.longitude);
-        // 5. Power Max
-        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::PowerMax));
-        packer.pack_float(static_cast<float>(inv.Pmax1));
-        // 6. Array config
-        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Strings));
-        packer.pack_array(arrayConfig.count(inv.Serial));   // Store an array to provide data for each PV array.
-
-        auto itb = arrayConfig.lower_bound(inv.Serial);
-        auto ite = arrayConfig.upper_bound(inv.Serial);
-        for (auto it = itb; it != ite; ++it)
-        {
-            packer.pack_map(4);
-            packer.pack_uint8(static_cast<uint8_t>(InverterProperty::StringName));
-            packer.pack((*it).second.name);
-            packer.pack_uint8(static_cast<uint8_t>(InverterProperty::StringAzimuth));
-            packer.pack_float(static_cast<float>((*it).second.azimuth));
-            packer.pack_uint8(static_cast<uint8_t>(InverterProperty::StringElevation));
-            packer.pack_float(static_cast<float>((*it).second.elevation));
-            packer.pack_uint8(static_cast<uint8_t>(InverterProperty::StringPowerMax));
-            packer.pack_float(static_cast<float>((*it).second.powerPeak));
-        }
-
-        publish(topic, sbuf, 1);
+        packer.pack_map(4);
+        packer.pack_uint8(static_cast<uint8_t>(Property::StringName));
+        packer.pack((*it).second.name);
+        packer.pack_uint8(static_cast<uint8_t>(Property::StringAzimuth));
+        packer.pack_float(static_cast<float>((*it).second.azimuth));
+        packer.pack_uint8(static_cast<uint8_t>(Property::StringElevation));
+        packer.pack_float(static_cast<float>((*it).second.elevation));
+        packer.pack_uint8(static_cast<uint8_t>(Property::StringPowerMax));
+        packer.pack_float(static_cast<float>((*it).second.powerPeak));
     }
+
+    publish(topic, sbuf, 1);
 
     return 0;
 }
@@ -140,25 +136,25 @@ int MqttMsgPackExport::exportDayStats(std::time_t timestamp,
         // Map with number of elements
         packer.pack_map(4);
         // 1. Protocol version
-        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Version));
+        packer.pack_uint8(static_cast<uint8_t>(Property::Version));
         packer.pack_uint8(0);
         // 2. Timestamp
-        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Timestamp));
+        packer.pack_uint8(static_cast<uint8_t>(Property::Timestamp));
         auto t = htonl(timestamp);
         packer.pack_ext(4, -1); // Timestamp type
         packer.pack_ext_body((const char*)(&t), 4);
         // 3. Power max today
-        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::PowerMaxToday));
+        packer.pack_uint8(static_cast<uint8_t>(Property::PowerMaxToday));
         packer.pack_float(stats.powerMax);
         // 4. Power DC
-        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Strings));
+        packer.pack_uint8(static_cast<uint8_t>(Property::Strings));
         packer.pack_array(stats.stringPowerMax.size());   // Store an array to provide data for each Mpp.
 
         for (uint32_t i = 0; i < stats.stringPowerMax.size(); ++i)
         {
             // 4.X
             packer.pack_map(1);
-            packer.pack_uint8(static_cast<uint8_t>(InverterProperty::StringPowerMaxToday));
+            packer.pack_uint8(static_cast<uint8_t>(Property::StringPowerMaxToday));
             packer.pack_float(static_cast<float>(stats.stringPowerMax[i]));
         }
 
@@ -186,32 +182,32 @@ int MqttMsgPackExport::exportLiveData(std::time_t timestamp,
         // Map with number of elements
         packer.pack_map(6);
         // 1. Protocol version
-        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Version));
+        packer.pack_uint8(static_cast<uint8_t>(Property::Version));
         packer.pack_uint8(0);
         // 2. Timestamp
-        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Timestamp));
+        packer.pack_uint8(static_cast<uint8_t>(Property::Timestamp));
         auto t = htonl(timestamp);
         packer.pack_ext(4, -1); // Timestamp type
         packer.pack_ext_body((const char*)(&t), 4);
         // 3. Yield Total
-        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::EnergyTotal));
+        packer.pack_uint8(static_cast<uint8_t>(Property::EnergyTotal));
         packer.pack_float(static_cast<float>(inv.ETotal));
         // 4. Yield Today
-        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::EnergyToday));
+        packer.pack_uint8(static_cast<uint8_t>(Property::EnergyToday));
         packer.pack_float(static_cast<float>(inv.EToday));
         // 5. Power AC
-        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Power));
+        packer.pack_uint8(static_cast<uint8_t>(Property::Power));
         packer.pack_float(static_cast<float>(inv.TotalPac));
         // 6. Power DC
-        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Strings));
+        packer.pack_uint8(static_cast<uint8_t>(Property::Strings));
         packer.pack_array(2);   // Store an array to provide data for each Mpp.
         // 6.1 MPP1
         packer.pack_map(1);
-        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Power));
+        packer.pack_uint8(static_cast<uint8_t>(Property::Power));
         packer.pack_float(static_cast<float>(inv.Pdc1));
         // 6.2 MPP2
         packer.pack_map(1);
-        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Power));
+        packer.pack_uint8(static_cast<uint8_t>(Property::Power));
         packer.pack_float(static_cast<float>(inv.Pdc2));
 
         publish(topic, sbuf, 0);
@@ -239,19 +235,19 @@ int MqttMsgPackExport::exportLiveData(const LiveData& liveData)
     // Map with number of elements
     packer.pack_map(4);
     // 1. Protocol version
-    packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Version));
+    packer.pack_uint8(static_cast<uint8_t>(Property::Version));
     packer.pack_uint8(0);
-    // 2. Protocol version
-    packer.pack_uint8(static_cast<uint8_t>(InverterProperty::DeviceType));
+    // 2. Device type
+    packer.pack_uint8(static_cast<uint8_t>(Property::DeviceType));
     packer.pack_uint8(static_cast<uint8_t>(liveData.deviceType));
     // 3. Timestamp
-    packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Timestamp));
+    packer.pack_uint8(static_cast<uint8_t>(Property::Timestamp));
     uint32_t t = htonl(liveData.timestamp);
     packer.pack_ext(4, -1); // Timestamp type
     packer.pack_ext_body((const char*)(&t), 4);
     // 4. Power AC
-    packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Power));
-    packer.pack(liveData.totalPower);
+    packer.pack_uint8(static_cast<uint8_t>(Property::Power));
+    packer.pack(liveData.totalPowerAc);
 
     publish(topic, sbuf, 0);
 
@@ -275,10 +271,10 @@ int MqttMsgPackExport::exportDayData(std::time_t timestamp, const DataPerInverte
         // Map with number of elements
         packer.pack_map(3);
         // 1. Protocol version
-        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Version));
+        packer.pack_uint8(static_cast<uint8_t>(Property::Version));
         packer.pack_uint8(0);
         // 2. Timestamp
-        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Timestamp));
+        packer.pack_uint8(static_cast<uint8_t>(Property::Timestamp));
         packer.pack_array(inv.second.size());
         for (const auto& p : inv.second) {
             auto t = htonl(p.InverterDatetime);
@@ -286,24 +282,24 @@ int MqttMsgPackExport::exportDayData(std::time_t timestamp, const DataPerInverte
             packer.pack_ext_body((const char*)(&t), 4);
         }
         // 3. Power AC
-        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Power));
+        packer.pack_uint8(static_cast<uint8_t>(Property::Power));
         packer.pack_array(inv.second.size());
         for (const auto& p : inv.second) {
             packer.pack_unsigned_int(p.TotalPac);
         }
         // 4. Power DC
-        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Strings));
+        packer.pack_uint8(static_cast<uint8_t>(Property::Strings));
         packer.pack_array(2);   // Store an array to provide data for each Mpp.
         // 4.1 MPP1
         packer.pack_map(1);
-        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Power));
+        packer.pack_uint8(static_cast<uint8_t>(Property::Power));
         packer.pack_array(inv.second.size());
         for (const auto& p : inv.second) {
             packer.pack_unsigned_int(p.Pdc1);
         }
         // 4.2 MPP2
         packer.pack_map(1);
-        packer.pack_uint8(static_cast<uint8_t>(InverterProperty::Power));
+        packer.pack_uint8(static_cast<uint8_t>(Property::Power));
         packer.pack_array(inv.second.size());
         for (const auto& p : inv.second) {
             packer.pack_unsigned_int(p.Pdc2);

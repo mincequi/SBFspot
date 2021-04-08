@@ -52,14 +52,15 @@ DISCLAIMER:
 #include <iostream>
 
 #include "Ethernet.h"
-#include "Import.h"
+#include "Importer.h"
+#include "LiveData.h"
 #include "SBFNet.h"
 #include "misc.h"
 #include "sma/SmaInverterRequests.h"
 
 using namespace std;
 
-SbfSpot::SbfSpot(Ethernet& ethernet, Import& import) :
+SbfSpot::SbfSpot(Ethernet& ethernet, Importer& import) :
     m_ethernet(ethernet),
     m_import(import)
 {
@@ -267,7 +268,7 @@ void SbfSpot::encodeDataRequest(uint8_t* buffer, uint16_t susyId, uint32_t seria
     while (!isCrcValid(buffer[packetposition-3], buffer[packetposition-2]));
 }
 
-void SbfSpot::decodeResponse(const uint8_t* buffer, InverterDataMap& inverterDataMap, InverterData& inverter, std::set<LriDef>& lris)
+void SbfSpot::decodeResponse(const std::vector<uint8_t>& buffer, InverterDataMap& inverterDataMap, LiveData& inverter, std::set<LriDef>& lris)
 {
     int32_t value = 0;
     int64_t value64 = 0;
@@ -277,25 +278,26 @@ void SbfSpot::decodeResponse(const uint8_t* buffer, InverterDataMap& inverterDat
     unsigned char Vmajor = 0;
 
     int recordsize = 0;
-    for (int ii = 41; ii < packetposition - 3; ii += recordsize)
+    for (uint ii = 41; ii < buffer.size() - 3; ii += recordsize)
     {
-        uint32_t code = ((uint32_t)get_long(buffer + ii));
+        uint32_t code = ((uint32_t)get_long(buffer.data() + ii));
         LriDef lri = (LriDef)(code & 0x00FFFF00);
         uint32_t cls = code & 0xFF;
         unsigned char dataType = code >> 24;
-        time_t datetime = (time_t)get_long(buffer + ii + 4);
+        time_t datetime = (time_t)get_long(buffer.data() + ii + 4);
 
         // fix: We can't rely on dataType because it can be both 0x00 or 0x40 for DWORDs
         if ((lri == MeteringDyWhOut) || (lri == MeteringTotWhOut) || (lri == MeteringTotFeedTms) || (lri == MeteringTotOpTms))	//QWORD
             //if ((code == SPOT_ETODAY) || (code == SPOT_ETOTAL) || (code == SPOT_FEEDTM) || (code == SPOT_OPERTM))	//QWORD
         {
-            value64 = get_longlong(buffer + ii + 8);
+            value64 = get_longlong(buffer.data() + ii + 8);
             if ((value64 == (int64_t)NaN_S64) || (value64 == (int64_t)NaN_U64)) value64 = 0;
             inverterDataMap[lri] = value64;
         }
-        else if ((dataType != 0x10) && (dataType != 0x08))	//Not TEXT or STATUS, so it should be DWORD
+        else if ((lri >= OperationHealth) && (lri <= InverterWLim) &&
+                 (dataType != 0x10) && (dataType != 0x08))	//Not TEXT or STATUS, so it should be DWORD
         {
-            value = (int32_t)get_long(buffer + ii + 16);
+            value = (int32_t)get_long(buffer.data() + ii + 16);
             if ((value == (int32_t)NaN_S32) || (value == (int32_t)NaN_U32)) value = 0;
             inverterDataMap[lri] = value;
         }
@@ -305,326 +307,322 @@ void SbfSpot::decodeResponse(const uint8_t* buffer, InverterDataMap& inverterDat
         case GridMsTotW: //SPOT_PACTOT
             if (recordsize == 0) recordsize = 28;
             //This function gives us the time when the inverter was switched off
-            inverter.SleepTime = datetime;
-            inverter.TotalPac = value;
+            //inverter.SleepTime = datetime;
+            inverter.totalPowerAc = value;
             // inverter.flags |= type;
             break;
 
         case OperationHealthSttOk: //INV_PACMAX1
             if (recordsize == 0) recordsize = 28;
-            inverter.Pmax1 = value;
+            //inverter.Pmax1 = value;
             // inverter.flags |= type;
             break;
 
         case OperationHealthSttWrn: //INV_PACMAX2
             if (recordsize == 0) recordsize = 28;
-            inverter.Pmax2 = value;
+            //inverter.Pmax2 = value;
             // inverter.flags |= type;
             break;
 
         case OperationHealthSttAlm: //INV_PACMAX3
             if (recordsize == 0) recordsize = 28;
-            inverter.Pmax3 = value;
+            //inverter.Pmax3 = value;
             // inverter.flags |= type;
             break;
 
         case GridMsWphsA: //SPOT_PAC1
             if (recordsize == 0) recordsize = 28;
-            inverter.Pac1 = value;
+            inverter.ac[0].power = value;
             // inverter.flags |= type;
             break;
 
         case GridMsWphsB: //SPOT_PAC2
             if (recordsize == 0) recordsize = 28;
-            inverter.Pac2 = value;
+            inverter.ac[1].power = value;
             // inverter.flags |= type;
             break;
 
         case GridMsWphsC: //SPOT_PAC3
             if (recordsize == 0) recordsize = 28;
-            inverter.Pac3 = value;
+            inverter.ac[2].power = value;
             // inverter.flags |= type;
             break;
 
         case GridMsPhVphsA: //SPOT_UAC1
             if (recordsize == 0) recordsize = 28;
-            inverter.Uac1 = value;
+            inverter.ac[0].voltage = value/100.0f;
             // inverter.flags |= type;
             break;
 
         case GridMsPhVphsB: //SPOT_UAC2
             if (recordsize == 0) recordsize = 28;
-            inverter.Uac2 = value;
+            inverter.ac[1].voltage = value/100.0f;
             // inverter.flags |= type;
             break;
 
         case GridMsPhVphsC: //SPOT_UAC3
             if (recordsize == 0) recordsize = 28;
-            inverter.Uac3 = value;
+            inverter.ac[2].voltage = value/100.0f;
             // inverter.flags |= type;
             break;
 
         case GridMsAphsA_1: //SPOT_IAC1
         case GridMsAphsA:
             if (recordsize == 0) recordsize = 28;
-            inverter.Iac1 = value;
+            inverter.ac[0].current = value;
             // inverter.flags |= type;
             break;
 
         case GridMsAphsB_1: //SPOT_IAC2
         case GridMsAphsB:
             if (recordsize == 0) recordsize = 28;
-            inverter.Iac2 = value;
+            inverter.ac[1].current = value;
             // inverter.flags |= type;
             break;
 
         case GridMsAphsC_1: //SPOT_IAC3
         case GridMsAphsC:
             if (recordsize == 0) recordsize = 28;
-            inverter.Iac3 = value;
+            inverter.ac[2].current = value;
             // inverter.flags |= type;
             break;
 
         case GridMsHz: //SPOT_FREQ
             if (recordsize == 0) recordsize = 28;
-            inverter.GridFreq = value;
+            //inverter.GridFreq = value;
             // inverter.flags |= type;
             break;
 
         case DcMsWatt: //SPOT_PDC1 / SPOT_PDC2
             if (recordsize == 0) recordsize = 28;
-            if (cls == 1)   // MPP1
-            {
-                inverter.Pdc1 = value;
-            }
-            if (cls == 2)   // MPP2
-            {
-                inverter.Pdc2 = value;
-            }
+            //if (cls == 1)   // MPP1
+            //{
+            //    inverter.Pdc1 = value;
+            //}
+            //if (cls == 2)   // MPP2
+            //{
+            //    inverter.Pdc2 = value;
+            //}
             // inverter.flags |= type;
             break;
 
         case DcMsVol: //SPOT_UDC1 / SPOT_UDC2
             if (recordsize == 0) recordsize = 28;
-            if (cls == 1)
-            {
-                inverter.Udc1 = value;
-            }
-            if (cls == 2)
-            {
-                inverter.Udc2 = value;
-            }
+            //if (cls == 1)
+            //{
+            //    inverter.Udc1 = value;
+            //}
+            //if (cls == 2)
+            //{
+            //    inverter.Udc2 = value;
+            //}
             // inverter.flags |= type;
             break;
 
         case DcMsAmp: //SPOT_IDC1 / SPOT_IDC2
             if (recordsize == 0) recordsize = 28;
-            if (cls == 1)
-            {
-                inverter.Idc1 = value;
-            }
-            if (cls == 2)
-            {
-                inverter.Idc2 = value;
-            }
+            //if (cls == 1)
+            //{
+            //    inverter.Idc1 = value;
+            //}
+            //if (cls == 2)
+            //{
+            //    inverter.Idc2 = value;
+            //}
             // inverter.flags |= type;
             break;
 
         case MeteringTotWhOut: //SPOT_ETOTAL
             if (recordsize == 0) recordsize = 16;
             //In case SPOT_ETODAY missing, this function gives us inverter time (eg: SUNNY TRIPOWER 6.0)
-            inverter.InverterDatetime = datetime;
-            inverter.ETotal = value64;
+            //inverter.InverterDatetime = datetime;
+            //inverter.ETotal = value64;
             // inverter.flags |= type;
             break;
 
         case MeteringDyWhOut: //SPOT_ETODAY
             if (recordsize == 0) recordsize = 16;
             //This function gives us the current inverter time
-            inverter.InverterDatetime = datetime;
-            inverter.EToday = value64;
+            //inverter.InverterDatetime = datetime;
+            //inverter.EToday = value64;
             // inverter.flags |= type;
             break;
 
         case MeteringTotOpTms: //SPOT_OPERTM
             if (recordsize == 0) recordsize = 16;
-            inverter.OperationTime = value64;
+            //inverter.OperationTime = value64;
             // inverter.flags |= type;
             break;
 
         case MeteringTotFeedTms: //SPOT_FEEDTM
             if (recordsize == 0) recordsize = 16;
-            inverter.FeedInTime = value64;
+            //inverter.FeedInTime = value64;
             // inverter.flags |= type;
             break;
 
         case NameplateLocation: //INV_NAME
             if (recordsize == 0) recordsize = 40;
             //This function gives us the time when the inverter was switched on
-            inverter.WakeupTime = datetime;
-            char deviceName[33];
-            strncpy(deviceName, (char *)buffer + ii + 8, sizeof(deviceName)-1);
-            inverter.DeviceName = deviceName;
-            // inverter.flags |= type;
-            if (DEBUG_NORMAL) printf("%-12s: '%s' %s", "INV_NAME", inverter.DeviceName.c_str(), ctime(&datetime));
+            //inverter.WakeupTime = datetime;
+            //char deviceName[33];
+            //strncpy(deviceName, (char *)buffer.data() + ii + 8, sizeof(deviceName)-1);
+            //inverter.DeviceName = deviceName;
+            //// inverter.flags |= type;
+            //if (DEBUG_NORMAL) printf("%-12s: '%s' %s", "INV_NAME", inverter.DeviceName.c_str(), ctime(&datetime));
             break;
 
         case NameplatePkgRev: //INV_SWVER
             if (recordsize == 0) recordsize = 40;
-            Vtype = buffer[ii + 24];
-            char ReleaseType[4];
-            if (Vtype > 5)
-                sprintf(ReleaseType, "%d", Vtype);
-            else
-                sprintf(ReleaseType, "%c", "NEABRS"[Vtype]); //NOREV-EXPERIMENTAL-ALPHA-BETA-RELEASE-SPECIAL
-            Vbuild = buffer[ii + 25];
-            Vminor = buffer[ii + 26];
-            Vmajor = buffer[ii + 27];
-            //Vmajor and Vminor = 0x12 should be printed as '12' and not '18' (BCD)
-            char swVersion[16];
-            snprintf(swVersion, sizeof(swVersion), "%c%c.%c%c.%02d.%s", '0'+(Vmajor >> 4), '0'+(Vmajor & 0x0F), '0'+(Vminor >> 4), '0'+(Vminor & 0x0F), Vbuild, ReleaseType);
-            inverter.SWVersion = swVersion;
-            // inverter.flags |= type;
-            if (DEBUG_NORMAL) printf("%-12s: '%s' %s", "INV_SWVER", inverter.SWVersion.c_str(), ctime(&datetime));
+            //Vtype = buffer[ii + 24];
+            //char ReleaseType[4];
+            //if (Vtype > 5)
+            //    sprintf(ReleaseType, "%d", Vtype);
+            //else
+            //    sprintf(ReleaseType, "%c", "NEABRS"[Vtype]); //NOREV-EXPERIMENTAL-ALPHA-BETA-RELEASE-SPECIAL
+            //Vbuild = buffer[ii + 25];
+            //Vminor = buffer[ii + 26];
+            //Vmajor = buffer[ii + 27];
+            ////Vmajor and Vminor = 0x12 should be printed as '12' and not '18' (BCD)
+            //char swVersion[16];
+            //snprintf(swVersion, sizeof(swVersion), "%c%c.%c%c.%02d.%s", '0'+(Vmajor >> 4), '0'+(Vmajor & 0x0F), '0'+(Vminor >> 4), '0'+(Vminor & 0x0F), Vbuild, ReleaseType);
+            //inverter.SWVersion = swVersion;
+            //// inverter.flags |= type;
+            //if (DEBUG_NORMAL) printf("%-12s: '%s' %s", "INV_SWVER", inverter.SWVersion.c_str(), ctime(&datetime));
             break;
 
         case NameplateModel: //INV_TYPE
             if (recordsize == 0) recordsize = 40;
-            for (int idx = 8; idx < recordsize; idx += 4)
-            {
-                unsigned long attribute = ((unsigned long)get_long(buffer + ii + idx)) & 0x00FFFFFF;
-                unsigned char status = buffer[ii + idx + 3];
-                if (attribute == 0xFFFFFE) break;	//End of attributes
-                if (status == 1)
-                {
-                    std::string devtype = tagdefs.getDesc(attribute);
-                    if (!devtype.empty())
-                    {
-                        inverter.DeviceType = devtype;
-                    }
-                    else
-                    {
-                        inverter.DeviceType = "UNKNOWN TYPE";
-                        printf("Unknown Inverter Type. Report this issue at https://github.com/SBFspot/SBFspot/issues with following info:\n");
-                        printf("0x%08lX and Inverter Type=<Fill in the exact type> (e.g. SB1300TL-10)\n", attribute);
-                    }
-                }
-            }
+            //for (int idx = 8; idx < recordsize; idx += 4)
+            //{
+            //    unsigned long attribute = ((unsigned long)get_long(buffer.data() + ii + idx)) & 0x00FFFFFF;
+            //    unsigned char status = buffer[ii + idx + 3];
+            //    if (attribute == 0xFFFFFE) break;	//End of attributes
+            //    if (status == 1)
+            //    {
+            //        std::string devtype = tagdefs.getDesc(attribute);
+            //        if (!devtype.empty())
+            //        {
+            //            inverter.DeviceType = devtype;
+            //        }
+            //        else
+            //        {
+            //            inverter.DeviceType = "UNKNOWN TYPE";
+            //            printf("Unknown Inverter Type. Report this issue at https://github.com/SBFspot/SBFspot/issues with following info:\n");
+            //            printf("0x%08lX and Inverter Type=<Fill in the exact type> (e.g. SB1300TL-10)\n", attribute);
+            //        }
+            //    }
+            //}
             // inverter.flags |= type;
-            if (DEBUG_NORMAL) printf("%-12s: '%s' %s", "INV_TYPE", inverter.DeviceType.c_str(), ctime(&datetime));
             break;
 
         case NameplateMainModel: //INV_CLASS
             if (recordsize == 0) recordsize = 40;
-            for (int idx = 8; idx < recordsize; idx += 4)
-            {
-                unsigned long attribute = ((unsigned long)get_long(buffer + ii + idx)) & 0x00FFFFFF;
-                unsigned char attValue = buffer[ii + idx + 3];
-                if (attribute == 0xFFFFFE) break;	//End of attributes
-                if (attValue == 1)
-                {
-                    inverter.DevClass = (DEVICECLASS)attribute;
-                    std::string devclass = tagdefs.getDesc(attribute);
-                    if (!devclass.empty())
-                    {
-                        inverter.DeviceClass = devclass;
-                    }
-                    else
-                    {
-                        inverter.DeviceClass = "UNKNOWN CLASS";
-                        printf("Unknown Device Class. Report this issue at https://github.com/SBFspot/SBFspot/issues with following info:\n");
-                        printf("0x%08lX and Device Class=...\n", attribute);
-                    }
-                }
-            }
+            //for (int idx = 8; idx < recordsize; idx += 4)
+            //{
+            //    unsigned long attribute = ((unsigned long)get_long(buffer.data() + ii + idx)) & 0x00FFFFFF;
+            //    unsigned char attValue = buffer[ii + idx + 3];
+            //    if (attribute == 0xFFFFFE) break;	//End of attributes
+            //    if (attValue == 1)
+            //    {
+            //        inverter.DevClass = (DEVICECLASS)attribute;
+            //        std::string devclass = tagdefs.getDesc(attribute);
+            //        if (!devclass.empty())
+            //        {
+            //            inverter.DeviceClass = devclass;
+            //        }
+            //        else
+            //        {
+            //            inverter.DeviceClass = "UNKNOWN CLASS";
+            //            printf("Unknown Device Class. Report this issue at https://github.com/SBFspot/SBFspot/issues with following info:\n");
+            //            printf("0x%08lX and Device Class=...\n", attribute);
+            //        }
+            //    }
+            //}
             // inverter.flags |= type;
-            if (DEBUG_NORMAL) printf("%-12s: '%s' %s", "INV_CLASS", inverter.DeviceClass.c_str(), ctime(&datetime));
             break;
 
         case OperationHealth: //INV_STATUS:
             if (recordsize == 0) recordsize = 40;
-            for (int idx = 8; idx < recordsize; idx += 4)
-            {
-                unsigned long attribute = ((unsigned long)get_long(buffer + ii + idx)) & 0x00FFFFFF;
-                unsigned char attValue = buffer[ii + idx + 3];
-                if (attribute == 0xFFFFFE) break;	//End of attributes
-                if (attValue == 1)
-                    inverter.DeviceStatus = attribute;
-            }
+            //for (int idx = 8; idx < recordsize; idx += 4)
+            //{
+            //    unsigned long attribute = ((unsigned long)get_long(buffer.data() + ii + idx)) & 0x00FFFFFF;
+            //    unsigned char attValue = buffer[ii + idx + 3];
+            //    if (attribute == 0xFFFFFE) break;	//End of attributes
+            //    if (attValue == 1)
+            //        inverter.DeviceStatus = attribute;
+            //}
             // inverter.flags |= type;
-            if (DEBUG_NORMAL) printf("%-12s: '%s' %s", "INV_STATUS", tagdefs.getDesc(inverter.DeviceStatus, "?").c_str(), ctime(&datetime));
             break;
 
         case OperationGriSwStt: //INV_GRIDRELAY
             if (recordsize == 0) recordsize = 40;
-            for (int idx = 8; idx < recordsize; idx += 4)
-            {
-                unsigned long attribute = ((unsigned long)get_long(buffer + ii + idx)) & 0x00FFFFFF;
-                unsigned char attValue = buffer[ii + idx + 3];
-                if (attribute == 0xFFFFFE) break;	//End of attributes
-                if (attValue == 1)
-                    inverter.GridRelayStatus = attribute;
-            }
+            //for (int idx = 8; idx < recordsize; idx += 4)
+            //{
+            //    unsigned long attribute = ((unsigned long)get_long(buffer.data() + ii + idx)) & 0x00FFFFFF;
+            //    unsigned char attValue = buffer[ii + idx + 3];
+            //    if (attribute == 0xFFFFFE) break;	//End of attributes
+            //    if (attValue == 1)
+            //        inverter.GridRelayStatus = attribute;
+            //}
             // inverter.flags |= type;
-            if (DEBUG_NORMAL) printf("%-12s: '%s' %s", "INV_GRIDRELAY", tagdefs.getDesc(inverter.GridRelayStatus, "?").c_str(), ctime(&datetime));
             break;
 
         case BatChaStt:
             if (recordsize == 0) recordsize = 28;
-            inverter.BatChaStt = value;
+            //inverter.BatChaStt = value;
             // inverter.flags |= type;
             break;
 
         case BatDiagCapacThrpCnt:
             if (recordsize == 0) recordsize = 28;
-            inverter.BatDiagCapacThrpCnt = value;
+            //inverter.BatDiagCapacThrpCnt = value;
             // inverter.flags |= type;
             break;
 
         case BatDiagTotAhIn:
             if (recordsize == 0) recordsize = 28;
-            inverter.BatDiagTotAhIn = value;
+            //inverter.BatDiagTotAhIn = value;
             // inverter.flags |= type;
             break;
 
         case BatDiagTotAhOut:
             if (recordsize == 0) recordsize = 28;
-            inverter.BatDiagTotAhOut = value;
+            //inverter.BatDiagTotAhOut = value;
             // inverter.flags |= type;
             break;
 
         case BatTmpVal:
             if (recordsize == 0) recordsize = 28;
-            inverter.BatTmpVal = value;
+            //inverter.BatTmpVal = value;
             // inverter.flags |= type;
             break;
 
         case BatVol:
             if (recordsize == 0) recordsize = 28;
-            inverter.BatVol = value;
+            //inverter.BatVol = value;
             // inverter.flags |= type;
             break;
 
         case BatAmp:
             if (recordsize == 0) recordsize = 28;
-            inverter.BatAmp = value;
+            //inverter.BatAmp = value;
             // inverter.flags |= type;
             break;
 
         case CoolsysTmpNom:
             if (recordsize == 0) recordsize = 28;
-            inverter.Temperature = value;
+            //inverter.Temperature = value;
             // inverter.flags |= type;
             break;
 
         case MeteringGridMsTotWhOut:
             if (recordsize == 0) recordsize = 28;
-            inverter.MeteringGridMsTotWOut = value;
+            //inverter.MeteringGridMsTotWOut = value;
             break;
 
         case MeteringGridMsTotWhIn:
             if (recordsize == 0) recordsize = 28;
-            inverter.MeteringGridMsTotWIn = value;
+            //inverter.MeteringGridMsTotWIn = value;
             break;
 
         default:

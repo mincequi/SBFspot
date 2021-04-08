@@ -39,7 +39,7 @@ DISCLAIMER:
 #include "CSVexport.h"
 #include "Defines.h"
 #include "Ethernet.h"
-#include "Import.h"
+#include "Importer.h"
 #include "SBFspot.h"
 // TODO: remove bluetooth header from here. Abstract bluetooth functions using Import class
 #include "bluetooth.h"
@@ -48,7 +48,7 @@ DISCLAIMER:
 
 using namespace boost;
 
-Inverter::Inverter(const Config& config, Ethernet& ethernet, Import& import, SbfSpot& sbfSpot)
+Inverter::Inverter(const Config& config, Ethernet& ethernet, Importer& import, SbfSpot& sbfSpot)
     : m_config(config),
       m_ethernet(ethernet),
       m_import(import),
@@ -809,10 +809,13 @@ void Inverter::exportConfig()
 {
     if (m_config.mqtt == 1)
     {
-        auto rc = m_mqtt.exportConfig(m_inverters);
-        if (rc != 0)
+        for (const auto& inverterData : m_inverters)
         {
-            std::cout << "Error " << rc << " while publishing to MQTT Broker" << std::endl;
+            auto rc = m_mqtt.exportConfig(inverterData);
+            if (rc != 0)
+            {
+                std::cout << "Error " << rc << " while publishing to MQTT Broker" << std::endl;
+            }
         }
     }
 }

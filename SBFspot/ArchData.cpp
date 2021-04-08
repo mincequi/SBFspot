@@ -35,7 +35,7 @@ DISCLAIMER:
 #include "ArchData.h"
 
 #include "Defines.h"
-#include "Import.h"
+#include "Importer.h"
 
 #include "boost_ext.h"
 
@@ -45,7 +45,7 @@ using namespace boost::date_time;
 using namespace boost::posix_time;
 using namespace boost::gregorian;
 
-ArchData::ArchData(Import& import) :
+ArchData::ArchData(Importer& import) :
     m_import(import)
 {
 }

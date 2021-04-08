@@ -32,23 +32,49 @@ DISCLAIMER:
 
 ************************************************************************************************/
 
-#include "Export.h"
+#include <algorithm>
+#include <iostream>
+#include <string>
+#include <thread>
 
-#include "Config.h"
 
-int Export::exportConfig(const std::vector<InverterData>& /*inverterData*/)
+#include <msgpack.hpp>
+#include <mqtt_protocol.h>
+#include <mosquittopp.h>
+
+class MqttSubscriber : public mosqpp::mosquittopp
 {
-    return 0;
-}
+public:
+    MqttSubscriber(const std::string& topic) :
+        m_topic(topic)
+    {
+        connect("broker.hivemq.com");
+        subscribe(nullptr, topic.c_str());
+    }
 
-int Export::exportDayStats(std::time_t /*timestamp*/,
-                           const std::vector<DayStats>& /*dayStats*/)
-{
-    return 0;
-}
+private:
+    virtual void on_message(const struct mosquitto_message* message) override {
+        auto oh = msgpack::unpack(reinterpret_cast<const char*>(message->payload), message->payloadlen);
 
-int Export::exportDayData(std::time_t /*timestamp*/,
-                          const DataPerInverter& /*inverterData*/)
+        // deserialized object is valid during the msgpack::object_handle instance is alive.
+        msgpack::object deserialized = oh.get();
+
+        // msgpack::object supports ostream.
+        std::cout << deserialized << std::endl;
+    }
+
+    const std::string m_topic;
+
+};
+
+int main()
 {
+    mosqpp::lib_init();
+
+    MqttSubscriber client("sbfspot_1900042748/live");
+    client.loop_forever();
+
+    mosqpp::lib_cleanup();
+
     return 0;
 }

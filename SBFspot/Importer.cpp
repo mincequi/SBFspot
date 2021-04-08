@@ -32,7 +32,7 @@ DISCLAIMER:
 
 ************************************************************************************************/
 
-#include "Import.h"
+#include "Importer.h"
 
 #ifdef BLUETOOTH_FOUND
 #include "bluetooth.h"
@@ -42,17 +42,17 @@ DISCLAIMER:
 #include "Ethernet.h"
 #include "SBFspot.h"
 
-Import::Import(const Config& config, Ethernet& ethernet) :
+Importer::Importer(const Config& config, Ethernet& ethernet) :
     m_config(config),
     m_ethernet(ethernet)
 {
 }
 
-Import::~Import()
+Importer::~Importer()
 {
 }
 
-int Import::close()
+int Importer::close()
 {
 #ifdef BLUETOOTH_FOUND
     return bthClose();
@@ -61,7 +61,7 @@ int Import::close()
 #endif
 }
 
-E_SBFSPOT Import::getPacket(const unsigned char senderaddr[6], int wait4Command)
+E_SBFSPOT Importer::getPacket(const unsigned char senderaddr[6], int wait4Command)
 {
     if (ConnType == CT_BLUETOOTH)
     {
@@ -78,7 +78,7 @@ E_SBFSPOT Import::getPacket(const unsigned char senderaddr[6], int wait4Command)
     }
 }
 
-int Import::send(unsigned char *buffer, const std::string& toIP)
+int Importer::send(unsigned char *buffer, const std::string& toIP)
 {
     if(ConnType == CT_BLUETOOTH)
     {

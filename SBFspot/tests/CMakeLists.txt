@@ -25,7 +25,7 @@ if (Bluetooth_FOUND)
         ../Bluetooth.cpp
         ../Defines.cpp
         ../Ethernet.cpp
-        ../Import.cpp
+        ../Importer.cpp
         ../misc.cpp
         ../sunrise_sunset.cpp
         ../SBFNet.cpp
@@ -38,17 +38,33 @@ if (Bluetooth_FOUND)
 endif()
 
 if (Mosquitto_FOUND AND MessagePack_FOUND)
-    add_executable(mqtttest
-        MqttTest.cpp
+    add_executable(mqttexportertest
+        MqttExporterTest.cpp
         ../Defines.cpp
-        ../Export.cpp
+        ../Exporter.cpp
         ../misc.cpp
         ../mqtt.cpp
-        ../MqttMsgPackExport.cpp
+        ../MqttMsgPackExporter.cpp
         ../sunrise_sunset.cpp
         ../Timer.cpp
     )
-    target_link_libraries(mqtttest
+    target_link_libraries(mqttexportertest
+        Boost::date_time
+        PkgConfig::Mosquitto
+        PkgConfig::MessagePack
+    )
+
+    add_executable(mqttsubscribertest
+        MqttSubscriberTest.cpp
+        ../Defines.cpp
+        ../Exporter.cpp
+        ../misc.cpp
+        ../mqtt.cpp
+        ../MqttMsgPackExporter.cpp
+        ../sunrise_sunset.cpp
+        ../Timer.cpp
+    )
+    target_link_libraries(mqttsubscribertest
         Boost::date_time
         PkgConfig::Mosquitto
         PkgConfig::MessagePack

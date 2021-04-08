@@ -37,7 +37,6 @@ DISCLAIMER:
 #include <list>
 #include <map>
 #include <string>
-#include <variant>
 #include <vector>
 
 #include "Defines.h"

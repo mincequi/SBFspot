@@ -36,7 +36,7 @@ DISCLAIMER:
 #include "../Defines.h"
 #include "../Inverter.h"
 #include "../mqtt.h"
-#include "../MqttMsgPackExport.h"
+#include "../MqttMsgPackExporter.h"
 #include "../Timer.h"
 
 #include <algorithm>
@@ -115,7 +115,7 @@ int main()
 
         auto now = std::time(nullptr);
         now -= rand()%1728000;
-        mqtt.exportConfig({inverterData});
+        mqtt.exportConfig(inverterData);
         mqtt.exportDayStats(now, {dayStats});
         mqtt.exportLiveData(now, {inverterData});
     }

@@ -35,38 +35,24 @@ DISCLAIMER:
 #pragma once
 
 #include "Exporter.h"
-#if(defined MOSQUITTO_FOUND && defined MSGPACK_FOUND)
-#include <mosquittopp.h>
-#include "MqttMsgPackExporter.h"
-#endif
+#include <mqtt/MqttExporter_qt.h>
+#include <msgpack/MsgPackSerializer.h>
 
-struct Config;
-struct InverterData;
+class Cache;
+class Config;
 
-class MqttExporter : public Exporter
-#if(defined MOSQUITTO_FOUND && defined MSGPACK_FOUND)
-        , mosqpp::mosquittopp
-#endif
+class ExporterManager : public Exporter
 {
 public:
-    MqttExporter(const Config& config);
-    ~MqttExporter();
-
-    std::string name() const override;
-
-    int exportConfig(const InverterData& inverterData) override;
-    int exportDayStats(std::time_t timestamp,
-                       const std::vector<DayStats>& inverterData) override;
-    int exportLiveData(std::time_t timestamp,
-                       const std::vector<InverterData>& inverterData) override;
-    int exportLiveData(const LiveData& liveData) override;
-    int exportDayData(std::time_t timestamp,
-                      const DataPerInverter& inverterData) override;
+    ExporterManager(const Config& config, Cache& cache);
 
 private:
-    const Config& m_config;
+    virtual int exportLiveData(const LiveData& liveData) override;
 
-#if(defined MOSQUITTO_FOUND && defined MSGPACK_FOUND)
-    MqttMsgPackExport m_msgPackExporter;
-#endif
+    const Config&   m_config;
+    Cache&          m_cache;
+
+    msgpack::MsgPackSerializer m_msgPackSerializer;
+    mqtt::MqttExporter_qt m_mqttExporter;
 };
+

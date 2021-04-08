@@ -43,15 +43,15 @@ DISCLAIMER:
 //void ethWritePacketHeader(unsigned char *buf);
 //void ethWritePacket(unsigned char *buf, unsigned char ctrl, unsigned short ctrl2, unsigned short dstSUSyID, unsigned long dstSerial);
 
-void writeLong(unsigned char *btbuffer, const unsigned long v);
-void writeShort(unsigned char *btbuffer, const unsigned short v);
-void writeByte(unsigned char *btbuffer, const unsigned char v);
-void writeArray(unsigned char *btbuffer, const unsigned char bytes[], const int count);
-//void writePacket(unsigned char *btbuffer, const unsigned char size, const unsigned char ctrl, const unsigned short dstSUSyID, const unsigned long dstSerial, const unsigned short packetcount, const unsigned char a, const unsigned char b, const unsigned char c);
-void writePacket(unsigned char *buf, unsigned char longwords, unsigned char ctrl, unsigned short ctrl2, unsigned short dstSUSyID, unsigned long dstSerial);
-void writePacketTrailer(unsigned char *btbuffer);
-void writePacketHeader(unsigned char *btbuffer, const unsigned int control, const unsigned char *destaddress);
-void writePacketLength(unsigned char *buffer);
+int writeLong(unsigned char *btbuffer, const unsigned long v);
+int writeShort(unsigned char *btbuffer, const unsigned short v);
+int writeByte(unsigned char *btbuffer, const unsigned char v);
+int writeArray(unsigned char *btbuffer, const unsigned char bytes[], const int count);
+//int writePacket(unsigned char *btbuffer, const unsigned char size, const unsigned char ctrl, const unsigned short dstSUSyID, const unsigned long dstSerial, const unsigned short packetcount, const unsigned char a, const unsigned char b, const unsigned char c);
+int writePacket(unsigned char *buf, unsigned char longwords, unsigned char ctrl, unsigned short ctrl2, unsigned short dstSUSyID, unsigned long dstSerial);
+int writePacketTrailer(unsigned char *btbuffer);
+int writePacketHeader(unsigned char *btbuffer, const unsigned int control, const unsigned char *destaddress);
+int writePacketLength(unsigned char *buffer);
 int validateChecksum(void);
 
 #endif

@@ -38,20 +38,26 @@ DISCLAIMER:
 #include <ctime>
 #include <set>
 
+#include <QTimer>
+
+#include "LiveData.h"
 #include "Types.h"
 
 class Config;
 class Ethernet_qt;
+class Exporter;
 class QNetworkDatagram;
 
 namespace sma {
 
-class SmaInverter
+class SmaInverter : public QObject
 {
-public:
-    SmaInverter(const Config& config, Ethernet_qt& ioDevice, uint32_t address);
+    Q_OBJECT
 
-    void poll();
+public:
+    SmaInverter(QObject* parent, const Config& config, Ethernet_qt& ioDevice, Exporter& exporter, uint32_t address);
+
+    void poll(std::time_t timestamp = 0);
 
 private:
     void init();
@@ -62,9 +68,11 @@ private:
     void exportData();
 
     void onDatagram(const QNetworkDatagram& datagram);
+    void onRequestTimeout();
 
     const Config&   m_config;
     Ethernet_qt&    m_ioDevice;
+    Exporter&       m_exporter;
 
     uint32_t m_address = 0;
     uint16_t m_susyId = 0x0078;
@@ -77,9 +85,11 @@ private:
         LoggedIn
     } m_state = State::Invalid;
 
-    std::set<LriDef> m_pendingLris;
-    InverterData     m_pendingData;
-    InverterDataMap  m_pendingDataMap;
+    std::set<LriDef>    m_pendingLris;
+    LiveData            m_pendingData;
+    InverterDataMap     m_pendingDataMap;
+
+    QTimer  m_requestTimer;
 
     friend class SmaManager;
 };

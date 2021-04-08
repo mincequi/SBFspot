@@ -34,33 +34,48 @@ DISCLAIMER:
 
 #include <QCoreApplication>
 
+#include "Cache.h"
 #include "Config.h"
-#include "Defines.h"
-#include "Ethernet_qt.h"
+#include "ExporterManager.h"
 #include "sma/SmaManager.h"
 
 int main(int argc, char *argv[])
 {
-    // Read the command line and store settings in config struct
+    // Read the command line and store settings in config struct.
     Config config;
     int rc = config.parseCmdline(argc, argv);
     if (rc == -1) return 1;	// Invalid commandline - Quit, error
     if (rc == 1) return 0;  // Nothing to do - Quit, no error
 
-    // Read config file and store settings in config struct
+    // Read config file and store settings in config struct.
     rc = config.readConfig();   // Config struct contains fullpath to config file
     if (rc != 0) return rc;
 
-    // We are always a daemon
+    // We are always a daemon.
     config.daemon = true;
 
-    // Set Ethernet
+    // We default to Ethernet for now.
     ConnType = CT_ETHERNET;
 
+    // Create application instance
     QCoreApplication app(argc, argv);
 
-    sma::SmaManager processor(config);
-    processor.discoverInverters();
+    // The cache is the central object to hold all the data that is coming in
+    // and going out. It is be fed by importers (SmaManager/SmaInverter) and
+    // feeds exporters (like ExporterManager or MqttExport).
+    Cache cache;
+    // The exporterManager is the central object to hold all the exporters like
+    // MqttExporter, CsvExporter, SqlExporter.
+    ExporterManager exporterManager(config, cache);
+    // The deviceManager serves as an abstraction for all interactions with the
+    // actual inverters, energy meters and other devices. For our case all SMA
+    // specific stuff is abstracted with it.
+    sma::SmaManager deviceManager(config, exporterManager);
+    // This call will discover all inverters within the network and starts
+    // polling them. User configuration (like intervals, password) is respected
+    // for this. No further interaction is needed.
+    deviceManager.discoverDevices();
 
+    // Start main loop.
     return app.exec();
 }

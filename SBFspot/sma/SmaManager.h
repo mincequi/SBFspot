@@ -40,12 +40,12 @@ DISCLAIMER:
 #include "Timer.h"
 #include "sma/SmaInverter.h"
 #include "sma/SmaEnergyMeter.h"
-#include "mqtt/MqttExport_qt.h"
 #include "msgpack/MsgPackSerializer.h"
 
 class QByteArray;
 
 class Config;
+class Exporter;
 
 namespace sma {
 
@@ -54,11 +54,11 @@ class SmaManager : public QObject
     Q_OBJECT
 
 public:
-    SmaManager(Config& config);
+    SmaManager(Config& config, Exporter& exporter);
 
-    void discoverInverters();
+    void discoverDevices();
 
-    const std::map<uint32_t, SmaInverter>& inverters() const;
+    const std::map<uint32_t, SmaInverter*>& inverters() const;
 
 private:
     void onEnergyMeterDatagram(const QNetworkDatagram& datagram);
@@ -69,15 +69,14 @@ private:
     void onLiveTimeout();
     void timerEvent(QTimerEvent *event) override;
 
-    const Config& m_config;
-    Ethernet_qt m_ethernet;
+    const Config&   m_config;
+    Exporter&       m_exporter;
 
-    msgpack::MsgPackSerializer m_msgPackSerializer;
-    mqtt::MqttExport_qt m_mqttExport;
-    sma::SmaEnergyMeter    m_energyMeter;
+    Ethernet_qt m_ethernet;
+    sma::SmaEnergyMeter     m_energyMeter;
 
     int m_discoverTimer = 0;
-    std::map<uint32_t, SmaInverter> m_inverters;
+    std::map<uint32_t, SmaInverter*> m_inverters;
 
     Timer  m_timeComputation;
     QTimer m_liveTimer;

@@ -36,8 +36,14 @@ DISCLAIMER:
 
 #include "Types.h"
 
-#include <array>
 #include <ctime>
+#include <vector>
+
+struct ElectricParameters {
+    int32_t power = 0;
+    float   current = 0.0f;
+    float   voltage = 0.0f;
+};
 
 struct LiveData {
     // Type specific members
@@ -49,8 +55,11 @@ struct LiveData {
 
     // Dynamic device specific members
     std::time_t timestamp = 0;
-    int32_t totalPower = 0;
-    std::array<int32_t, 3> acPower;
-    std::array<float, 3> acCurrent;
-    std::array<float, 3> acVoltage;
+    int32_t totalPowerAc = 0;
+    int32_t totalPowerDc = 0;
+
+    std::vector<ElectricParameters> ac;
+    std::vector<ElectricParameters> dc;
 };
+
+

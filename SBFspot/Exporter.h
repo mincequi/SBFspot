@@ -39,7 +39,7 @@ DISCLAIMER:
 
 struct LiveData;
 
-class Export
+class Exporter
 {
 public:
     //  - Inverter:
@@ -57,7 +57,7 @@ public:
     //              - Name
     //              - PowerMax
     //              - ...
-    enum class InverterProperty : uint8_t
+    enum class Property : uint8_t
     {
         // Static properties
         Version = 0,    // Protocol version:    uint (max 15)
@@ -77,6 +77,7 @@ public:
         PowerMaxToday = 13, // Today's maximum power: any number format
         Current = 14,       // Current in Ampere
         Voltage = 15,       // Voltage in Volt
+        // Temperature = XX // in degrees celsius
 
         // Key for DC string or AC phase properties (stored in array of maps)
         Strings = 16,       // Data per PV array
@@ -104,16 +105,18 @@ public:
         EnergyMeter = 2
     };
 
-    virtual ~Export() = default;
+    virtual ~Exporter() = default;
 
-    virtual std::string name() const = 0;
+    virtual std::string name() const;
 
-    virtual int exportConfig(const std::vector<InverterData>& inverterData);
+    // TODO: use DeviceConfig data type here (instead of InverterData).
+    virtual int exportConfig(const InverterData& inverterData);
     virtual int exportDayStats(std::time_t timestamp,
                                const std::vector<DayStats>& dayStats);
+    // TODO: remove this function in favor of second exportLiveData.
     virtual int exportLiveData(std::time_t timestamp,
-                               const std::vector<InverterData>& inverterData) = 0;
-    virtual int exportLiveData(const LiveData& liveData) = 0;
+                               const std::vector<InverterData>& inverterData);
+    virtual int exportLiveData(const LiveData& liveData);
     virtual int exportDayData(std::time_t timestamp,
                               const DataPerInverter& inverterData);
 };

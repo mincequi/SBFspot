@@ -40,20 +40,29 @@ DISCLAIMER:
 
 #include <Config.h>
 #include <Ethernet_qt.h>
+#include <Exporter.h>
 #include <SBFspot.h>
 #include <sma/SmaInverterRequests.h>
 
 namespace sma {
 
-SmaInverter::SmaInverter(const Config& config, Ethernet_qt& ioDevice, uint32_t address) :
+SmaInverter::SmaInverter(QObject* parent, const Config& config, Ethernet_qt& ioDevice, Exporter& exporter, uint32_t address) :
+    QObject(parent),
     m_config(config),
     m_ioDevice(ioDevice),
+    m_exporter(exporter),
     m_address(address)
 {
+    m_pendingData.ac.resize(3);
+
+    connect(&m_requestTimer, &QTimer::timeout, this, &SmaInverter::onRequestTimeout);
+    m_requestTimer.setSingleShot(true);
+    m_requestTimer.setInterval(1000);
+
     init();
 }
 
-void SmaInverter::poll()
+void SmaInverter::poll(std::time_t timestamp)
 {
     if (m_state == State::Invalid) {
         qWarning() << "Inverter not yet initialized";
@@ -64,33 +73,34 @@ void SmaInverter::poll()
         return;
     }
 
+    m_pendingData.timestamp = timestamp;
     // Send login request to inverter. Once logged in, get all the data.
     login();
 }
 
 void SmaInverter::init()
 {
-    QtConcurrent::run([&](){
+    // QtConcurrent::run([&](){
         std::vector<uint8_t> buffer(256);
         SbfSpot::encodeInitRequest(buffer.data());
         buffer.resize(packetposition);
-        for (auto i = 0; (i < 5) && (m_state == State::Invalid); ++i) {
+        // for (auto i = 0; (i < 5) && (m_state == State::Invalid); ++i) {
             m_ioDevice.send(buffer, m_address, 9522);
-            QThread::sleep(1);
-        }
-    });
+            // QThread::sleep(1);
+        // }
+    //});
 }
 
 void SmaInverter::login()
 {
-    QtConcurrent::run([&](){
+    // QtConcurrent::run([&](){
         std::vector<uint8_t> buffer;
         SbfSpot::encodeLoginRequest(buffer, m_config.userGroup, std::string(m_config.SMA_Password));
-        for (auto i = 0; (i < 5) && (m_state == State::Initialized); ++i) {
+        // for (auto i = 0; (i < 5) && (m_state == State::Initialized); ++i) {
             m_ioDevice.send(buffer, m_address, 9522);
-            QThread::sleep(1);
-        }
-    });
+            // QThread::sleep(1);
+        // }
+    // });
 }
 
 void SmaInverter::logout()
@@ -107,7 +117,8 @@ void SmaInverter::requestData()
     requestDataSet(SoftwareVersion);
     requestDataSet(TypeLabel);
     requestDataSet(DeviceStatus);
-    requestDataSet(InverterTemperature);
+    // Temperature is not answered by all inverter models. So, removing it.
+    //requestDataSet(InverterTemperature);
     requestDataSet(MaxACPower);
     requestDataSet(EnergyProduction);
     requestDataSet(OperationTime);
@@ -118,19 +129,7 @@ void SmaInverter::requestData()
     requestDataSet(SpotACTotalPower);
     requestDataSet(SpotGridFrequency);
 
-    QtConcurrent::run([&](){
-        QThread::sleep(1);
-        // TODO: no retry behaviour for now
-        // If some data is still pending, retry
-        // for (auto i = 0; (i < 5) && !m_pendingLris.empty(); ++i) {
-        //     for (const auto lri : m_pendingLris) {
-        //         requestDataSet(SmaInverterRequests::create(lri).dataSet);
-        //     }
-        //     QThread::sleep(1);
-        // }
-        exportData();
-        logout();
-    });
+    m_requestTimer.start();
 }
 
 void SmaInverter::requestDataSet(SmaInverterDataSet dataSet)
@@ -150,13 +149,15 @@ void SmaInverter::requestDataSet(SmaInverterDataSet dataSet)
 
 void SmaInverter::exportData()
 {
-    qInfo() << "Inverter" << m_serial;
+    qDebug() << "Inverter" << m_serial;
     for (const auto& kv : m_pendingDataMap) {
-        qInfo() << "    key:" << QByteArray::number(kv.first, 16) << ", value:" << kv.second;
+        qDebug() << "    key:" << QByteArray::number(kv.first, 16) << ", value:" << kv.second;
     }
 
+    m_exporter.exportLiveData(m_pendingData);
     m_pendingLris.clear();
-    m_pendingData = InverterData();
+    m_pendingData = LiveData();
+    m_pendingData.ac.resize(3);
     m_pendingDataMap.clear();
 }
 
@@ -181,10 +182,19 @@ void SmaInverter::onDatagram(const QNetworkDatagram& datagram)
         }
         return;
     case State::LoggedIn:
-        SbfSpot::decodeResponse(reinterpret_cast<const uint8_t*>(data), m_pendingDataMap, m_pendingData, m_pendingLris);
-        qDebug() << "Pending LRIs:" << m_pendingLris.size();
+        SbfSpot::decodeResponse({ data, data + datagram.data().size() }, m_pendingDataMap, m_pendingData, m_pendingLris);
         break;
     }
+}
+
+void SmaInverter::onRequestTimeout()
+{
+    if (!m_pendingLris.empty()) {
+        qWarning() << "There are pending requests. Discarding them: " << m_pendingLris.size();
+    }
+
+    exportData();
+    logout();
 }
 
 }

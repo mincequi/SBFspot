@@ -44,11 +44,11 @@ DISCLAIMER:
 #include "boost/date_time/gregorian/gregorian.hpp"
 #include "boost/format.hpp"
 
-class Import;
+class Importer;
 
 class ArchData {
 public:
-    ArchData(Import& import);
+    ArchData(Importer& import);
 
     E_SBFSPOT ArchiveDayData(std::vector<InverterData>& inverters, std::time_t startTime);
     E_SBFSPOT ArchiveEventData(std::vector<InverterData>& inverters, boost::gregorian::date startDate, unsigned long UserGroup);
@@ -56,5 +56,5 @@ public:
     E_SBFSPOT getMonthDataOffset(std::vector<InverterData>& inverters);
 
 private:
-    Import& m_import;
+    Importer& m_import;
 };

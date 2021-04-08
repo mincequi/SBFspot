@@ -32,7 +32,7 @@ DISCLAIMER:
 
 ************************************************************************************************/
 
-#include "MqttExport_qt.h"
+#include "MqttExporter_qt.h"
 
 #include <QHostAddress>
 #include <qmqtt_message.h>
@@ -43,31 +43,25 @@ DISCLAIMER:
 
 namespace mqtt {
 
-MqttExport_qt::MqttExport_qt(const Config& config, const Serializer& serializer)
+MqttExporter_qt::MqttExporter_qt(const Config& config, const Serializer& serializer)
     : m_config(config),
       m_serializer(serializer),
       m_client(QString::fromStdString(config.mqtt_host), config.mqtt_port, false, false)
 {
-    QObject::connect(&m_client, &QMQTT::Client::error, this, &MqttExport_qt::onError);
+    QObject::connect(&m_client, &QMQTT::Client::error, this, &MqttExporter_qt::onError);
     m_client.connectToHost();
 }
 
-MqttExport_qt::~MqttExport_qt()
+MqttExporter_qt::~MqttExporter_qt()
 {
 }
 
-std::string MqttExport_qt::name() const
+std::string MqttExporter_qt::name() const
 {
-    return "MqttExport_qt";
+    return "MqttExporter_qt";
 }
 
-int MqttExport_qt::exportLiveData(std::time_t /*timestamp*/,
-                                  const std::vector<InverterData>& /*inverterData*/)
-{
-    return 0;
-}
-
-int MqttExport_qt::exportLiveData(const LiveData& liveData)
+int MqttExporter_qt::exportLiveData(const LiveData& liveData)
 {
     if (!m_client.isConnectedToHost()) {
         m_client.connectToHost();
@@ -91,7 +85,7 @@ int MqttExport_qt::exportLiveData(const LiveData& liveData)
     return 0;
 }
 
-void MqttExport_qt::onError(const QMQTT::ClientError error)
+void MqttExporter_qt::onError(const QMQTT::ClientError error)
 {
     qDebug() << "MQTT error:" << error;
 }

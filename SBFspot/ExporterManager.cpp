@@ -32,45 +32,22 @@ DISCLAIMER:
 
 ************************************************************************************************/
 
-#pragma once
+#include "ExporterManager.h"
 
-#include "Export.h"
+#include "Config.h"
 
-#include <chrono>
-#include <mosquittopp.h>
-#include <msgpack.hpp>
-
-struct Config;
-struct InverterData;
-
-// TODO: implement static plugin registration: https://dxuuu.xyz/cpp-static-registration.html
-class MqttMsgPackExport : public Export, mosqpp::mosquittopp
+ExporterManager::ExporterManager(const Config& config, Cache& cache) :
+    m_config(config),
+    m_cache(cache),
+    m_mqttExporter(config, m_msgPackSerializer)
 {
-public:
-    MqttMsgPackExport(const Config& config);
-    ~MqttMsgPackExport();
+}
 
-    std::string name() const override;
+int ExporterManager::exportLiveData(const LiveData& liveData)
+{
+    if (m_config.mqtt) {
+        m_mqttExporter.exportLiveData(liveData);
+    }
 
-    void connectToHost();
-    void disconnectFromHost();
-
-    int exportConfig(const std::vector<InverterData>& inverterData) override;
-    int exportDayStats(std::time_t timestamp,
-                       const std::vector<DayStats>& dayStats) override;
-    int exportLiveData(std::time_t timestamp,
-                       const std::vector<InverterData>& inverterData) override;
-    int exportLiveData(const LiveData& emeterData) override;
-    int exportDayData(std::time_t timestamp,
-                      const DataPerInverter& inverterData) override;
-
-private:
-    void publish(const std::string& topic, const msgpack::sbuffer& buffer, uint8_t qos = 0);
-
-    void on_connect(int rc) override;
-    void on_disconnect(int rc) override;
-
-    const Config& m_config;
-    bool m_isConnected = false;
-    std::vector<float> m_powerMaxToday;
-};
+    return 0;
+}

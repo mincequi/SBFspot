@@ -34,7 +34,7 @@ DISCLAIMER:
 
 #include "MsgPackSerializer.h"
 
-#include "Export.h"
+#include "Exporter.h"
 #include "LiveData.h"
 
 #include <msgpack.hpp>
@@ -59,29 +59,45 @@ std::vector<char> MsgPackSerializer::serialize(const LiveData& liveData) const
     msgpack::sbuffer sbuf;
     msgpack::packer<msgpack::sbuffer> packer(sbuf);
     // Map with number of elements
-    packer.pack_map(4);
+    packer.pack_map(3 + (liveData.ac.empty() ? 0 : 1) + (liveData.dc.empty() ? 0 : 1));
     // 1. Protocol version
-    packer.pack_uint8(static_cast<uint8_t>(Export::InverterProperty::Version));
+    packer.pack_uint8(static_cast<uint8_t>(Exporter::Property::Version));
     packer.pack_uint8(0);
     // 2. Timestamp
-    packer.pack_uint8(static_cast<uint8_t>(Export::InverterProperty::Timestamp));
+    packer.pack_uint8(static_cast<uint8_t>(Exporter::Property::Timestamp));
     uint32_t t = htonl(liveData.timestamp);
     packer.pack_ext(4, -1); // Timestamp type
     packer.pack_ext_body((const char*)(&t), 4);
     // 3. Power AC
-    packer.pack_uint8(static_cast<uint8_t>(Export::InverterProperty::Power));
-    packer.pack(liveData.totalPower);
+    packer.pack_uint8(static_cast<uint8_t>(Exporter::Property::Power));
+    packer.pack(liveData.totalPowerAc);
     // 4. Data per phase
-    packer.pack_uint8(static_cast<uint8_t>(Export::InverterProperty::Phases));
-    packer.pack_array(3);
-    for (auto i = 0; i < 3; ++i) {
-        packer.pack_map(3);
-        packer.pack_uint8(static_cast<uint8_t>(Export::InverterProperty::Power));
-        packer.pack(liveData.acPower.at(i));
-        packer.pack_uint8(static_cast<uint8_t>(Export::InverterProperty::Current));
-        packer.pack(liveData.acCurrent.at(i));
-        packer.pack_uint8(static_cast<uint8_t>(Export::InverterProperty::Voltage));
-        packer.pack(liveData.acVoltage.at(i));
+    if (!liveData.ac.empty()) {
+        packer.pack_uint8(static_cast<uint8_t>(Exporter::Property::Phases));
+        packer.pack_array(liveData.ac.size());
+        for (uint i = 0; i < liveData.ac.size(); ++i) {
+            packer.pack_map(3);
+            packer.pack_uint8(static_cast<uint8_t>(Exporter::Property::Power));
+            packer.pack(liveData.ac.at(i).power);
+            packer.pack_uint8(static_cast<uint8_t>(Exporter::Property::Current));
+            packer.pack(liveData.ac.at(i).current);
+            packer.pack_uint8(static_cast<uint8_t>(Exporter::Property::Voltage));
+            packer.pack(liveData.ac.at(i).voltage);
+        }
+    }
+    // 5. Data per string array
+    if (!liveData.dc.empty()) {
+        packer.pack_uint8(static_cast<uint8_t>(Exporter::Property::Strings));
+        packer.pack_array(liveData.dc.size());
+        for (uint i = 0; i < liveData.dc.size(); ++i) {
+            packer.pack_map(3);
+            packer.pack_uint8(static_cast<uint8_t>(Exporter::Property::Power));
+            packer.pack(liveData.dc.at(i).power);
+            packer.pack_uint8(static_cast<uint8_t>(Exporter::Property::Current));
+            packer.pack(liveData.dc.at(i).current);
+            packer.pack_uint8(static_cast<uint8_t>(Exporter::Property::Voltage));
+            packer.pack(liveData.dc.at(i).voltage);
+        }
     }
 
     return { sbuf.data(), sbuf.data() + sbuf.size() };

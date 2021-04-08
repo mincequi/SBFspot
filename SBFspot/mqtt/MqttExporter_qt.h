@@ -34,39 +34,33 @@ DISCLAIMER:
 
 #pragma once
 
-#include "Exporter.h"
-#if(defined MOSQUITTO_FOUND && defined MSGPACK_FOUND)
-#include <mosquittopp.h>
-#include "MqttMsgPackExporter.h"
-#endif
+#include <QObject>
+#include <Exporter.h>
+#include <qmqtt_client.h>
 
-struct Config;
-struct InverterData;
+class Config;
+class Serializer;
 
-class MqttExporter : public Exporter
-#if(defined MOSQUITTO_FOUND && defined MSGPACK_FOUND)
-        , mosqpp::mosquittopp
-#endif
+namespace mqtt {
+
+class MqttExporter_qt : public QObject, public Exporter
 {
+    Q_OBJECT
+
 public:
-    MqttExporter(const Config& config);
-    ~MqttExporter();
+    MqttExporter_qt(const Config& config, const Serializer& serializer);
+    virtual ~MqttExporter_qt();
 
-    std::string name() const override;
-
-    int exportConfig(const InverterData& inverterData) override;
-    int exportDayStats(std::time_t timestamp,
-                       const std::vector<DayStats>& inverterData) override;
-    int exportLiveData(std::time_t timestamp,
-                       const std::vector<InverterData>& inverterData) override;
-    int exportLiveData(const LiveData& liveData) override;
-    int exportDayData(std::time_t timestamp,
-                      const DataPerInverter& inverterData) override;
+    virtual std::string name() const override;
+    virtual int exportLiveData(const LiveData& liveData) override;
 
 private:
-    const Config& m_config;
+    void onError(const QMQTT::ClientError error);
 
-#if(defined MOSQUITTO_FOUND && defined MSGPACK_FOUND)
-    MqttMsgPackExport m_msgPackExporter;
-#endif
+    const Config& m_config;
+    const Serializer& m_serializer;
+
+    QMQTT::Client m_client;
 };
+
+}

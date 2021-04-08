@@ -36,7 +36,7 @@ DISCLAIMER:
 
 #include "Config.h"
 #include "Ethernet.h"
-#include "Import.h"
+#include "Importer.h"
 #include "Inverter.h"
 #include "SBFspot.h"
 #include "Timer.h"
@@ -94,7 +94,7 @@ int main(int argc, char **argv)
     }
 
     Ethernet ethernet;
-    Import import(config, ethernet);
+    Importer import(config, ethernet);
     SbfSpot sbfSpot(ethernet, import);
     Inverter inverter(config, ethernet, import, sbfSpot);
     do

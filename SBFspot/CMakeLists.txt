@@ -25,8 +25,8 @@ set(COMMON_SOURCES
     Defines.cpp
     Ethernet.cpp
     EventData.cpp
-    Export.cpp
-    Import.cpp
+    Exporter.cpp
+    Importer.cpp
     Inverter.cpp
     Cache.cpp
     SBFNet.cpp
@@ -57,7 +57,7 @@ endif()
 
 if (Mosquitto_FOUND AND MessagePack_FOUND)
     list(APPEND COMMON_SOURCES
-        MqttMsgPackExport.cpp
+        MqttMsgPackExporter.cpp
     )
 endif()
 
@@ -146,17 +146,19 @@ COMPONENTS
 )
 
 add_executable(${PROJECT_NAME}_qt
+    Cache.cpp
     Config.cpp
     Defines.cpp
     Ethernet_qt.cpp
-    Export.cpp
+    Exporter.cpp
+    ExporterManager.cpp
     SBFNet.cpp
     SBFspot.cpp
     Timer.cpp
     main_qt.cpp
     misc.cpp
     sunrise_sunset.cpp
-    mqtt/MqttExport_qt.cpp
+    mqtt/MqttExporter_qt.cpp
     msgpack/MsgPackSerializer.cpp
     sma/SmaEnergyMeter.cpp
     sma/SmaInverter.cpp

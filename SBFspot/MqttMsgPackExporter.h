@@ -34,29 +34,46 @@ DISCLAIMER:
 
 #pragma once
 
-#include "osselect.h"
+#include "Exporter.h"
 
-#include "Types.h"
+#include <chrono>
+#include <mosquittopp.h>
+#include <msgpack.hpp>
 
 struct Config;
-class Ethernet;
+struct InverterData;
+struct StringConfig;
 
-/*
- * This class serves as an abstraction of Bluetooth and Ethernet to avoid all
- * those #ifdefs in business logic.
- */
-class Import
+// TODO: implement static plugin registration: https://dxuuu.xyz/cpp-static-registration.html
+class MqttMsgPackExport : public Exporter, mosqpp::mosquittopp
 {
 public:
-    Import(const Config& config, Ethernet& ethernet);
-    ~Import();
+    MqttMsgPackExport(const Config& config);
+    ~MqttMsgPackExport();
 
-    int close();
-    E_SBFSPOT getPacket(const unsigned char senderaddr[6], int wait4Command);
-    int send(unsigned char *buffer, const std::string& toIP);
+    std::string name() const override;
+
+    void connectToHost();
+    void disconnectFromHost();
+
+    int exportConfig(const InverterData& inverterData) override;
+    int exportDayStats(std::time_t timestamp,
+                       const std::vector<DayStats>& dayStats) override;
+    int exportLiveData(std::time_t timestamp,
+                       const std::vector<InverterData>& inverterData) override;
+    int exportLiveData(const LiveData& emeterData) override;
+    int exportDayData(std::time_t timestamp,
+                      const DataPerInverter& inverterData) override;
 
 private:
-    const Config& m_config;
-    Ethernet& m_ethernet;
-};
+    void publish(const std::string& topic, const msgpack::sbuffer& buffer, uint8_t qos = 0);
 
+    void on_connect(int rc) override;
+    void on_disconnect(int rc) override;
+
+    const Config& m_config;
+    std::multimap<uint32_t, StringConfig> m_arrayConfig;
+
+    bool m_isConnected = false;
+    std::vector<float> m_powerMaxToday;
+};

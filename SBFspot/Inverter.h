@@ -44,14 +44,14 @@ DISCLAIMER:
 
 struct Config;
 class Ethernet;
-class Import;
+class Importer;
 struct InverterData;
 class SbfSpot;
 
 class Inverter
 {
 public:
-    Inverter(const Config& config, Ethernet& ethernet, Import& import, SbfSpot& sbfSpot);
+    Inverter(const Config& config, Ethernet& ethernet, Importer& import, SbfSpot& sbfSpot);
     ~Inverter();
 
     E_SBFSPOT ethInitConnection();
@@ -91,7 +91,7 @@ private:
 
     const Config& m_config;
     Ethernet& m_ethernet;
-    Import& m_import;
+    Importer& m_import;
     SbfSpot& m_sbfSpot;
 
     std::vector<InverterData> m_inverters;
@@ -102,6 +102,6 @@ private:
 #if defined(USE_SQLITE) || defined(USE_MYSQL)
     db_SQL_Export m_db;
 #endif
-    MqttExport m_mqtt;
+    MqttExporter m_mqtt;
 };
 

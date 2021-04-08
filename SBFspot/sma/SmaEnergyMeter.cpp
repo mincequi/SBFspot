@@ -112,6 +112,7 @@ LiveData SmaEnergyMeter::parsePacket(const char* data, uint16_t size)
             // extract obis data from the emeter packet and pass each obis data element to the obis filter
             int32_t signed_power_total = 0, signed_power_l1 = 0, signed_power_l2 = 0, signed_power_l3 = 0;
             LiveData liveData;
+            liveData.ac.resize(3);
             void* obis = emeter.getFirstObisElement();
             while (obis != NULL) {
                 //emeter.printObisElement(obis, stderr);
@@ -127,12 +128,12 @@ LiveData SmaEnergyMeter::parsePacket(const char* data, uint16_t size)
                     case 42: signed_power_l2    -= value;  break;
                     case 61: signed_power_l3    += value;  break;
                     case 62: signed_power_l3    -= value;  break;
-                    case 31: liveData.acCurrent.at(0) = value/1000.0f; break;
-                    case 32: liveData.acVoltage.at(0) = value/10.0f; break;
-                    case 51: liveData.acCurrent.at(1) = value/1000.0f; break;
-                    case 52: liveData.acVoltage.at(1) = value/10.0f; break;
-                    case 71: liveData.acCurrent.at(2) = value/1000.0f; break;
-                    case 72: liveData.acVoltage.at(2) = value/10.0f; break;
+                    case 31: liveData.ac.at(0).current = value/1000.0f; break;
+                    case 32: liveData.ac.at(0).voltage = value/10.0f; break;
+                    case 51: liveData.ac.at(1).current = value/1000.0f; break;
+                    case 52: liveData.ac.at(1).voltage = value/10.0f; break;
+                    case 71: liveData.ac.at(2).current = value/1000.0f; break;
+                    case 72: liveData.ac.at(2).voltage = value/10.0f; break;
                     }
                 }
                 // send the obis value to the obis filter before proceeding with then next obis element
@@ -155,10 +156,10 @@ LiveData SmaEnergyMeter::parsePacket(const char* data, uint16_t size)
             liveData.isValid = true;
             liveData.deviceType = ElectricityMeter;
             liveData.serial = serial;
-            liveData.totalPower = signed_power_total/10;
-            liveData.acPower.at(0) = signed_power_l1/10;
-            liveData.acPower.at(1) = signed_power_l2/10;
-            liveData.acPower.at(2) = signed_power_l3/10;
+            liveData.totalPowerAc = signed_power_total/10;
+            liveData.ac.at(0).power = signed_power_l1/10;
+            liveData.ac.at(1).power = signed_power_l2/10;
+            liveData.ac.at(2).power = signed_power_l3/10;
             liveData.timestamp = time(nullptr);
             return liveData;
         }
