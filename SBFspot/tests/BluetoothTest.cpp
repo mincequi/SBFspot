@@ -38,6 +38,7 @@ DISCLAIMER:
 #include "../Defines.h"
 #include "../Inverter.h"
 #include "../SBFspot.h"
+#include "../SBFNet.h"
 #include "../Timer.h"
 
 #include <thread>
@@ -125,7 +126,7 @@ int main(int argc, char **argv)
     do
     {
         auto timePoint = timer.nextTimePoint();
-        std::this_thread::sleep_until(timePoint);
+        std::this_thread::sleep_until(std::chrono::system_clock::from_time_t(timePoint));
 
         logOn(config);
         logOff();

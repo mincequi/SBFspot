@@ -55,7 +55,7 @@ public:
     ~Inverter();
 
     E_SBFSPOT ethInitConnection();
-    E_SBFSPOT logonSMAInverter(const std::vector<InverterData>& inverters, long userGroup, const char *password);
+    E_SBFSPOT logonSMAInverter(std::vector<InverterData>& inverters, long userGroup, const char *password);
     E_SBFSPOT logoffSMAInverter(const InverterData& inverter);
     E_SBFSPOT logoffMultigateDevices(const std::vector<InverterData>& inverters);
     E_SBFSPOT getDeviceList(std::vector<InverterData>& inverters, int multigateID);

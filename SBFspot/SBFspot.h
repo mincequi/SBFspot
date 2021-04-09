@@ -64,8 +64,8 @@ public:
     SbfSpot(Ethernet& ethernet, Importer& import);
 
     int DaysInMonth(int month, int year);
-    int getInverterIndexBySerial(const std::vector<InverterData>& inverters, unsigned short SUSyID, uint32_t Serial);
-    int isValidSender(const unsigned char senderaddr[6], unsigned char address[6]);
+    static int getInverterIndexByAddress(const std::vector<InverterData>& inverters, unsigned char bt_addr[6]);
+    static int getInverterIndexBySerial(const std::vector<InverterData>& inverters, unsigned short SUSyID, uint32_t Serial);
 
     static void encodeInitRequest(u_int8_t* buffer);
     static void encodeLoginRequest(uint8_t* buffer, uint16_t susyId, uint32_t serial, SmaUserGroup userGroup, const std::string& password);

@@ -13,6 +13,12 @@
 #    bluez-dbus-cpp
 #)
 
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+
+include_directories(
+    ../
+)
+
 add_executable(cachetest
     CacheTest.cpp
     ../EventData.cpp
@@ -31,6 +37,7 @@ if (Bluetooth_FOUND)
         ../SBFNet.cpp
         ../SBFspot.cpp
         ../Timer.cpp
+        ../sma/SmaInverterRequests.cpp
     )
     target_link_libraries(bluetoothtest
         PkgConfig::Bluetooth

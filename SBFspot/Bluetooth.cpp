@@ -35,11 +35,25 @@ DISCLAIMER:
 #include "misc.h"
 #include "bluetooth.h"
 #include "Defines.h"
+#include "SBFNet.h"
 #include "SBFspot.h"
 
 int bytes_in_buffer = 0;
 
-E_SBFSPOT bthInitConnection(const char *BTAddress, InverterData *inverters[], int MIS)
+/*
+ * isValidSender() compares 6-byte senderaddress with our inverter BT address
+ * If senderaddress = addr_unknown (FF:FF:FF:FF:FF:FF) then any address is valid
+ */
+int isValidSender(const unsigned char senderaddr[6], unsigned char address[6])
+{
+    for (int i = 0; i < 6; i++)
+        if ((senderaddr[i] != address[i]) && (senderaddr[i] != 0xFF))
+            return 0;
+
+    return 1;
+}
+
+E_SBFSPOT bthInitConnection(const char *BTAddress, std::vector<InverterData>& inverters, int MIS)
 {
     if (VERBOSE_NORMAL) puts("Initializing...");
 
@@ -59,12 +73,11 @@ E_SBFSPOT bthInitConnection(const char *BTAddress, InverterData *inverters[], in
     if (MIS == 0)
     {
         // Allocate memory for inverter data struct
-        inverters[0] = new InverterData;
-        resetInverterData(inverters[0]);
+        inverters.resize(1);
 
         // Copy previously converted BT address
         for (int i=0; i<6; i++)
-            inverters[0]->BTAddress[i] = (unsigned char)tmp[i];
+            inverters[0].BTAddress[i] = (unsigned char)tmp[i];
 
         // Call 2.0.6 init function
         return bthInitConnection(inverters[0]);
@@ -145,13 +158,12 @@ E_SBFSPOT bthInitConnection(const char *BTAddress, InverterData *inverters[], in
             if (DEBUG_NORMAL) printf("Inverter\n");
             if (devcount < MAX_INVERTERS)
             {
-                inverters[devcount] = new InverterData;
-                resetInverterData(inverters[devcount]);
+                inverters.push_back({});
 
                 for (int i=0; i<6; i++)
-                    inverters[devcount]->BTAddress[i] = pcktBuf[ptr+i];
+                    inverters.back().BTAddress[i] = pcktBuf[ptr+i];
 
-                inverters[devcount]->NetID = NetID;
+                inverters.back().NetID = NetID;
                 devcount++;
             }
             else if (DEBUG_HIGHEST) printf("MAX_INVERTERS limit (%d) reached.\n", MAX_INVERTERS);
@@ -257,16 +269,15 @@ E_SBFSPOT bthInitConnection(const char *BTAddress, InverterData *inverters[], in
                     if (DEBUG_NORMAL) printf("Inverter\n");
                     if (devcount < MAX_INVERTERS)
                     {
-                        if (!inverters[devcount]) // If not yet allocated, do it now
+                        if (inverters.size() <= devcount) // If not yet allocated, do it now
                         {
-                            inverters[devcount] = new InverterData;
-                            resetInverterData(inverters[devcount]);
+                            inverters.push_back({});
                         }
 
                         for (int i=0; i<6; i++)
-                            inverters[devcount]->BTAddress[i] = pcktBuf[ptr+i];
+                            inverters.back().BTAddress[i] = pcktBuf[ptr+i];
 
-                        inverters[devcount]->NetID = NetID;
+                        inverters.back().NetID = NetID;
                         devcount++;
                     }
                     else if (DEBUG_HIGHEST) printf("MAX_INVERTERS limit (%d) reached.\n", MAX_INVERTERS);
@@ -302,7 +313,7 @@ E_SBFSPOT bthInitConnection(const char *BTAddress, InverterData *inverters[], in
     bthSend(pcktBuf);
 
     //All inverters *should* reply with their SUSyID & SerialNr (and some other unknown info)
-    for (uint32_t idx=0; inverters[idx]!=NULL && idx<MAX_INVERTERS; idx++)
+    for (auto& inverter : inverters)
     {
         if (bthGetPacket(addr_unknown, 0x01) != E_OK)
             return E_INIT;
@@ -310,44 +321,42 @@ E_SBFSPOT bthInitConnection(const char *BTAddress, InverterData *inverters[], in
         if (!validateChecksum())
             return E_CHKSUM;
 
-        int invindex = getInverterIndexByAddress(inverters, CommBuf + 4);
+        int invindex = SbfSpot::getInverterIndexByAddress(inverters, CommBuf + 4);
 
         if (invindex >= 0)
         {
-            inverters[invindex]->SUSyID = get_short(pcktBuf + 55);
-            inverters[invindex]->Serial = get_long(pcktBuf + 57);
-            if (VERBOSE_NORMAL) printf("SUSyID: %d - SN: %lu\n", inverters[invindex]->SUSyID, inverters[invindex]->Serial);
+            inverters[invindex].SUSyID = get_short(pcktBuf + 55);
+            inverters[invindex].Serial = get_long(pcktBuf + 57);
+            if (VERBOSE_NORMAL) printf("SUSyID: %d - SN: %lu\n", inverters[invindex].SUSyID, inverters[invindex].Serial);
         }
         else if (DEBUG_NORMAL)
             printf("Unexpected response from %02X:%02X:%02X:%02X:%02X:%02X -> ", CommBuf[9], CommBuf[8], CommBuf[7], CommBuf[6], CommBuf[5], CommBuf[4]);
 
     }
 
-    logoffSMAInverter(inverters[0]);
-
     return E_OK;
 }
 
 // Init function used in SBFspot 2.0.6
 // Called when MIS_Enabled=0
-E_SBFSPOT bthInitConnection(InverterData* const invData)
+E_SBFSPOT bthInitConnection(InverterData& invData)
 {
     //Wait for announcement/broadcast message from PV inverter
-    if (bthGetPacket(invData->BTAddress, 2) != E_OK)
+    if (bthGetPacket(invData.BTAddress, 2) != E_OK)
         return E_INIT;
 
-    invData->NetID = pcktBuf[22];
-    if (VERBOSE_NORMAL) printf("SMA netID=%02X\n", invData->NetID);
+    invData.NetID = pcktBuf[22];
+    if (VERBOSE_NORMAL) printf("SMA netID=%02X\n", invData.NetID);
 
-    writePacketHeader(pcktBuf, 0x02, invData->BTAddress);
+    writePacketHeader(pcktBuf, 0x02, invData.BTAddress);
     writeLong(pcktBuf, 0x00700400);
-    writeByte(pcktBuf, invData->NetID);
+    writeByte(pcktBuf, invData.NetID);
     writeLong(pcktBuf, 0);
     writeLong(pcktBuf, 1);
     writePacketLength(pcktBuf);
     bthSend(pcktBuf);
 
-    if (bthGetPacket(invData->BTAddress, 5) != E_OK)
+    if (bthGetPacket(invData.BTAddress, 5) != E_OK)
         return E_INIT;
 
     //Get local BT address - Added V3.1.5 (bthSetPlantTime)
@@ -375,16 +384,14 @@ E_SBFSPOT bthInitConnection(InverterData* const invData)
 
     bthSend(pcktBuf);
 
-    if (bthGetPacket(invData->BTAddress, 1) != E_OK)
+    if (bthGetPacket(invData.BTAddress, 1) != E_OK)
         return E_INIT;
 
     if (!validateChecksum())
         return E_CHKSUM;
 
-    invData->Serial = get_long(pcktBuf + 57);
-    if (VERBOSE_NORMAL) printf("Serial Nr: %08lX (%lu)\n", invData->Serial, invData->Serial);
-
-    logoffSMAInverter(invData);
+    invData.Serial = get_long(pcktBuf + 57);
+    if (VERBOSE_NORMAL) printf("Serial Nr: %08lX (%lu)\n", invData.Serial, invData.Serial);
 
     return E_OK;
 }
@@ -672,17 +679,17 @@ E_SBFSPOT bthSetPlantTime(time_t ndays, time_t lowerlimit, time_t upperlimit)
     return rc;
 }
 
-int bthGetSignalStrength(InverterData *invData)
+int bthGetSignalStrength(InverterData& invData)
 {
-    writePacketHeader(pcktBuf, 0x03, invData->BTAddress);
+    writePacketHeader(pcktBuf, 0x03, invData.BTAddress);
     writeByte(pcktBuf,0x05);
     writeByte(pcktBuf,0x00);
     writePacketLength(pcktBuf);
     bthSend(pcktBuf);
 
-    bthGetPacket(invData->BTAddress, 4);
+    bthGetPacket(invData.BTAddress, 4);
 
-    invData->BT_Signal = (float)pcktBuf[22] * 100.0f / 255.0f;
+    invData.BT_Signal = (float)pcktBuf[22] * 100.0f / 255.0f;
     return 0;
 }
 

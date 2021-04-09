@@ -110,7 +110,7 @@ E_SBFSPOT Inverter::ethInitConnection()
     return rc;
 }
 
-E_SBFSPOT Inverter::logonSMAInverter(const std::vector<InverterData>& inverters, long userGroup, const char *password)
+E_SBFSPOT Inverter::logonSMAInverter(std::vector<InverterData>& inverters, long userGroup, const char *password)
 {
 #define MAX_PWLENGTH 12
     unsigned char pw[MAX_PWLENGTH] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -155,7 +155,7 @@ E_SBFSPOT Inverter::logonSMAInverter(const std::vector<InverterData>& inverters,
         do	//while (validPcktID == 0);
         {
             // In a multi inverter plant we get a reply from all inverters
-            for (uint32_t i=0; inverter!=NULL && i<MAX_INVERTERS; i++)
+            for (const auto& inverter : inverters)
             {
                 if ((rc  = m_import.getPacket(addr_unknown, 1)) != E_OK)
                     return rc;
@@ -167,7 +167,7 @@ E_SBFSPOT Inverter::logonSMAInverter(const std::vector<InverterData>& inverters,
                     unsigned short rcvpcktID = get_short(pcktBuf+27) & 0x7FFF;
                     if ((pcktID == rcvpcktID) && (get_long(pcktBuf + 41) == now))
                     {
-                        int ii = getInverterIndexByAddress(inverters, CommBuf + 4);
+                        int ii = SbfSpot::getInverterIndexByAddress(inverters, CommBuf + 4);
                         if (ii >= 0 )
                         {
                             inverters[ii].SUSyID = get_short(pcktBuf + 15);
@@ -946,12 +946,15 @@ int Inverter::logOn()
         }
 
         rc = bthInitConnection(m_config.BT_Address, m_inverters, m_config.MIS_Enabled);
-
         if (rc != E_OK)
         {
             print_error(stdout, PROC_CRITICAL, "Failed to initialize communication with inverter.\n");
             m_import.close();
             return rc;
+        }
+        else
+        {
+            logoffSMAInverter(m_inverters[0]);
         }
 
         rc = bthGetSignalStrength(m_inverters[0]);

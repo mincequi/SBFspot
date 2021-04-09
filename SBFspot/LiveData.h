@@ -34,6 +34,7 @@ DISCLAIMER:
 
 #pragma once
 
+#include <cstdint>
 #include <ctime>
 #include <vector>
 

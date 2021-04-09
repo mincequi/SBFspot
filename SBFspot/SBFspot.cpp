@@ -80,6 +80,28 @@ SbfSpot::SbfSpot(Ethernet& ethernet, Importer& import) :
 {
 }
 
+int SbfSpot::getInverterIndexByAddress(const std::vector<InverterData>& inverters, unsigned char bt_addr[6])
+{
+    int inv = 0;
+    for (const auto& inverter : inverters)
+    {
+        int byt;
+        for (byt=0; byt<6; byt++)
+        {
+            if (inverter.BTAddress[byt] != bt_addr[byt])
+                break;
+        }
+
+        if (byt == 6)
+            return inv;
+
+        ++inv;
+    }
+
+    return -1;	//No inverter found
+}
+
+
 int SbfSpot::getInverterIndexBySerial(const std::vector<InverterData>& inverters, unsigned short SUSyID, uint32_t Serial)
 {
 	if (DEBUG_HIGHEST)
@@ -88,7 +110,7 @@ int SbfSpot::getInverterIndexBySerial(const std::vector<InverterData>& inverters
 		printf("Looking up %d:%lu\n", SUSyID, (unsigned long)Serial);
 	}
 
-    uint32_t inv = 0;
+    int inv = 0;
     for (const auto& inverter : inverters)
     {
 		if (DEBUG_HIGHEST)
@@ -119,22 +141,9 @@ int SbfSpot::DaysInMonth(int month, int year)
         return days[month];
 }
 
-/*
- * isValidSender() compares 6-byte senderaddress with our inverter BT address
- * If senderaddress = addr_unknown (FF:FF:FF:FF:FF:FF) then any address is valid
- */
-int SbfSpot::isValidSender(const unsigned char senderaddr[6], unsigned char address[6])
-{
-    for (int i = 0; i < 6; i++)
-        if ((senderaddr[i] != address[i]) && (senderaddr[i] != 0xFF))
-            return 0;
-
-    return 1;
-}
-
 void SbfSpot::encodeInitRequest(u_int8_t* buffer)
 {
-    writePacketHeader(buffer, 0, NULL);
+    writePacketHeader(buffer, 0, nullptr);
     writePacket(buffer, 0x09, 0xA0, 0, anySUSyID, anySerial);
     writeLong(buffer, 0x00000200);
     writeLong(buffer, 0);

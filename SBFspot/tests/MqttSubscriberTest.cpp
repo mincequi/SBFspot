@@ -39,7 +39,6 @@ DISCLAIMER:
 
 
 #include <msgpack.hpp>
-#include <mqtt_protocol.h>
 #include <mosquittopp.h>
 
 class MqttSubscriber : public mosqpp::mosquittopp
@@ -67,11 +66,11 @@ private:
 
 };
 
-int main()
+int main(int argc, char **argv)
 {
     mosqpp::lib_init();
 
-    MqttSubscriber client("sbfspot_1900042748/live");
+    MqttSubscriber client(argv[1]); //("sbfspot_1900042748/live");
     client.loop_forever();
 
     mosqpp::lib_cleanup();

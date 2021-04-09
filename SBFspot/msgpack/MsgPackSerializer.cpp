@@ -55,7 +55,7 @@ std::vector<char> MsgPackSerializer::serialize(const LiveData& liveData) const
     msgpack::sbuffer sbuf;
     msgpack::packer<msgpack::sbuffer> packer(sbuf);
     // Map with number of elements
-    packer.pack_map(3 + (liveData.ac.empty() ? 0 : 1) + (liveData.dc.empty() ? 0 : 1));
+    packer.pack_map(5 + (liveData.ac.empty() ? 0 : 1) + (liveData.dc.empty() ? 0 : 1));
     // 1. Protocol version
     packer.pack_uint8(static_cast<uint8_t>(Exporter::Property::Version));
     packer.pack_uint8(0);
@@ -64,10 +64,16 @@ std::vector<char> MsgPackSerializer::serialize(const LiveData& liveData) const
     uint32_t t = htonl(liveData.timestamp);
     packer.pack_ext(4, -1); // Timestamp type
     packer.pack_ext_body((const char*)(&t), 4);
-    // 3. Power AC
+    // 3. Yield Total
+    packer.pack_uint8(static_cast<uint8_t>(Exporter::Property::EnergyTotal));
+    packer.pack_float(static_cast<float>(liveData.energyTotal));
+    // 4. Yield Today
+    packer.pack_uint8(static_cast<uint8_t>(Exporter::Property::EnergyToday));
+    packer.pack_float(static_cast<float>(liveData.energyToday));
+    // 5. Power AC
     packer.pack_uint8(static_cast<uint8_t>(Exporter::Property::Power));
     packer.pack(liveData.acTotalPower);
-    // 4. Data per phase
+    // 6. Data per phase
     if (!liveData.ac.empty()) {
         packer.pack_uint8(static_cast<uint8_t>(Exporter::Property::Phases));
         packer.pack_array(liveData.ac.size());
@@ -81,7 +87,7 @@ std::vector<char> MsgPackSerializer::serialize(const LiveData& liveData) const
             packer.pack(liveData.ac.at(i).voltage);
         }
     }
-    // 5. Data per string array
+    // 7. Data per string array
     if (!liveData.dc.empty()) {
         packer.pack_uint8(static_cast<uint8_t>(Exporter::Property::Strings));
         packer.pack_array(liveData.dc.size());

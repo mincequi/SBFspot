@@ -34,10 +34,10 @@ DISCLAIMER:
 
 #pragma once
 
-#include "Types.h"
-
 #include <set>
 #include <vector>
+
+#include <Types.h>
 
 namespace sma {
 
