@@ -51,9 +51,10 @@ SmaInverter::SmaInverter(QObject* parent, const Config& config, Ethernet_qt& ioD
     m_config(config),
     m_ioDevice(ioDevice),
     m_exporter(exporter),
-    m_address(address)
+    m_address(address),
+    m_pendingData(0)
 {
-    m_pendingData.ac.resize(3);
+    resetPendingData();
 
     connect(&m_requestTimer, &QTimer::timeout, this, &SmaInverter::onRequestTimeout);
     m_requestTimer.setSingleShot(true);
@@ -76,6 +77,14 @@ void SmaInverter::poll(std::time_t timestamp)
     m_pendingData.timestamp = timestamp;
     // Send login request to inverter. Once logged in, get all the data.
     login();
+}
+
+void SmaInverter::resetPendingData()
+{
+    m_pendingLris.clear();
+    m_pendingData = LiveData(m_serial);
+    m_pendingData.ac.resize(3);
+    m_pendingDataMap.clear();
 }
 
 void SmaInverter::init()
@@ -154,11 +163,9 @@ void SmaInverter::exportData()
         qDebug() << "    key:" << QByteArray::number(kv.first, 16) << ", value:" << kv.second;
     }
 
+    m_pendingData.fixup();
     m_exporter.exportLiveData(m_pendingData);
-    m_pendingLris.clear();
-    m_pendingData = LiveData();
-    m_pendingData.ac.resize(3);
-    m_pendingDataMap.clear();
+    resetPendingData();
 }
 
 void SmaInverter::onDatagram(const QNetworkDatagram& datagram)
@@ -171,6 +178,7 @@ void SmaInverter::onDatagram(const QNetworkDatagram& datagram)
     case State::Invalid:
         m_susyId = pckt->Source.SUSyID;	// Fix Issue 98
         m_serial = pckt->Source.Serial;	// Fix Issue 98
+        resetPendingData();
         m_state = State::Initialized;
         return;
     case State::Initialized:

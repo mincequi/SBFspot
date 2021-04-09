@@ -79,7 +79,9 @@ const std::map<uint32_t, SmaInverter*>& SmaManager::inverters() const
 void SmaManager::onEnergyMeterDatagram(const QNetworkDatagram& buffer)
 {
     auto liveData = m_energyMeter.parsePacket(buffer.data().data(), buffer.data().size());
-    m_exporter.exportLiveData(liveData);
+    if (liveData.serial != 0) {
+        m_exporter.exportLiveData(liveData);
+    }
 }
 
 void SmaManager::onDiscoveryResponseDatagram(const QNetworkDatagram& datagram)

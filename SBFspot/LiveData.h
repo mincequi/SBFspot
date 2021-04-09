@@ -38,26 +38,30 @@ DISCLAIMER:
 #include <vector>
 
 struct ElectricParameters {
-    int32_t power = 0;
+    int32_t power = 0;      // [W]
     float   current = 0.0f; // [A]
     float   voltage = 0.0f; // [V]
 };
 
 struct LiveData {
-    // Type specific members
-    bool isValid = false;
+    LiveData(uint32_t _serial);
+
+    void fixup();
 
     // Static device specific members
     uint32_t serial = 0;
 
     // Dynamic device specific members
-    std::time_t timestamp = 0;
+    std::time_t timestamp = 0;  // [sec]
 
-    int32_t totalPowerAc = 0;
-    int32_t totalPowerDc = 0;
+    int32_t acTotalPower = 0;   // [W]
+    int32_t dcTotalPower = 0;   // [W]
 
     std::vector<ElectricParameters> ac;
     std::vector<ElectricParameters> dc;
+
+    int64_t energyToday = 0;    // [Wh]
+    int64_t energyTotal = 0;    // [Wh]
 };
 
 

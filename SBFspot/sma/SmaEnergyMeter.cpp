@@ -111,7 +111,7 @@ LiveData SmaEnergyMeter::parsePacket(const char* data, uint16_t size)
 
             // extract obis data from the emeter packet and pass each obis data element to the obis filter
             int32_t signed_power_total = 0, signed_power_l1 = 0, signed_power_l2 = 0, signed_power_l3 = 0;
-            LiveData liveData;
+            LiveData liveData(serial);
             liveData.ac.resize(3);
             void* obis = emeter.getFirstObisElement();
             while (obis != NULL) {
@@ -153,9 +153,7 @@ LiveData SmaEnergyMeter::parsePacket(const char* data, uint16_t size)
             filter.consume(obis_signed_power_L1.data(), timer);
             filter.consume(obis_signed_power_L2.data(), timer);
             filter.consume(obis_signed_power_L3.data(), timer);
-            liveData.isValid = true;
-            liveData.serial = serial;
-            liveData.totalPowerAc = signed_power_total/10;
+            liveData.acTotalPower = signed_power_total/10;
             liveData.ac.at(0).power = signed_power_l1/10;
             liveData.ac.at(1).power = signed_power_l2/10;
             liveData.ac.at(2).power = signed_power_l3/10;
@@ -164,7 +162,7 @@ LiveData SmaEnergyMeter::parsePacket(const char* data, uint16_t size)
         }
     }
 
-    return {};
+    return LiveData(0);
 }
 
 }

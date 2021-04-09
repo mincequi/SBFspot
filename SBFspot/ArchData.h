@@ -34,17 +34,12 @@ DISCLAIMER:
 
 #pragma once
 
-#include "SBFspot.h"
-#include "misc.h"
-#include "SBFNet.h"
-#include "TagDefs.h"
-#include "EventData.h"
-#include "boost/date_time/posix_time/posix_time.hpp"
-#include "boost/date_time/local_time/local_time.hpp"
-#include "boost/date_time/gregorian/gregorian.hpp"
-#include "boost/format.hpp"
+#include <boost/date_time/gregorian/gregorian.hpp>
+
+#include "Types.h"
 
 class Importer;
+struct InverterData;
 
 class ArchData {
 public:

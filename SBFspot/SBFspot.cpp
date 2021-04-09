@@ -60,6 +60,20 @@ DISCLAIMER:
 
 using namespace std;
 
+template <class T>
+void setClsData(std::vector<ElectricParameters>& data, uint8_t cls, T value, T ElectricParameters::*field )
+{
+    if (cls < 1) {
+        return;
+    }
+
+    if (data.size() < cls) {
+        data.resize(cls);
+    }
+
+    data.at(cls-1).*field = value;
+}
+
 SbfSpot::SbfSpot(Ethernet& ethernet, Importer& import) :
     m_ethernet(ethernet),
     m_import(import)
@@ -308,7 +322,7 @@ void SbfSpot::decodeResponse(const std::vector<uint8_t>& buffer, InverterDataMap
             if (recordsize == 0) recordsize = 28;
             //This function gives us the time when the inverter was switched off
             //inverter.SleepTime = datetime;
-            inverter.totalPowerAc = value;
+            inverter.acTotalPower = value;
             // inverter.flags |= type;
             break;
 
@@ -395,48 +409,24 @@ void SbfSpot::decodeResponse(const std::vector<uint8_t>& buffer, InverterDataMap
 
         case DcMsWatt: //SPOT_PDC1 / SPOT_PDC2
             if (recordsize == 0) recordsize = 28;
-            //if (cls == 1)   // MPP1
-            //{
-            //    inverter.Pdc1 = value;
-            //}
-            //if (cls == 2)   // MPP2
-            //{
-            //    inverter.Pdc2 = value;
-            //}
-            // inverter.flags |= type;
+            setClsData(inverter.dc, cls, value, &ElectricParameters::power);
             break;
 
         case DcMsVol: //SPOT_UDC1 / SPOT_UDC2
             if (recordsize == 0) recordsize = 28;
-            //if (cls == 1)
-            //{
-            //    inverter.Udc1 = value;
-            //}
-            //if (cls == 2)
-            //{
-            //    inverter.Udc2 = value;
-            //}
-            // inverter.flags |= type;
+            setClsData(inverter.dc, cls, value/100.0f, &ElectricParameters::voltage);
             break;
 
         case DcMsAmp: //SPOT_IDC1 / SPOT_IDC2
             if (recordsize == 0) recordsize = 28;
-            //if (cls == 1)
-            //{
-            //    inverter.Idc1 = value;
-            //}
-            //if (cls == 2)
-            //{
-            //    inverter.Idc2 = value;
-            //}
-            // inverter.flags |= type;
+            setClsData(inverter.dc, cls, value/1000.0f, &ElectricParameters::current);
             break;
 
         case MeteringTotWhOut: //SPOT_ETOTAL
             if (recordsize == 0) recordsize = 16;
             //In case SPOT_ETODAY missing, this function gives us inverter time (eg: SUNNY TRIPOWER 6.0)
             //inverter.InverterDatetime = datetime;
-            //inverter.ETotal = value64;
+            inverter.energyTotal = value64;
             // inverter.flags |= type;
             break;
 
@@ -444,7 +434,7 @@ void SbfSpot::decodeResponse(const std::vector<uint8_t>& buffer, InverterDataMap
             if (recordsize == 0) recordsize = 16;
             //This function gives us the current inverter time
             //inverter.InverterDatetime = datetime;
-            //inverter.EToday = value64;
+            inverter.energyToday = value64;
             // inverter.flags |= type;
             break;
 

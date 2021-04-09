@@ -36,8 +36,14 @@ DISCLAIMER:
 
 #include "Defines.h"
 #include "Importer.h"
-
+#include "SBFspot.h"
+#include "misc.h"
+#include "SBFNet.h"
+#include "TagDefs.h"
+#include "EventData.h"
 #include "boost_ext.h"
+#include "boost/date_time/posix_time/posix_time.hpp"
+#include "boost/date_time/local_time/local_time.hpp"
 
 using namespace std;
 using namespace boost;

@@ -40,6 +40,7 @@ DISCLAIMER:
 #include "Inverter.h"
 #include "SBFspot.h"
 #include "Timer.h"
+#include "misc.h"
 
 #include <thread>
 

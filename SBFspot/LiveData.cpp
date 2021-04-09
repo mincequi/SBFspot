@@ -32,67 +32,24 @@ DISCLAIMER:
 
 ************************************************************************************************/
 
-#pragma once
-
-#include <cstdint>
-#include <ctime>
-#include <set>
-
-#include <QTimer>
-
 #include "LiveData.h"
-#include "Types.h"
 
-class Config;
-class Ethernet_qt;
-class Exporter;
-class QNetworkDatagram;
-
-namespace sma {
-
-class SmaInverter : public QObject
-{
-    Q_OBJECT
-
-public:
-    SmaInverter(QObject* parent, const Config& config, Ethernet_qt& ioDevice, Exporter& exporter, uint32_t address);
-
-    void poll(std::time_t timestamp = 0);
-
-private:
-    void resetPendingData();
-    void init();
-    void login();
-    void logout();
-    void requestData();
-    void requestDataSet(SmaInverterDataSet dataSet);
-    void exportData();
-
-    void onDatagram(const QNetworkDatagram& datagram);
-    void onRequestTimeout();
-
-    const Config&   m_config;
-    Ethernet_qt&    m_ioDevice;
-    Exporter&       m_exporter;
-
-    uint32_t m_address = 0;
-    uint16_t m_susyId = 0x0078;
-    uint32_t m_serial = 0x3803E8C8;
-    std::time_t m_lastSeen = 0;
-
-    enum class State {
-        Invalid,
-        Initialized,
-        LoggedIn
-    } m_state = State::Invalid;
-
-    std::set<LriDef>    m_pendingLris;
-    LiveData            m_pendingData;
-    InverterDataMap     m_pendingDataMap;
-
-    QTimer  m_requestTimer;
-
-    friend class SmaManager;
-};
-
+LiveData::LiveData(uint32_t _serial) :
+    serial(_serial) {
 }
+
+void LiveData::fixup() {
+    if (acTotalPower == 0) {
+        for (const auto& a : ac) {
+            acTotalPower += a.power;
+        }
+    }
+
+    if (dcTotalPower == 0) {
+        for (const auto& d : dc) {
+            dcTotalPower += d.power;
+        }
+    }
+}
+
+

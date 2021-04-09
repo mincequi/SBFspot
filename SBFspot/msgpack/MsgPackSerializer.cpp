@@ -51,10 +51,6 @@ MsgPackSerializer::~MsgPackSerializer()
 
 std::vector<char> MsgPackSerializer::serialize(const LiveData& liveData) const
 {
-    if (!liveData.isValid) {
-        return {};
-    }
-
     // Pack manually (because a float in map gets stored as double and timestamp is not supported yet).
     msgpack::sbuffer sbuf;
     msgpack::packer<msgpack::sbuffer> packer(sbuf);
@@ -70,7 +66,7 @@ std::vector<char> MsgPackSerializer::serialize(const LiveData& liveData) const
     packer.pack_ext_body((const char*)(&t), 4);
     // 3. Power AC
     packer.pack_uint8(static_cast<uint8_t>(Exporter::Property::Power));
-    packer.pack(liveData.totalPowerAc);
+    packer.pack(liveData.acTotalPower);
     // 4. Data per phase
     if (!liveData.ac.empty()) {
         packer.pack_uint8(static_cast<uint8_t>(Exporter::Property::Phases));

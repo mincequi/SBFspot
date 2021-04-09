@@ -218,10 +218,6 @@ int MqttMsgPackExport::exportLiveData(std::time_t timestamp,
 
 int MqttMsgPackExport::exportLiveData(const LiveData& liveData)
 {
-    if (!liveData.isValid) {
-        return -1;
-    }
-
     connectToHost();
 
     std::string topic = m_config.mqtt_topic;
@@ -244,7 +240,7 @@ int MqttMsgPackExport::exportLiveData(const LiveData& liveData)
     packer.pack_ext_body((const char*)(&t), 4);
     // 3. Power AC
     packer.pack_uint8(static_cast<uint8_t>(Property::Power));
-    packer.pack(liveData.totalPowerAc);
+    packer.pack(liveData.acTotalPower);
 
     publish(topic, sbuf, 0);
 

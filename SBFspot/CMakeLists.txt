@@ -152,6 +152,7 @@ add_executable(${PROJECT_NAME}_qt
     Ethernet_qt.cpp
     Exporter.cpp
     ExporterManager.cpp
+    LiveData.cpp
     SBFNet.cpp
     SBFspot.cpp
     Timer.cpp

@@ -35,6 +35,7 @@ DISCLAIMER:
 #pragma once
 
 #include <set>
+#include <vector>
 
 #include "Types.h"
 
