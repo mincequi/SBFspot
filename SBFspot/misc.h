@@ -60,11 +60,10 @@ char *strfgmtime_t (const char *format, const time_t rawtime);
 char *rtrim(char *txt);
 int get_tzOffset(/*OUT*/int *isDST);
 int CreatePath(const char *dir);
-void HexDump(const unsigned char *buf, int count, int radix);
+void HexDump(const std::vector<uint8_t>& buffer, uint radix);
 char *FormatFloat(char *str, float value, int width, int precision, char decimalpoint);
 char *FormatDouble(char *str, double value, int width, int precision, char decimalpoint);
 std::string realpath(const char *path);
-int isCrcValid(unsigned char lb, unsigned char hb);
 
 #define DEBUG_LOW (debug >= 1)
 #define DEBUG_NORMAL (debug >= 2)

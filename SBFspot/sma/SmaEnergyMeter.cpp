@@ -135,6 +135,12 @@ LiveData SmaEnergyMeter::parsePacket(const char* data, uint16_t size)
                     case 71: liveData.ac.at(2).current = value/1000.0f; break;
                     case 72: liveData.ac.at(2).voltage = value/10.0f; break;
                     }
+                } else if (SpeedwireEmeterProtocol::getObisType(obis) == 8) {
+                    uint64_t value = SpeedwireEmeterProtocol::getObisValue8(obis);
+                    switch (SpeedwireEmeterProtocol::getObisIndex(obis)) {
+                    case  1: liveData.energyImportTotal = value/3600;  break;
+                    case  2: liveData.energyExportTotal = value/3600;  break;
+                    }
                 }
                 // send the obis value to the obis filter before proceeding with then next obis element
                 filter.consume(obis, timer);
@@ -153,7 +159,7 @@ LiveData SmaEnergyMeter::parsePacket(const char* data, uint16_t size)
             filter.consume(obis_signed_power_L1.data(), timer);
             filter.consume(obis_signed_power_L2.data(), timer);
             filter.consume(obis_signed_power_L3.data(), timer);
-            liveData.acTotalPower = signed_power_total/10;
+            liveData.acPowerTotal = signed_power_total/10;
             liveData.ac.at(0).power = signed_power_l1/10;
             liveData.ac.at(1).power = signed_power_l2/10;
             liveData.ac.at(2).power = signed_power_l3/10;

@@ -39,6 +39,7 @@ DISCLAIMER:
 #include <QtConcurrent>
 
 #include <Config.h>
+#include <Defines.h>
 #include <Ethernet_qt.h>
 #include <Exporter.h>
 #include <SBFspot.h>
@@ -90,9 +91,7 @@ void SmaInverter::resetPendingData()
 void SmaInverter::init()
 {
     // QtConcurrent::run([&](){
-        std::vector<uint8_t> buffer(256);
-        SbfSpot::encodeInitRequest(buffer.data());
-        buffer.resize(packetposition);
+        auto buffer = m_sbfSpot.encodeInitRequest();
         // for (auto i = 0; (i < 5) && (m_state == State::Invalid); ++i) {
             m_ioDevice.send(buffer, m_address, 9522);
             // QThread::sleep(1);
@@ -103,8 +102,7 @@ void SmaInverter::init()
 void SmaInverter::login()
 {
     // QtConcurrent::run([&](){
-        std::vector<uint8_t> buffer;
-        SbfSpot::encodeLoginRequest(buffer, m_config.userGroup, std::string(m_config.SMA_Password));
+        auto buffer = m_sbfSpot.encodeLoginRequest(m_config.userGroup, std::string(m_config.SMA_Password));
         // for (auto i = 0; (i < 5) && (m_state == State::Initialized); ++i) {
             m_ioDevice.send(buffer, m_address, 9522);
             // QThread::sleep(1);
@@ -114,9 +112,7 @@ void SmaInverter::login()
 
 void SmaInverter::logout()
 {
-    std::vector<uint8_t> buffer(256);
-    SbfSpot::encodeLogoutRequest(buffer.data());
-    buffer.resize(packetposition);
+    auto buffer = m_sbfSpot.encodeLogoutRequest();
     m_ioDevice.send(buffer, m_address, 9522);
     m_state = State::Initialized;
 }
@@ -150,9 +146,7 @@ void SmaInverter::requestDataSet(SmaInverterDataSet dataSet)
         m_pendingLris.insert(lri);
     }
 
-    std::vector<uint8_t> buffer(1024);
-    SbfSpot::encodeDataRequest(buffer.data(), m_susyId, m_serial, dataSet);
-    buffer.resize(packetposition);
+    auto buffer = m_sbfSpot.encodeDataRequest(m_susyId, m_serial, dataSet);
     m_ioDevice.send(buffer, m_address, 9522);
 }
 
@@ -191,7 +185,7 @@ void SmaInverter::onDatagram(const QNetworkDatagram& datagram)
         }
         return;
     case State::LoggedIn:
-        SbfSpot::decodeResponse({ data, data + datagram.data().size() }, m_pendingDataMap, m_pendingData, m_pendingLris);
+        m_sbfSpot.decodeResponse({ data, data + datagram.data().size() }, m_pendingDataMap, m_pendingData, m_pendingLris);
         break;
     }
 }

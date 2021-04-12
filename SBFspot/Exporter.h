@@ -70,9 +70,9 @@ public:
 
         // Dynamic properties
         Timestamp = 8,      // Timestamp for this data set: uint32
-        Interval = 9,       // Interval (in seconds) for this data set.
-        EnergyTotal = 10,   // Total yield in Wh: any number format
-        EnergyToday = 11,   // Today's yield in Wh: any number format
+        EnergyImportTotal = 9,    // Total consumption in Wh: any number format
+        EnergyExportTotal = 10,   // Total yield in Wh: any number format
+        EnergyExportToday = 11,   // Today's yield in Wh: any number format
         Power = 12,         // Current power: any number format
         PowerMaxToday = 13, // Today's maximum power: any number format
         Current = 14,       // Current in Ampere
@@ -90,7 +90,7 @@ public:
         StringPowerMax = PowerMax, // Peak power
 
         // Dynamic
-        StringInterval = Interval,
+        //StringInterval = Interval,
         StringPower = Power,    // Current power
         StringPowerMaxToday = PowerMaxToday,
         StringCurrent = Current,

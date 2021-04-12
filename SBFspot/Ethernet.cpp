@@ -126,8 +126,10 @@ int Ethernet::ethConnect(short port)
     return 0; //OK
 }
 
-int Ethernet::ethRead(unsigned char *buf, unsigned int bufsize)
+std::vector<uint8_t> Ethernet::ethRead()
 {
+    std::vector<uint8_t> buf(2048);
+
     int bytes_read;
     short timeout = 5;
     int8_t emCount = 5;
@@ -152,11 +154,11 @@ int Ethernet::ethRead(unsigned char *buf, unsigned int bufsize)
         }
 
         if (FD_ISSET(sock, &readfds))
-            bytes_read = recvfrom(sock, (char*)buf, bufsize, 0, (struct sockaddr *)&addr_in, &addr_in_len);
+            bytes_read = recvfrom(sock, buf.data(), buf.size(), 0, (struct sockaddr *)&addr_in, &addr_in_len);
         else
         {
             if (DEBUG_HIGHEST) puts("Timeout reading socket");
-            return -1;
+            return {};
         }
 
         if ( bytes_read > 0)
@@ -182,15 +184,16 @@ int Ethernet::ethRead(unsigned char *buf, unsigned int bufsize)
     if (bytes_read == 600 || bytes_read == 608)
         bytes_read = 0;
 
-    return bytes_read;
+    buf.resize(bytes_read);
+    return buf;
 }
 
-int Ethernet::ethSend(const unsigned char *buffer, const std::string& toIP)
+int Ethernet::ethSend(const std::vector<uint8_t>& buffer, const std::string& toIP)
 {
-    if (DEBUG_NORMAL) HexDump(buffer, packetposition, 10);
+    if (DEBUG_NORMAL) HexDump(buffer, 10);
 
     addr_out.sin_addr.s_addr = inet_addr(toIP.c_str());
-    size_t bytes_sent = sendto(sock, (const char*)buffer, packetposition, 0, (struct sockaddr *)&addr_out, sizeof(addr_out));
+    size_t bytes_sent = sendto(sock, (const char*)buffer.data(), buffer.size(), 0, (struct sockaddr *)&addr_out, sizeof(addr_out));
 
     if (DEBUG_NORMAL) std::cout << bytes_sent << " Bytes sent to IP [" << inet_ntoa(addr_out.sin_addr) << "]" << std::endl;
 
@@ -223,18 +226,18 @@ int Ethernet::ethClose()
 }
 #endif
 
-E_SBFSPOT Ethernet::ethGetPacket(void)
+E_SBFSPOT Ethernet::ethGetPacket(Buffer& out)
 {
     if (DEBUG_NORMAL) printf("ethGetPacket()\n");
     E_SBFSPOT rc = E_OK;
-
-    ethPacketHeaderL1L2 *pkHdr = (ethPacketHeaderL1L2 *)CommBuf;
+    out.clear();
 
     do
     {
-        int bib = ethRead(CommBuf, sizeof(CommBuf));
+        auto buffer = ethRead();
+        ethPacketHeaderL1L2 *pkHdr = (ethPacketHeaderL1L2 *)buffer.data();
 
-        if (bib <= 0)
+        if (buffer.size() <= 0)
         {
             if (DEBUG_NORMAL) printf("No data!\n");
             rc = E_NODATA;
@@ -246,22 +249,22 @@ E_SBFSPOT Ethernet::ethGetPacket(void)
             //More data after header?
             if (pkLen > 0)
             {
-                if (DEBUG_HIGH) HexDump(CommBuf, bib, 10);
+                if (DEBUG_HIGH) HexDump(buffer, 10);
                 if (btohl(pkHdr->pcktHdrL2.MagicNumber) == ETH_L2SIGNATURE)
                 {
                     // Copy CommBuf to packetbuffer
                     // Dummy byte to align with BTH (7E)
-                    pcktBuf[0]= 0;
+                    out.data().push_back(0);
                     // We need last 6 bytes of ethPacketHeader too
-                    memcpy(pcktBuf+1, CommBuf + sizeof(ethPacketHeaderL1), bib - sizeof(ethPacketHeaderL1));
+                    out.data().insert(out.data().end(), buffer.begin() + sizeof(ethPacketHeaderL1), buffer.end());
                     // Point packetposition at last byte in our buffer
                     // This is different from BTH
-                    packetposition = bib - sizeof(ethPacketHeaderL1);
+                    packetposition = buffer.size() - sizeof(ethPacketHeaderL1);
 
                     if (DEBUG_HIGH)
                     {
                         printf("<<<====== Content of pcktBuf =======>>>\n");
-                        HexDump(pcktBuf, packetposition, 10);
+                        HexDump(out.data(), 10);
                         printf("<<<=================================>>>\n");
                     }
 

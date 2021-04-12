@@ -36,14 +36,16 @@ DISCLAIMER:
 
 #include "Types.h"
 
+class Buffer;
+
 class Ethernet {
 public:
     int ethConnect(short port);
     int ethClose(void);
-    int ethSend(const unsigned char *buffer, const std::string& toIP);
-    int ethRead(unsigned char *buf, unsigned int bufsize);
+    int ethSend(const std::vector<uint8_t>& buffer, const std::string& toIP);
+    std::vector<uint8_t> ethRead();
 
-    E_SBFSPOT ethGetPacket(void);
+    E_SBFSPOT ethGetPacket(Buffer& out);
 };
 
 

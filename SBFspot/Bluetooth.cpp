@@ -53,7 +53,7 @@ int isValidSender(const unsigned char senderaddr[6], unsigned char address[6])
     return 1;
 }
 
-E_SBFSPOT bthInitConnection(const char *BTAddress, std::vector<InverterData>& inverters, int MIS)
+E_SBFSPOT Bluetooth::bthInitConnection(const char *BTAddress, std::vector<InverterData>& inverters, int MIS)
 {
     if (VERBOSE_NORMAL) puts("Initializing...");
 
@@ -88,13 +88,13 @@ E_SBFSPOT bthInitConnection(const char *BTAddress, std::vector<InverterData>& in
 
     //Init Inverter
     unsigned char version[6] = {1,0,0,0,0,0};
-    writePacketHeader(pcktBuf, 0x0201, version);
+    writePacketHeader(0x0201, version);
     writeByte(pcktBuf, 'v');
     writeByte(pcktBuf, 'e');
     writeByte(pcktBuf, 'r');
     writeByte(pcktBuf, 13);	//CR
     writeByte(pcktBuf, 10);	//LF
-    writePacketLength(pcktBuf);
+    writePacketLength();
     bthSend(pcktBuf);
 
     // This can take up to 3 seconds!
@@ -105,12 +105,12 @@ E_SBFSPOT bthInitConnection(const char *BTAddress, std::vector<InverterData>& in
     unsigned char NetID = pcktBuf[22];
     if (VERBOSE_NORMAL) printf("SMA netID=%02X\n", NetID);
 
-    writePacketHeader(pcktBuf, 0x02, RootDeviceAddress);
-    writeLong(pcktBuf, 0x00700400);
+    writePacketHeader(0x02, RootDeviceAddress);
+    writeLong(0x00700400);
     writeByte(pcktBuf, NetID);
-    writeLong(pcktBuf, 0);
-    writeLong(pcktBuf, 1);
-    writePacketLength(pcktBuf);
+    writeLong(0);
+    writeLong(1);
+    writePacketLength();
     bthSend(pcktBuf);
 
     //Connection to Root Device
@@ -179,30 +179,30 @@ E_SBFSPOT bthInitConnection(const char *BTAddress, std::vector<InverterData>& in
     if(/*(MIS == 1) && */(devcount == 1) && (NetID > 1))
     {
         // We need more handshake 03/04 commands to initialise network connection between inverters
-        writePacketHeader(pcktBuf, 0x03, RootDeviceAddress);
+        writePacketHeader(0x03, RootDeviceAddress);
         writeShort(pcktBuf, 0x000A);
         writeByte(pcktBuf, 0xAC);
 
-        writePacketLength(pcktBuf);
+        writePacketLength();
         bthSend(pcktBuf);
 
         if (bthGetPacket(RootDeviceAddress, 0x04) != E_OK)
             return E_INIT;
 
-        writePacketHeader(pcktBuf, 0x03, RootDeviceAddress);
+        writePacketHeader(0x03, RootDeviceAddress);
         writeShort(pcktBuf, 0x0002);
 
-        writePacketLength(pcktBuf);
+        writePacketLength();
         bthSend(pcktBuf);
 
         if (bthGetPacket(RootDeviceAddress, 0x04) != E_OK)
             return E_INIT;
 
-        writePacketHeader(pcktBuf, 0x03, RootDeviceAddress);
+        writePacketHeader(0x03, RootDeviceAddress);
         writeShort(pcktBuf, 0x0001);
         writeByte(pcktBuf, 0x01);
 
-        writePacketLength(pcktBuf);
+        writePacketLength();
         bthSend(pcktBuf);
 
         if (bthGetPacket(RootDeviceAddress, 0x04) != E_OK)
@@ -300,13 +300,13 @@ E_SBFSPOT bthInitConnection(const char *BTAddress, std::vector<InverterData>& in
     do
     {
         pcktID++;
-        writePacketHeader(pcktBuf, 0x01, addr_unknown);
-        writePacket(pcktBuf, 0x09, 0xA0, 0, anySUSyID, anySerial);
-        writeLong(pcktBuf, 0x00000200);
-        writeLong(pcktBuf, 0);
-        writeLong(pcktBuf, 0);
-        writePacketTrailer(pcktBuf);
-        writePacketLength(pcktBuf);
+        writePacketHeader(0x01, addr_unknown);
+        writePacket(0x09, 0xA0, 0, anySUSyID, anySerial);
+        writeLong(0x00000200);
+        writeLong(0);
+        writeLong(0);
+        writePacketTrailer();
+        writePacketLength();
     }
     while (!isCrcValid(pcktBuf[packetposition-3], pcktBuf[packetposition-2]));
 
@@ -339,7 +339,7 @@ E_SBFSPOT bthInitConnection(const char *BTAddress, std::vector<InverterData>& in
 
 // Init function used in SBFspot 2.0.6
 // Called when MIS_Enabled=0
-E_SBFSPOT bthInitConnection(InverterData& invData)
+E_SBFSPOT Bluetooth::bthInitConnection(InverterData& invData)
 {
     //Wait for announcement/broadcast message from PV inverter
     if (bthGetPacket(invData.BTAddress, 2) != E_OK)
@@ -348,12 +348,12 @@ E_SBFSPOT bthInitConnection(InverterData& invData)
     invData.NetID = pcktBuf[22];
     if (VERBOSE_NORMAL) printf("SMA netID=%02X\n", invData.NetID);
 
-    writePacketHeader(pcktBuf, 0x02, invData.BTAddress);
-    writeLong(pcktBuf, 0x00700400);
+    writePacketHeader(0x02, invData.BTAddress);
+    writeLong(0x00700400);
     writeByte(pcktBuf, invData.NetID);
-    writeLong(pcktBuf, 0);
-    writeLong(pcktBuf, 1);
-    writePacketLength(pcktBuf);
+    writeLong(0);
+    writeLong(1);
+    writePacketLength();
     bthSend(pcktBuf);
 
     if (bthGetPacket(invData.BTAddress, 5) != E_OK)
@@ -373,13 +373,13 @@ E_SBFSPOT bthInitConnection(InverterData& invData)
     do
     {
         pcktID++;
-        writePacketHeader(pcktBuf, 0x01, addr_unknown);
-        writePacket(pcktBuf, 0x09, 0xA0, 0, anySUSyID, anySerial);
-        writeLong(pcktBuf, 0x00000200);
-        writeLong(pcktBuf, 0);
-        writeLong(pcktBuf, 0);
-        writePacketTrailer(pcktBuf);
-        writePacketLength(pcktBuf);
+        writePacketHeader(0x01, addr_unknown);
+        writePacket(0x09, 0xA0, 0, anySUSyID, anySerial);
+        writeLong(0x00000200);
+        writeLong(0);
+        writeLong(0);
+        writePacketTrailer();
+        writePacketLength();
     } while (!isCrcValid(pcktBuf[packetposition-3], pcktBuf[packetposition-2]));
 
     bthSend(pcktBuf);
@@ -396,7 +396,7 @@ E_SBFSPOT bthInitConnection(InverterData& invData)
     return E_OK;
 }
 
-E_SBFSPOT bthGetPacket(const unsigned char senderaddr[6], int wait4Command)
+E_SBFSPOT Bluetooth::bthGetPacket(const unsigned char senderaddr[6], int wait4Command)
 {
     if (DEBUG_NORMAL) printf("bthGetPacket(%d)\n", wait4Command);
     int index = 0;
@@ -530,32 +530,28 @@ E_SBFSPOT bthGetPacket(const unsigned char senderaddr[6], int wait4Command)
     return rc;
 }
 
-E_SBFSPOT bthSetPlantTime(time_t ndays, time_t lowerlimit, time_t upperlimit)
+E_SBFSPOT Bluetooth::bthSetPlantTime(time_t ndays, time_t lowerlimit, time_t upperlimit)
 {
-    // If not a Bluetooth connection, just quit
-    if (ConnType != CT_BLUETOOTH)
-        return E_OK;
-
     if (DEBUG_NORMAL)
         std::cout <<"bthSetPlantTime()" << std::endl;
 
     do
     {
         pcktID++;
-        writePacketHeader(pcktBuf, 0x01, addr_unknown);
-        writePacket(pcktBuf, 0x10, 0xA0, 0, anySUSyID, anySerial);
-        writeLong(pcktBuf, 0xF000020A);
-        writeLong(pcktBuf, 0x00236D00);
-        writeLong(pcktBuf, 0x00236D00);
-        writeLong(pcktBuf, 0x00236D00);
-        writeLong(pcktBuf, 0);
-        writeLong(pcktBuf, 0);
-        writeLong(pcktBuf, 0);
-        writeLong(pcktBuf, 0);
-        writeLong(pcktBuf, 1);
-        writeLong(pcktBuf, 1);
-        writePacketTrailer(pcktBuf);
-        writePacketLength(pcktBuf);
+        writePacketHeader(0x01, addr_unknown);
+        writePacket(0x10, 0xA0, 0, anySUSyID, anySerial);
+        writeLong(0xF000020A);
+        writeLong(0x00236D00);
+        writeLong(0x00236D00);
+        writeLong(0x00236D00);
+        writeLong(0);
+        writeLong(0);
+        writeLong(0);
+        writeLong(0);
+        writeLong(1);
+        writeLong(1);
+        writePacketTrailer();
+        writePacketLength();
     }
     while (!isCrcValid(pcktBuf[packetposition-3], pcktBuf[packetposition-2]));
 
@@ -646,22 +642,22 @@ E_SBFSPOT bthSetPlantTime(time_t ndays, time_t lowerlimit, time_t upperlimit)
         do
         {
             pcktID++;
-            writePacketHeader(pcktBuf, 0x01, addr_unknown);
-            writePacket(pcktBuf, 0x10, 0xA0, 0, anySUSyID, anySerial);
-            writeLong(pcktBuf, 0xF000020A);
-            writeLong(pcktBuf, 0x00236D00);
-            writeLong(pcktBuf, 0x00236D00);
-            writeLong(pcktBuf, 0x00236D00);
+            writePacketHeader(0x01, addr_unknown);
+            writePacket(0x10, 0xA0, 0, anySUSyID, anySerial);
+            writeLong(0xF000020A);
+            writeLong(0x00236D00);
+            writeLong(0x00236D00);
+            writeLong(0x00236D00);
             // Get new host time
             hosttime = time(NULL);
-            writeLong(pcktBuf, hosttime);
-            writeLong(pcktBuf, hosttime);
-            writeLong(pcktBuf, hosttime);
-            writeLong(pcktBuf, tz | dst);
-            writeLong(pcktBuf, ++magic);
-            writeLong(pcktBuf, 1);
-            writePacketTrailer(pcktBuf);
-            writePacketLength(pcktBuf);
+            writeLong(hosttime);
+            writeLong(hosttime);
+            writeLong(hosttime);
+            writeLong(tz | dst);
+            writeLong(++magic);
+            writeLong(1);
+            writePacketTrailer();
+            writePacketLength();
         }
         while (!isCrcValid(pcktBuf[packetposition-3], pcktBuf[packetposition-2]));
 
@@ -681,10 +677,10 @@ E_SBFSPOT bthSetPlantTime(time_t ndays, time_t lowerlimit, time_t upperlimit)
 
 int bthGetSignalStrength(InverterData& invData)
 {
-    writePacketHeader(pcktBuf, 0x03, invData.BTAddress);
+    writePacketHeader(0x03, invData.BTAddress);
     writeByte(pcktBuf,0x05);
     writeByte(pcktBuf,0x00);
-    writePacketLength(pcktBuf);
+    writePacketLength();
     bthSend(pcktBuf);
 
     bthGetPacket(invData.BTAddress, 4);
@@ -697,7 +693,7 @@ int bthGetSignalStrength(InverterData& invData)
 //http://www.winsocketdotnetworkprogramming.com/winsock2programming/winsock2advancedotherprotocol4p.html
 //Windows Sockets Error Codes: http://msdn.microsoft.com/en-us/library/ms740668(v=vs.85).aspx
 
-int bthConnect(const char *btAddr)
+int Bluetooth::bthConnect(const char *btAddr)
 {
 	WSADATA wsd;
 	SOCKADDR_BTH sab;
@@ -750,7 +746,7 @@ int bthConnect(const char *btAddr)
 	return 0; //OK - Connected
 }
 
-int bthClose()
+int Bluetooth::bthClose()
 {
 	int rc = 0;
 	if (sock != 0)
@@ -763,7 +759,7 @@ int bthClose()
 	return rc;
 }
 
-int bthSend(unsigned char *btbuffer)
+int Bluetooth::bthSend(unsigned char *btbuffer)
 {
 	if (DEBUG_NORMAL) HexDump(btbuffer, packetposition, 10);
     int bytes_sent = send(sock, (const char *)btbuffer, packetposition, 0);
@@ -779,7 +775,7 @@ int bthSend(unsigned char *btbuffer)
     return bytes_sent;
 }
 
-int bthSearchDevices()
+int Bluetooth::bthSearchDevices()
 {
 	WSADATA m_data;
 	SOCKET s;
@@ -877,7 +873,7 @@ int bthSearchDevices()
 /**
       Implementation of str2ba for winsock2.
  */
-int str2ba(const char *straddr, BTH_ADDR *btaddr)
+int Bluetooth::str2ba(const char *straddr, BTH_ADDR *btaddr)
 {
       int i;
       unsigned int aaddr[6];
@@ -895,19 +891,19 @@ int str2ba(const char *straddr, BTH_ADDR *btaddr)
       return 0;
 }
 
-int setBlockingMode()
+int Bluetooth::setBlockingMode()
 {
 	unsigned long Mode = 0;
 	return ioctlsocket(sock, FIONBIO, &Mode);
 }
 
-int setNonBlockingMode()
+int Bluetooth::setNonBlockingMode()
 {
 	unsigned long Mode = 1;
 	return ioctlsocket(sock, FIONBIO, &Mode);
 }
 
-void bthClear()
+void Bluetooth::bthClear()
 {
 	unsigned char buf[COMMBUFSIZE];
 
@@ -961,7 +957,7 @@ int bthConnect(const char *btAddr)
     return(status);
 }
 
-int bthClose()
+int Bluetooth::bthClose()
 {
 	if (sock != 0)
 	{
@@ -971,7 +967,7 @@ int bthClose()
     return 0;
 }
 
-int bthSend(unsigned char *btbuffer)
+int Bluetooth::bthSend(unsigned char *btbuffer)
 {
 	if (DEBUG_NORMAL) HexDump(btbuffer, packetposition, 10);
 
@@ -989,19 +985,19 @@ int bthSend(unsigned char *btbuffer)
     return bytes_sent;
 }
 
-int setNonBlockingMode()
+int Bluetooth::setNonBlockingMode()
 {
 	int flags = fcntl(sock, F_GETFL, 0);
 	return fcntl(sock, F_SETFL, flags | O_NONBLOCK);
 }
 
-int setBlockingMode()
+int Bluetooth::setBlockingMode()
 {
 	int flags = fcntl(sock, F_GETFL, 0);
 	return fcntl(sock, F_SETFL, flags & (!O_NONBLOCK));
 }
 
-void bthClear()
+void Bluetooth::bthClear()
 {
 	unsigned char buf[COMMBUFSIZE];
 
@@ -1036,7 +1032,7 @@ void bthClear()
 
 #endif /* linux */
 
-int bthRead(unsigned char *buf, unsigned int bufsize)
+int Bluetooth::bthRead(unsigned char *buf, unsigned int bufsize)
 {
     int bytes_read;
 

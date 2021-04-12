@@ -39,6 +39,7 @@ DISCLAIMER:
 #include "ArchData.h"
 #include "Cache.h"
 #include "LiveData.h"
+#include "SBFNet.h"
 #include "SQLselect.h"
 #include "mqtt.h"
 
@@ -93,6 +94,7 @@ private:
     Ethernet& m_ethernet;
     Importer& m_import;
     SbfSpot& m_sbfSpot;
+    Buffer  m_buffer;
 
     std::vector<InverterData> m_inverters;
     ArchData m_archData;

@@ -109,17 +109,16 @@ E_SBFSPOT ArchData::ArchiveDayData(std::vector<InverterData>& inverters, time_t 
 			do
 			{
 				pcktID++;
-                writePacketHeader(pcktBuf, 0x01, inverter.BTAddress);
-                writePacket(pcktBuf, 0x09, 0xE0, 0, inverter.SUSyID, inverter.Serial);
-				writeLong(pcktBuf, 0x70000200);
-				writeLong(pcktBuf, startTime - 300);
-				writeLong(pcktBuf, startTime + 86100);
-				writePacketTrailer(pcktBuf);
-				writePacketLength(pcktBuf);
+                m_buffer.writePacketHeader(0x01, inverter.BTAddress);
+                m_buffer.writePacket(0x09, 0xE0, 0, inverter.SUSyID, inverter.Serial);
+                m_buffer.writeLong(0x70000200);
+                m_buffer.writeLong(startTime - 300);
+                m_buffer.writeLong(startTime + 86100);
+                m_buffer.writePacketTrailer();
+                m_buffer.writePacketLength();
 			}
-			while (!isCrcValid(pcktBuf[packetposition-3], pcktBuf[packetposition-2]));
-
-            m_import.send(pcktBuf, inverter.IPAddress);
+            while (!m_buffer.isCrcValid());
+            m_import.send(m_buffer.data(), inverter.IPAddress);
 
 			do
 			{
@@ -134,13 +133,14 @@ E_SBFSPOT ArchData::ArchiveDayData(std::vector<InverterData>& inverters, time_t 
 
 				do
 				{
-                    rc = m_import.getPacket(inverter.BTAddress, 1);
-					if (rc != E_OK) return rc;
+                    rc = m_import.getPacket(m_buffer, inverter.BTAddress, 1);
+                    if (rc != E_OK) return E_NODATA;
 
 					packetcount = pcktBuf[25];
 
                     //TODO: Move checksum validation to bthGetPacket
-					if ((ConnType == CT_BLUETOOTH) && (!validateChecksum()))
+                    // DO NOT validateChecksum of send buffer, but response
+                    if ((ConnType == CT_BLUETOOTH) && (!m_buffer.validateChecksum()))
 						return E_CHKSUM;
 					else
 					{
@@ -293,17 +293,16 @@ E_SBFSPOT ArchData::ArchiveMonthData(std::vector<InverterData>& inverters, tm *s
 			do
 			{
 				pcktID++;
-                writePacketHeader(pcktBuf, 0x01, inverter.BTAddress);
-                writePacket(pcktBuf, 0x09, 0xE0, 0, inverter.SUSyID, inverter.Serial);
-				writeLong(pcktBuf, 0x70200200);
-				writeLong(pcktBuf, startTime - 86400 - 86400);
-                writeLong(pcktBuf, startTime + 86400 * (sizeof(inverter.monthData)/sizeof(MonthData) +1));
-				writePacketTrailer(pcktBuf);
-				writePacketLength(pcktBuf);
+                m_buffer.writePacketHeader(0x01, inverter.BTAddress);
+                m_buffer.writePacket(0x09, 0xE0, 0, inverter.SUSyID, inverter.Serial);
+                m_buffer.writeLong(0x70200200);
+                m_buffer.writeLong(startTime - 86400 - 86400);
+                m_buffer.writeLong(startTime + 86400 * (sizeof(inverter.monthData)/sizeof(MonthData) +1));
+                m_buffer.writePacketTrailer();
+                m_buffer.writePacketLength();
 			}
-			while (!isCrcValid(pcktBuf[packetposition-3], pcktBuf[packetposition-2]));
-
-            m_import.send(pcktBuf, inverter.IPAddress);
+            while (!m_buffer.isCrcValid());
+            m_import.send(m_buffer.data(), inverter.IPAddress);
 
 			do
 			{
@@ -315,11 +314,11 @@ E_SBFSPOT ArchData::ArchiveMonthData(std::vector<InverterData>& inverters, tm *s
 				unsigned int idx = 0;
 				do
 				{
-                    rc = m_import.getPacket(inverter.BTAddress, 1);
-					if (rc != E_OK) return rc;
+                    rc = m_import.getPacket(m_buffer, inverter.BTAddress, 1);
+                    if (rc != E_OK) return E_NODATA;
 
                     //TODO: Move checksum validation to bthGetPacket
-					if ((ConnType == CT_BLUETOOTH) && (!validateChecksum()))
+                    if ((ConnType == CT_BLUETOOTH) && (!m_buffer.validateChecksum()))
 						return E_CHKSUM;
 					else
 					{
@@ -422,33 +421,32 @@ E_SBFSPOT ArchData::ArchiveEventData(std::vector<InverterData>& inverters, boost
         do
         {
             pcktID++;
-            writePacketHeader(pcktBuf, 0x01, inverter.BTAddress);
-            writePacket(pcktBuf, 0x09, 0xE0, 0, inverter.SUSyID, inverter.Serial);
-			writeLong(pcktBuf, UserGroup == UG_USER ? 0x70100200 : 0x70120200);
-			writeLong(pcktBuf, startTime);
-            writeLong(pcktBuf, endTime);
-            writePacketTrailer(pcktBuf);
-            writePacketLength(pcktBuf);
+            m_buffer.writePacketHeader(0x01, inverter.BTAddress);
+            m_buffer.writePacket(0x09, 0xE0, 0, inverter.SUSyID, inverter.Serial);
+            m_buffer.writeLong(UserGroup == UG_USER ? 0x70100200 : 0x70120200);
+            m_buffer.writeLong(startTime);
+            m_buffer.writeLong(endTime);
+            m_buffer.writePacketTrailer();
+            m_buffer.writePacketLength();
         }
-        while (!isCrcValid(pcktBuf[packetposition-3], pcktBuf[packetposition-2]));
-
-        m_import.send(pcktBuf, inverter.IPAddress);
+        while (!m_buffer.isCrcValid());
+        m_import.send(m_buffer.data(), inverter.IPAddress);
 
 		bool FIRST_EVENT_FOUND = false;
         do
         {
             do
             {
-                rc = m_import.getPacket(inverter.BTAddress, 1);
+                rc = m_import.getPacket(m_buffer, inverter.BTAddress, 1);
                 if (rc != E_OK) return rc;
 
                 //TODO: Move checksum validation to bthGetPacket
-                if ((ConnType == CT_BLUETOOTH) && (!validateChecksum()))
+                if ((ConnType == CT_BLUETOOTH) && (!m_buffer.validateChecksum()))
                     return E_CHKSUM;
                 else
                 {
-                    pcktcount = get_short(pcktBuf+25);
-					unsigned short rcvpcktID = get_short(pcktBuf+27) & 0x7FFF;
+                    pcktcount = get_short(m_buffer.data().data()+25);
+                    unsigned short rcvpcktID = get_short(m_buffer.data().data()+27) & 0x7FFF;
                     if ((validPcktID == 1) || (pcktID == rcvpcktID))
                     {
                         validPcktID = 1;

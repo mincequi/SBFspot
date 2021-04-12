@@ -39,15 +39,15 @@ LiveData::LiveData(uint32_t _serial) :
 }
 
 void LiveData::fixup() {
-    if (acTotalPower == 0) {
+    if (acPowerTotal == 0) {
         for (const auto& a : ac) {
-            acTotalPower += a.power;
+            acPowerTotal += a.power;
         }
     }
 
-    if (dcTotalPower == 0) {
+    if (dcPowerTotal == 0) {
         for (const auto& d : dc) {
-            dcTotalPower += d.power;
+            dcPowerTotal += d.power;
         }
     }
 }

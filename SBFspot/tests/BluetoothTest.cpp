@@ -98,12 +98,12 @@ void logOff()
     do
     {
         pcktID++;
-        writePacketHeader(pcktBuf, 0x01, addr_unknown);
-        writePacket(pcktBuf, 0x08, 0xA0, 0x0300, anySUSyID, anySerial);
-        writeLong(pcktBuf, 0xFFFD010E);
-        writeLong(pcktBuf, 0xFFFFFFFF);
-        writePacketTrailer(pcktBuf);
-        writePacketLength(pcktBuf);
+        writePacketHeader(0x01, addr_unknown);
+        writePacket(0x08, 0xA0, 0x0300, anySUSyID, anySerial);
+        writeLong(0xFFFD010E);
+        writeLong(0xFFFFFFFF);
+        writePacketTrailer();
+        writePacketLength();
     }
     while (!isCrcValid(pcktBuf[packetposition-3], pcktBuf[packetposition-2]));
 

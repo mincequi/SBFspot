@@ -41,6 +41,7 @@ DISCLAIMER:
 #include <QTimer>
 
 #include "LiveData.h"
+#include "SBFspot.h"
 #include "Types.h"
 
 class Config;
@@ -74,6 +75,7 @@ private:
     const Config&   m_config;
     Ethernet_qt&    m_ioDevice;
     Exporter&       m_exporter;
+    SbfSpot         m_sbfSpot;
 
     uint32_t m_address = 0;
     uint16_t m_susyId = 0x0078;

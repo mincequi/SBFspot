@@ -55,7 +55,12 @@ std::vector<char> MsgPackSerializer::serialize(const LiveData& liveData) const
     msgpack::sbuffer sbuf;
     msgpack::packer<msgpack::sbuffer> packer(sbuf);
     // Map with number of elements
-    packer.pack_map(5 + (liveData.ac.empty() ? 0 : 1) + (liveData.dc.empty() ? 0 : 1));
+    uint8_t size = 5;   // Version, Timestamp, EnergyExportTotal, EnergyExportToday, Power are mandatory.
+    if (!liveData.ac.empty()) ++size;
+    if (!liveData.dc.empty()) ++size;
+    if (liveData.energyImportTotal != 0) ++size;
+    packer.pack_map(size);
+
     // 1. Protocol version
     packer.pack_uint8(static_cast<uint8_t>(Exporter::Property::Version));
     packer.pack_uint8(0);
@@ -64,15 +69,20 @@ std::vector<char> MsgPackSerializer::serialize(const LiveData& liveData) const
     uint32_t t = htonl(liveData.timestamp);
     packer.pack_ext(4, -1); // Timestamp type
     packer.pack_ext_body((const char*)(&t), 4);
+    // 8. Consumption Total (If energy import is provided)
+    if (liveData.energyImportTotal != 0) {
+        packer.pack_uint8(static_cast<uint8_t>(Exporter::Property::EnergyImportTotal));
+        packer.pack_float(static_cast<float>(liveData.energyImportTotal));
+    }
     // 3. Yield Total
-    packer.pack_uint8(static_cast<uint8_t>(Exporter::Property::EnergyTotal));
-    packer.pack_float(static_cast<float>(liveData.energyTotal));
+    packer.pack_uint8(static_cast<uint8_t>(Exporter::Property::EnergyExportTotal));
+    packer.pack_float(static_cast<float>(liveData.energyExportTotal));
     // 4. Yield Today
-    packer.pack_uint8(static_cast<uint8_t>(Exporter::Property::EnergyToday));
-    packer.pack_float(static_cast<float>(liveData.energyToday));
+    packer.pack_uint8(static_cast<uint8_t>(Exporter::Property::EnergyExportToday));
+    packer.pack_float(static_cast<float>(liveData.energyExportToday));
     // 5. Power AC
     packer.pack_uint8(static_cast<uint8_t>(Exporter::Property::Power));
-    packer.pack(liveData.acTotalPower);
+    packer.pack(liveData.acPowerTotal);
     // 6. Data per phase
     if (!liveData.ac.empty()) {
         packer.pack_uint8(static_cast<uint8_t>(Exporter::Property::Phases));

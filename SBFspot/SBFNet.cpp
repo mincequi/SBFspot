@@ -40,6 +40,12 @@ DISCLAIMER:
 #include <stdio.h>
 #include <string.h>
 
+#define BTH_L2SIGNATURE 0x656003FF
+
+uint16_t pcktID = 1;
+int packetposition = 0;
+int FCSChecksum = 0xffff;
+
 const unsigned short fcstab[256] =
 {
     0x0000, 0x1189, 0x2312, 0x329b, 0x4624, 0x57ad, 0x6536, 0x74bf, 0x8c48, 0x9dc1, 0xaf5a, 0xbed3, 0xca6c, 0xdbe5, 0xe97e, 0xf8f7,
@@ -60,25 +66,31 @@ const unsigned short fcstab[256] =
     0xf78f, 0xe606, 0xd49d, 0xc514, 0xb1ab, 0xa022, 0x92b9, 0x8330, 0x7bc7, 0x6a4e, 0x58d5, 0x495c, 0x3de3, 0x2c6a, 0x1ef1, 0x0f78
 };
 
-int writeLong(uint8_t *btbuffer, unsigned long v)
+Buffer::Buffer()
 {
-    writeByte(btbuffer,(unsigned char)((v >> 0) & 0xFF));
-    writeByte(btbuffer,(unsigned char)((v >> 8) & 0xFF));
-    writeByte(btbuffer,(unsigned char)((v >> 16) & 0xFF));
-    writeByte(btbuffer,(unsigned char)((v >> 24) & 0xFF));
-
-    return packetposition;
+    m_data.resize(2048);
 }
 
-int writeShort(uint8_t *btbuffer, unsigned short v)
+void Buffer::clear()
 {
-    writeByte(btbuffer,(unsigned char)((v >> 0) & 0xFF));
-    writeByte(btbuffer,(unsigned char)((v >> 8) & 0xFF));
-
-    return packetposition;
+    m_data.clear();
 }
 
-int writeByte(unsigned char *btbuffer, unsigned char v)
+void Buffer::writeLong(unsigned long v)
+{
+    writeByte((uint8_t)((v >> 0) & 0xFF));
+    writeByte((uint8_t)((v >> 8) & 0xFF));
+    writeByte((uint8_t)((v >> 16) & 0xFF));
+    writeByte((uint8_t)((v >> 24) & 0xFF));
+}
+
+void Buffer::writeShort(unsigned short v)
+{
+    writeByte((uint8_t)((v >> 0) & 0xFF));
+    writeByte((uint8_t)((v >> 8) & 0xFF));
+}
+
+void Buffer::writeByte(uint8_t v)
 {
     if (ConnType == CT_BLUETOOTH)
     {
@@ -86,128 +98,119 @@ int writeByte(unsigned char *btbuffer, unsigned char v)
         FCSChecksum = (FCSChecksum >> 8) ^ fcstab[(FCSChecksum ^ v) & 0xff];
         if (v == 0x7d || v == 0x7e || v == 0x11 || v == 0x12 || v == 0x13)
         {
-            btbuffer[packetposition++] = 0x7d;
-            btbuffer[packetposition++] = v ^ 0x20;
+            m_data[packetposition++] = 0x7d;
+            m_data[packetposition++] = v ^ 0x20;
         }
         else
         {
-            btbuffer[packetposition++] = v;
+            m_data[packetposition++] = v;
         }
     }
     else    // CT_ETHERNET
-        btbuffer[packetposition++] = v;
-
-    return packetposition;
+        m_data[packetposition++] = v;
 }
 
-int writeArray(unsigned char *btbuffer, const unsigned char bytes[], int loopcount)
+void Buffer::writeArray(const uint8_t bytes[], int loopcount)
 {
     for (int i = 0; i < loopcount; i++)
     {
-        writeByte(btbuffer, bytes[i]);
+        writeByte(bytes[i]);
     }
-
-    return packetposition;
 }
 
-int writePacket(unsigned char *buf, unsigned char longwords, unsigned char ctrl, unsigned short ctrl2, unsigned short dstSUSyID, unsigned long dstSerial)
+void Buffer::writePacket(uint8_t longwords, uint8_t ctrl, unsigned short ctrl2, unsigned short dstSUSyID, unsigned long dstSerial)
 {
 	if (ConnType == CT_BLUETOOTH)
 	{
-        buf[packetposition++] = 0x7E;   //Not included in checksum
-        writeLong(buf, BTH_L2SIGNATURE);
+        m_data[packetposition++] = 0x7E;   //Not included in checksum
+        writeLong(BTH_L2SIGNATURE);
 	}
 	else
-        writeLong(buf, ETH_L2SIGNATURE);
+        writeLong(ETH_L2SIGNATURE);
 
-    writeByte(buf, longwords);
-    writeByte(buf, ctrl);
-    writeShort(buf, dstSUSyID);
-    writeLong(buf, dstSerial);
-    writeShort(buf, ctrl2);
-    writeShort(buf, AppSUSyID);
-    writeLong(buf, AppSerial);
-    writeShort(buf, ctrl2);
-    writeShort(buf, 0);
-    writeShort(buf, 0);
-    writeShort(buf, pcktID | 0x8000);
-
-    return packetposition;
+    writeByte(longwords);
+    writeByte(ctrl);
+    writeShort(dstSUSyID);
+    writeLong(dstSerial);
+    writeShort(ctrl2);
+    writeShort(AppSUSyID);
+    writeLong(AppSerial);
+    writeShort(ctrl2);
+    writeShort(0);
+    writeShort(0);
+    writeShort(pcktID | 0x8000);
 }
 
-int writePacketTrailer(unsigned char *btbuffer)
+void Buffer::writePacketTrailer()
 {
    	if (ConnType == CT_BLUETOOTH)
    	{
         FCSChecksum ^= 0xFFFF;
-        btbuffer[packetposition++] = FCSChecksum & 0x00FF;
-        btbuffer[packetposition++] = (FCSChecksum >> 8) & 0x00FF;
-        btbuffer[packetposition++] = 0x7E;  //Trailing byte
+        m_data[packetposition++] = FCSChecksum & 0x00FF;
+        m_data[packetposition++] = (FCSChecksum >> 8) & 0x00FF;
+        m_data[packetposition++] = 0x7E;  //Trailing byte
    	}
    	else
-        writeLong(btbuffer, 0);
-
-    return packetposition;
+        writeLong(0);
 }
 
-int writePacketHeader(unsigned char *buf, const unsigned int control, const unsigned char *destaddress)
+void Buffer::writePacketHeader(const unsigned int control, const uint8_t *destaddress)
 {
+    m_data.resize(2048);
 	packetposition = 0;
 
     if (ConnType == CT_BLUETOOTH)
     {
         FCSChecksum = 0xFFFF;
 
-        buf[packetposition++] = 0x7E;
-        buf[packetposition++] = 0;  //placeholder for len1
-        buf[packetposition++] = 0;  //placeholder for len2
-        buf[packetposition++] = 0;  //placeholder for checksum
+        m_data[packetposition++] = 0x7E;
+        m_data[packetposition++] = 0;  //placeholder for len1
+        m_data[packetposition++] = 0;  //placeholder for len2
+        m_data[packetposition++] = 0;  //placeholder for checksum
 
         int i;
         for(i = 0; i < 6; i++)
-            buf[packetposition++] = LocalBTAddress[i];
+            m_data[packetposition++] = LocalBTAddress[i];
 
         for(i = 0; i < 6; i++)
-            buf[packetposition++] = destaddress[i];
+            m_data[packetposition++] = destaddress[i];
 
-        buf[packetposition++] = (uint8_t)(control & 0xFF);
-        buf[packetposition++] = (uint8_t)(control >> 8);
+        m_data[packetposition++] = (uint8_t)(control & 0xFF);
+        m_data[packetposition++] = (uint8_t)(control >> 8);
 
         cmdcode = 0xFFFF;  //Just set to dummy value
     }
     else
     {
         //Ignore control and destaddress
-        writeLong(buf, 0x00414D53);  // SMA\0
-        writeLong(buf, 0xA0020400);
-        writeLong(buf, 0x01000000);
-        writeByte(buf, 0);
-        writeByte(buf, 0);          // Placeholder for packet length
+        writeLong(0x00414D53);  // SMA\0
+        writeLong(0xA0020400);
+        writeLong(0x01000000);
+        writeByte(0);
+        writeByte(0);          // Placeholder for packet length
     }
-
-    return packetposition;
 }
 
-int writePacketLength(unsigned char *buf)
+void Buffer::writePacketLength()
 {
     if (ConnType == CT_BLUETOOTH)
     {
-        buf[1] = packetposition & 0xFF;		    //Lo-Byte
-        buf[2] = (packetposition >> 8) & 0xFF;	//Hi-Byte
-        buf[3] = buf[0] ^ buf[1] ^ buf[2];      //checksum
+        m_data[1] = packetposition & 0xFF;		    //Lo-Byte
+        m_data[2] = (packetposition >> 8) & 0xFF;	//Hi-Byte
+        m_data[3] = m_data[0] ^ m_data[1] ^ m_data[2];      //checksum
     }
     else
     {
         short dataLength = (short)(packetposition - sizeof(ethPacketHeaderL1L2));
-        ethPacketHeaderL1L2 *hdr = (ethPacketHeaderL1L2 *)buf;
+        ethPacketHeaderL1L2 *hdr = (ethPacketHeaderL1L2 *)m_data.data();
         hdr->pcktHdrL1.hiPacketLen = (dataLength >> 8) & 0xFF;
         hdr->pcktHdrL1.loPacketLen = dataLength & 0xFF;
     }
 
-    return packetposition;
+    m_data.resize(packetposition);
 }
 
-int validateChecksum()
+bool Buffer::validateChecksum()
 {
     FCSChecksum = 0xffff;
     //Skip over 0x7e at start and end of packet
@@ -219,11 +222,33 @@ int validateChecksum()
 
     FCSChecksum ^= 0xffff;
 
-	if (get_short(pcktBuf + packetposition - 3) == (short)FCSChecksum)
+    if (get_short(pcktBuf + packetposition - 3) == (short)FCSChecksum)
         return true;
     else
     {
-		if (DEBUG_HIGH) printf("Invalid chk 0x%04X - Found 0x%02X%02X\n", FCSChecksum, pcktBuf[packetposition-2], pcktBuf[packetposition-3]);
-		return false;
+        if (DEBUG_HIGH) printf("Invalid chk 0x%04X - Found 0x%02X%02X\n", FCSChecksum, pcktBuf[packetposition-2], pcktBuf[packetposition-3]);
+        return false;
     }
+}
+
+bool Buffer::isCrcValid()
+{
+    unsigned char lb = m_data[packetposition-3];
+    unsigned char hb = m_data[packetposition-2];
+
+    if (ConnType == CT_BLUETOOTH)
+    {
+        if ((lb == 0x7E) || (hb == 0x7E) ||
+                (lb == 0x7D) || (hb == 0x7D))
+            return false;
+        else
+            return true;
+    }
+    else
+        return true;   //Always true for ethernet
+}
+
+std::vector<uint8_t>& Buffer::data()
+{
+    return m_data;
 }

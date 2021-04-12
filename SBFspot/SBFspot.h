@@ -37,7 +37,8 @@ DISCLAIMER:
 #include <set>
 #include <vector>
 
-#include "Types.h"
+#include <SBFNet.h>
+#include <Types.h>
 
 //Wellknown SUSyID's
 #define SID_MULTIGATE	175
@@ -61,23 +62,23 @@ class LiveData;
 
 class SbfSpot {
 public:
-    SbfSpot(Ethernet& ethernet, Importer& import);
+    SbfSpot();
 
     int DaysInMonth(int month, int year);
     static int getInverterIndexByAddress(const std::vector<InverterData>& inverters, unsigned char bt_addr[6]);
     static int getInverterIndexBySerial(const std::vector<InverterData>& inverters, unsigned short SUSyID, uint32_t Serial);
 
-    static void encodeInitRequest(u_int8_t* buffer);
-    static void encodeLoginRequest(uint8_t* buffer, uint16_t susyId, uint32_t serial, SmaUserGroup userGroup, const std::string& password);
-    static void encodeLoginRequest(std::vector<uint8_t>& buffer, SmaUserGroup userGroup, const std::string& password);
-    static void encodeLogoutRequest(uint8_t* buffer);
-    static void encodeDataRequest(uint8_t* buffer, uint16_t susyId, uint32_t serial, SmaInverterDataSet dataSet);
+    const std::vector<uint8_t>& encodeInitRequest();
+    const std::vector<uint8_t>& encodeLoginRequest(uint16_t susyId, uint32_t serial, SmaUserGroup userGroup, const std::string& password);
+    const std::vector<uint8_t>& encodeLoginRequest(SmaUserGroup userGroup, const std::string& password);
+    const std::vector<uint8_t>& encodeLogoutRequest();
+    const std::vector<uint8_t>& encodeDataRequest(uint16_t susyId, uint32_t serial, SmaInverterDataSet dataSet);
 
     static void decodeResponse(const std::vector<uint8_t>& buffer, InverterDataMap& inverterDataMap, LiveData& data, std::set<LriDef>& lris);
 
 private:
-    Ethernet& m_ethernet;
-    Importer& m_import;
+    Buffer  m_buffer;
+    const std::vector<uint8_t> m_emptyBuffer;
 };
 
 extern const char *IP_Inverter;

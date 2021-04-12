@@ -78,9 +78,6 @@ extern uint8_t CommBuf[COMMBUFSIZE];
 extern uint8_t pcktBuf[COMMBUFSIZE];
 extern uint8_t RootDeviceAddress[6];
 extern uint8_t LocalBTAddress[6];
-extern uint16_t pcktID;
-extern int packetposition;
-extern int FCSChecksum;
 
 extern unsigned long AppSerial;
 extern unsigned int cmdcode;

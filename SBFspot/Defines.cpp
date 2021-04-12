@@ -52,9 +52,6 @@ uint8_t CommBuf[COMMBUFSIZE];
 uint8_t pcktBuf[COMMBUFSIZE];
 uint8_t RootDeviceAddress[6]= {0, 0, 0, 0, 0, 0};	//Hold byte array with BT address of primary inverter
 uint8_t LocalBTAddress[6] = {0, 0, 0, 0, 0, 0};		//Hold byte array with BT address of local adapter
-uint16_t pcktID = 1;
-int packetposition = 0;
-int FCSChecksum = 0xffff;
 
 unsigned long AppSerial = 0;
 unsigned int cmdcode = 0;

@@ -36,6 +36,7 @@ DISCLAIMER:
 
 #include <boost/date_time/gregorian/gregorian.hpp>
 
+#include "SBFNet.h"
 #include "Types.h"
 
 class Importer;
@@ -52,4 +53,5 @@ public:
 
 private:
     Importer& m_import;
+    Buffer  m_buffer;
 };

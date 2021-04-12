@@ -55,14 +55,15 @@ struct LiveData {
     // Dynamic device specific members
     std::time_t timestamp = 0;  // [sec]
 
-    int32_t acTotalPower = 0;   // [W]
-    int32_t dcTotalPower = 0;   // [W]
+    int32_t acPowerTotal = 0;   // [W]
+    int32_t dcPowerTotal = 0;   // [W]
 
     std::vector<ElectricParameters> ac;
     std::vector<ElectricParameters> dc;
 
-    int64_t energyToday = 0;    // [Wh]
-    int64_t energyTotal = 0;    // [Wh]
+    int64_t energyExportToday = 0;    // [Wh]
+    int64_t energyExportTotal = 0;    // [Wh]
+    int64_t energyImportTotal = 0;    // [Wh]
 };
 
 

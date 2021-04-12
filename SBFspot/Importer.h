@@ -39,6 +39,7 @@ DISCLAIMER:
 #include "Types.h"
 
 struct Config;
+class Buffer;
 class Ethernet;
 
 /*
@@ -52,8 +53,8 @@ public:
     ~Importer();
 
     int close();
-    E_SBFSPOT getPacket(const unsigned char senderaddr[6], int wait4Command);
-    int send(unsigned char *buffer, const std::string& toIP);
+    E_SBFSPOT getPacket(Buffer& buffer, const unsigned char senderaddr[6], int wait4Command);
+    int send(const std::vector<uint8_t>& buffer, const std::string& toIP);
 
 private:
     const Config& m_config;

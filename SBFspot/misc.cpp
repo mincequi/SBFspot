@@ -261,15 +261,15 @@ void print_error(FILE *error_file, ERRORLEVEL error_level, const char *error_msg
     fflush(error_file);
 }
 
-void HexDump(const unsigned char *buf, int count, int radix)
+void HexDump(const std::vector<uint8_t>& buffer, uint radix)
 {
-    int i, j;
+    uint i, j;
     printf("--------:");
     for (i=0; i < radix; i++)
     {
         printf(" %02X", i);
     }
-    for (i = 0, j = 0; i < count; i++)
+    for (i = 0, j = 0; i < buffer.size(); i++)
     {
         if (j % radix == 0)
         {
@@ -285,7 +285,7 @@ void HexDump(const unsigned char *buf, int count, int radix)
             else
                 printf("\n%08d: ", j);
         }
-        printf("%02X ", buf[i]);
+        printf("%02X ", buffer[i]);
         j++;
     }
     printf("\n");
@@ -366,18 +366,4 @@ std::string realpath(const char *path)
     else
         return std::string(path);
 #endif
-}
-
-int isCrcValid(unsigned char lb, unsigned char hb)
-{
-    if (ConnType == CT_BLUETOOTH)
-    {
-        if ((lb == 0x7E) || (hb == 0x7E) ||
-                (lb == 0x7D) || (hb == 0x7D))
-            return 0;
-        else
-            return 1;
-    }
-    else
-        return 1;   //Always true for ethernet
 }

@@ -89,11 +89,12 @@ E_SBFSPOT Inverter::ethInitConnection()
 
     for (auto& inverter : m_inverters)
     {
-        SbfSpot::encodeInitRequest(pcktBuf);
-        m_ethernet.ethSend(pcktBuf, inverter.IPAddress);
-        if ((rc = m_ethernet.ethGetPacket()) == E_OK)
+        auto buffer = m_sbfSpot.encodeInitRequest();
+        m_ethernet.ethSend(buffer, inverter.IPAddress);
+        Buffer response;
+        if ((rc = m_ethernet.ethGetPacket(response)) == E_OK)
         {
-            ethPacket *pckt = (ethPacket *)pcktBuf;
+            const ethPacket* pckt = (ethPacket*)response.data().data();
             inverter.SUSyID = btohs(pckt->Source.SUSyID);	// Fix Issue 98
             inverter.Serial = btohl(pckt->Source.Serial);	// Fix Issue 98
 
@@ -130,23 +131,23 @@ E_SBFSPOT Inverter::logonSMAInverter(std::vector<InverterData>& inverters, long 
 
     time_t now;
 
-    if (ConnType == CT_BLUETOOTH)
+    if (m_config.ConnectionType == CT_BLUETOOTH)
     {
 #ifdef BLUETOOTH_FOUND
         do
         {
             pcktID++;
             now = time(NULL);
-            writePacketHeader(pcktBuf, 0x01, addr_unknown);
-            writePacket(pcktBuf, 0x0E, 0xA0, 0x0100, anySUSyID, anySerial);
-            writeLong(pcktBuf, 0xFFFD040C);
-            writeLong(pcktBuf, userGroup);	// User / Installer
-            writeLong(pcktBuf, 0x00000384); // Timeout = 900sec ?
-            writeLong(pcktBuf, now);
-            writeLong(pcktBuf, 0);
+            writePacketHeader(0x01, addr_unknown);
+            writePacket(0x0E, 0xA0, 0x0100, anySUSyID, anySerial);
+            writeLong(0xFFFD040C);
+            writeLong(userGroup);	// User / Installer
+            writeLong(0x00000384); // Timeout = 900sec ?
+            writeLong(now);
+            writeLong(0);
             writeArray(pcktBuf, pw, sizeof(pw));
-            writePacketTrailer(pcktBuf);
-            writePacketLength(pcktBuf);
+            writePacketTrailer();
+            writePacketLength();
         }
         while (!isCrcValid(pcktBuf[packetposition-3], pcktBuf[packetposition-2]));
 
@@ -167,7 +168,7 @@ E_SBFSPOT Inverter::logonSMAInverter(std::vector<InverterData>& inverters, long 
                     unsigned short rcvpcktID = get_short(pcktBuf+27) & 0x7FFF;
                     if ((pcktID == rcvpcktID) && (get_long(pcktBuf + 41) == now))
                     {
-                        int ii = SbfSpot::getInverterIndexByAddress(inverters, CommBuf + 4);
+                        int ii = m_sbfSpot.getInverterIndexByAddress(inverters, CommBuf + 4);
                         if (ii >= 0 )
                         {
                             inverters[ii].SUSyID = get_short(pcktBuf + 15);
@@ -205,31 +206,32 @@ E_SBFSPOT Inverter::logonSMAInverter(std::vector<InverterData>& inverters, long 
             {
                 pcktID++;
                 now = time(NULL);
-                writePacketHeader(pcktBuf, 0x01, addr_unknown);
+                m_buffer.writePacketHeader(0x01, addr_unknown);
                 if (inverter.SUSyID != SID_SB240)
-                    writePacket(pcktBuf, 0x0E, 0xA0, 0x0100, inverter.SUSyID, inverter.Serial);
+                    m_buffer.writePacket(0x0E, 0xA0, 0x0100, inverter.SUSyID, inverter.Serial);
                 else
-                    writePacket(pcktBuf, 0x0E, 0xE0, 0x0100, inverter.SUSyID, inverter.Serial);
+                    m_buffer.writePacket(0x0E, 0xE0, 0x0100, inverter.SUSyID, inverter.Serial);
 
-                writeLong(pcktBuf, 0xFFFD040C);
-                writeLong(pcktBuf, userGroup);	// User / Installer
-                writeLong(pcktBuf, 0x00000384); // Timeout = 900sec ?
-                writeLong(pcktBuf, now);
-                writeLong(pcktBuf, 0);
-                writeArray(pcktBuf, pw, sizeof(pw));
-                writePacketTrailer(pcktBuf);
-                writePacketLength(pcktBuf);
+                m_buffer.writeLong(0xFFFD040C);
+                m_buffer.writeLong(userGroup);	// User / Installer
+                m_buffer.writeLong(0x00000384); // Timeout = 900sec ?
+                m_buffer.writeLong(now);
+                m_buffer.writeLong(0);
+                m_buffer.writeArray(pw, sizeof(pw));
+                m_buffer.writePacketTrailer();
+                m_buffer.writePacketLength();
             }
-            while (!isCrcValid(pcktBuf[packetposition-3], pcktBuf[packetposition-2]));
+            while (!m_buffer.isCrcValid());
 
-            m_ethernet.ethSend(pcktBuf, inverter.IPAddress);
+            m_ethernet.ethSend(m_buffer.data(), inverter.IPAddress);
 
             validPcktID = 0;
             do
             {
-                if ((rc = m_ethernet.ethGetPacket()) == E_OK)
+                Buffer response;
+                if ((rc = m_ethernet.ethGetPacket(response)) == E_OK)
                 {
-                    ethPacket *pckt = (ethPacket *)pcktBuf;
+                    const ethPacket* pckt = (ethPacket *)response.data().data();
                     if (pcktID == (btohs(pckt->PacketID) & 0x7FFF))   // Valid Packet ID
                     {
                         validPcktID = 1;
@@ -257,16 +259,15 @@ E_SBFSPOT Inverter::logoffSMAInverter(const InverterData& inverter)
     do
     {
         pcktID++;
-        writePacketHeader(pcktBuf, 0x01, addr_unknown);
-        writePacket(pcktBuf, 0x08, 0xA0, 0x0300, anySUSyID, anySerial);
-        writeLong(pcktBuf, 0xFFFD010E);
-        writeLong(pcktBuf, 0xFFFFFFFF);
-        writePacketTrailer(pcktBuf);
-        writePacketLength(pcktBuf);
+        m_buffer.writePacketHeader(0x01, addr_unknown);
+        m_buffer.writePacket(0x08, 0xA0, 0x0300, anySUSyID, anySerial);
+        m_buffer.writeLong(0xFFFD010E);
+        m_buffer.writeLong(0xFFFFFFFF);
+        m_buffer.writePacketTrailer();
+        m_buffer.writePacketLength();
     }
-    while (!isCrcValid(pcktBuf[packetposition-3], pcktBuf[packetposition-2]));
-
-    m_import.send(pcktBuf, inverter.IPAddress);
+    while (!m_buffer.isCrcValid());
+    m_import.send(m_buffer.data(), inverter.IPAddress);
 
     return E_OK;
 }
@@ -288,16 +289,16 @@ E_SBFSPOT Inverter::logoffMultigateDevices(const std::vector<InverterData>& inve
                     do
                     {
                         pcktID++;
-                        writePacketHeader(pcktBuf, 0, NULL);
-                        writePacket(pcktBuf, 0x08, 0xE0, 0x0300, psb.SUSyID, psb.Serial);
-                        writeLong(pcktBuf, 0xFFFD010E);
-                        writeLong(pcktBuf, 0xFFFFFFFF);
-                        writePacketTrailer(pcktBuf);
-                        writePacketLength(pcktBuf);
+                        m_buffer.writePacketHeader(0, NULL);
+                        m_buffer.writePacket(0x08, 0xE0, 0x0300, psb.SUSyID, psb.Serial);
+                        m_buffer.writeLong(0xFFFD010E);
+                        m_buffer.writeLong(0xFFFFFFFF);
+                        m_buffer.writePacketTrailer();
+                        m_buffer.writePacketLength();
                     }
-                    while (!isCrcValid(pcktBuf[packetposition-3], pcktBuf[packetposition-2]));
+                    while (!m_buffer.isCrcValid());
 
-                    m_ethernet.ethSend(pcktBuf, psb.IPAddress);
+                    m_ethernet.ethSend(m_buffer.data(), psb.IPAddress);
                     if (VERBOSE_NORMAL)
                         std::cout << "Logoff " << psb.SUSyID << ":" << psb.Serial << std::endl;
                 }
@@ -317,28 +318,28 @@ E_SBFSPOT Inverter::getDeviceList(std::vector<InverterData>& inverters, int mult
     do
     {
         pcktID++;
-        writePacketHeader(pcktBuf, 0x01, NULL);
-        writePacket(pcktBuf, 0x09, 0xE0, 0, inverters[multigateIndex].SUSyID, inverters[multigateIndex].Serial);
-        writeShort(pcktBuf, 0x0200);
-        writeShort(pcktBuf, 0xFFF5);
-        writeLong(pcktBuf, 0);
-        writeLong(pcktBuf, 0xFFFFFFFF);
-        writePacketTrailer(pcktBuf);
-        writePacketLength(pcktBuf);
+        m_buffer.writePacketHeader(0x01, NULL);
+        m_buffer.writePacket(0x09, 0xE0, 0, inverters[multigateIndex].SUSyID, inverters[multigateIndex].Serial);
+        m_buffer.writeShort(0x0200);
+        m_buffer.writeShort(0xFFF5);
+        m_buffer.writeLong(0);
+        m_buffer.writeLong(0xFFFFFFFF);
+        m_buffer.writePacketTrailer();
+        m_buffer.writePacketLength();
     }
-    while (!isCrcValid(pcktBuf[packetposition-3], pcktBuf[packetposition-2]));
-
-    if (m_ethernet.ethSend(pcktBuf, inverters[multigateIndex].IPAddress) == -1)	// SOCKET_ERROR
+    while (!m_buffer.isCrcValid());
+    if (m_ethernet.ethSend(m_buffer.data(), inverters[multigateIndex].IPAddress) == -1)	// SOCKET_ERROR
         return E_NODATA;
 
     int validPcktID = 0;
     do
     {
-        rc = m_ethernet.ethGetPacket();
+        Buffer response;
+        rc = m_ethernet.ethGetPacket(response);
         if (rc != E_OK)
             return rc;
 
-        int16_t errorcode = get_short(pcktBuf + 23);
+        int16_t errorcode = get_short(response.data().data() + 23);
         if (errorcode != 0)
         {
             std::cerr << "Received errorcode=" << errorcode << std::endl;
@@ -393,17 +394,17 @@ int Inverter::getInverterData(std::vector<InverterData>& inverters, SmaInverterD
 
     for (auto& inverter : inverters)
     {
-        SbfSpot::encodeDataRequest(pcktBuf, inverter.SUSyID, inverter.Serial, type);
-        m_import.send(pcktBuf, inverter.IPAddress);
+        auto buffer = m_sbfSpot.encodeDataRequest(inverter.SUSyID, inverter.Serial, type);
+        m_import.send(buffer, inverter.IPAddress);
 
         validPcktID = 0;
         do
         {
-            rc = m_import.getPacket(inverter.BTAddress, 1);
+            rc = m_import.getPacket(m_buffer, inverter.BTAddress, 1);
             if (rc != E_OK)
                 return rc;
 
-            if ((ConnType == CT_BLUETOOTH) && (!validateChecksum()))
+            if ((ConnType == CT_BLUETOOTH) && (!m_buffer.validateChecksum()))
                 return E_CHKSUM;
 
             unsigned short rcvpcktID = get_short(pcktBuf+27) & 0x7FFF;
@@ -889,30 +890,31 @@ void Inverter::reset()
 std::string Inverter::discover()
 {
     // Start with UDP broadcast to check for SMA devices on the LAN
-    writeLong(pcktBuf, 0x00414D53);  //Start of SMA header
-    writeLong(pcktBuf, 0xA0020400);  //Unknown
-    writeLong(pcktBuf, 0xFFFFFFFF);  //Unknown
-    writeLong(pcktBuf, 0x20000000);  //Unknown
-    writeLong(pcktBuf, 0x00000000);  //Unknown
+    m_buffer.data().resize(2048);
+    m_buffer.writeLong(0x00414D53);  //Start of SMA header
+    m_buffer.writeLong(0xA0020400);  //Unknown
+    m_buffer.writeLong(0xFFFFFFFF);  //Unknown
+    m_buffer.writeLong(0x20000000);  //Unknown
+    m_buffer.writeLong(0x00000000);  //Unknown
+    m_buffer.m_data.resize(packetposition);
 
-    m_ethernet.ethSend(pcktBuf, IP_Broadcast);
+    m_ethernet.ethSend(m_buffer.data(), IP_Broadcast);
 
     //SMA inverter announces its presence in response to the discovery request packet
-    int bytesRead = m_ethernet.ethRead(CommBuf, sizeof(CommBuf));
+    auto response = m_ethernet.ethRead();
 
-    // if bytesRead < 0, a timeout has occurred
     // if bytesRead == 0, no data was received
-    if (bytesRead <= 0)
+    if (response.empty())
     {
         std::cerr << "ERROR: No inverter responded to identification broadcast.\n";
         std::cerr <<	"Try to set IP_Address in SBFspot.cfg!\n";
         return {};
     }
 
-    if (DEBUG_NORMAL) HexDump(CommBuf, bytesRead, 10);
+    if (DEBUG_NORMAL) HexDump(response, 10);
 
     char ipAddress[20];
-    sprintf(ipAddress, "%d.%d.%d.%d", CommBuf[38], CommBuf[39], CommBuf[40], CommBuf[41]);
+    sprintf(ipAddress, "%d.%d.%d.%d", response.data()[38], response.data()[39], response.data()[40], response.data()[41]);
 
     return ipAddress;
 }

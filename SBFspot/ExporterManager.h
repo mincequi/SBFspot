@@ -35,7 +35,6 @@ DISCLAIMER:
 #pragma once
 
 #include "Exporter.h"
-#include <mqtt/MqttExporter_qt.h>
 #include <msgpack/MsgPackSerializer.h>
 
 class Cache;
@@ -45,6 +44,7 @@ class ExporterManager : public Exporter
 {
 public:
     ExporterManager(const Config& config, Cache& cache);
+    ~ExporterManager();
 
 private:
     virtual int exportLiveData(const LiveData& liveData) override;
@@ -53,6 +53,6 @@ private:
     Cache&          m_cache;
 
     msgpack::MsgPackSerializer m_msgPackSerializer;
-    mqtt::MqttExporter_qt m_mqttExporter;
+    std::list<Exporter*> m_exporters;
 };
 

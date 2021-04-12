@@ -34,19 +34,30 @@ DISCLAIMER:
 
 #include "ExporterManager.h"
 
-#include "Config.h"
+#include <Config.h>
+#include <mqtt/MqttExporter_qt.h>
 
 ExporterManager::ExporterManager(const Config& config, Cache& cache) :
     m_config(config),
-    m_cache(cache),
-    m_mqttExporter(config, m_msgPackSerializer)
+    m_cache(cache)
 {
+    m_exporters.push_back(new mqtt::MqttExporter_qt(config, m_msgPackSerializer));
+}
+
+ExporterManager::~ExporterManager()
+{
+    for (auto& exporter : m_exporters) {
+        delete exporter;
+    }
+    m_exporters.clear();
 }
 
 int ExporterManager::exportLiveData(const LiveData& liveData)
 {
     if (m_config.mqtt) {
-        m_mqttExporter.exportLiveData(liveData);
+        for (auto& exporter : m_exporters) {
+            exporter->exportLiveData(liveData);
+        }
     }
 
     return 0;

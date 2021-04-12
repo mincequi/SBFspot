@@ -61,26 +61,26 @@ int Importer::close()
 #endif
 }
 
-E_SBFSPOT Importer::getPacket(const unsigned char senderaddr[6], int wait4Command)
+E_SBFSPOT Importer::getPacket(Buffer& buffer, const unsigned char senderaddr[6], int wait4Command)
 {
-    if (ConnType == CT_BLUETOOTH)
+    if (m_config.ConnectionType == CT_BLUETOOTH)
     {
 #ifdef BLUETOOTH_FOUND
-        return bthGetPacket(senderaddr, wait4Command);
+        return bthGetPacket(buffer, senderaddr, wait4Command);
 #else
         std::cout << "Bluetooth not supported on this platform" << std::endl;
-        return E_COMM;
+        return {};
 #endif
     }
     else
     {
-        return m_ethernet.ethGetPacket();
+        return m_ethernet.ethGetPacket(buffer);
     }
 }
 
-int Importer::send(unsigned char *buffer, const std::string& toIP)
+int Importer::send(const std::vector<uint8_t>& buffer, const std::string& toIP)
 {
-    if(ConnType == CT_BLUETOOTH)
+    if (m_config.ConnectionType == CT_BLUETOOTH)
     {
 #ifdef BLUETOOTH_FOUND
         return bthSend(buffer);

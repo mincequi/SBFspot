@@ -69,7 +69,7 @@ int main(int argc, char **argv)
     quiet = config.quiet;
     ConnType = config.ConnectionType;
 
-    if ((ConnType != CT_BLUETOOTH) && (config.settime == 1))
+    if ((config.ConnectionType != CT_BLUETOOTH) && (config.settime == 1))
     {
         std::cout << "-settime is only supported for Bluetooth devices" << std::endl;
         return 0;
@@ -96,7 +96,7 @@ int main(int argc, char **argv)
 
     Ethernet ethernet;
     Importer import(config, ethernet);
-    SbfSpot sbfSpot(ethernet, import);
+    SbfSpot sbfSpot;
     Inverter inverter(config, ethernet, import, sbfSpot);
     do
     {

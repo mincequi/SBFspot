@@ -37,21 +37,35 @@ DISCLAIMER:
 
 #include "osselect.h"
 
-#define BTH_L2SIGNATURE 0x656003FF
+#include <vector>
 
-//Function prototypes
-//void ethWritePacketHeader(unsigned char *buf);
-//void ethWritePacket(unsigned char *buf, unsigned char ctrl, unsigned short ctrl2, unsigned short dstSUSyID, unsigned long dstSerial);
+extern uint16_t pcktID;
+extern int packetposition;
 
-int writeLong(unsigned char *btbuffer, const unsigned long v);
-int writeShort(unsigned char *btbuffer, const unsigned short v);
-int writeByte(unsigned char *btbuffer, const unsigned char v);
-int writeArray(unsigned char *btbuffer, const unsigned char bytes[], const int count);
-//int writePacket(unsigned char *btbuffer, const unsigned char size, const unsigned char ctrl, const unsigned short dstSUSyID, const unsigned long dstSerial, const unsigned short packetcount, const unsigned char a, const unsigned char b, const unsigned char c);
-int writePacket(unsigned char *buf, unsigned char longwords, unsigned char ctrl, unsigned short ctrl2, unsigned short dstSUSyID, unsigned long dstSerial);
-int writePacketTrailer(unsigned char *btbuffer);
-int writePacketHeader(unsigned char *btbuffer, const unsigned int control, const unsigned char *destaddress);
-int writePacketLength(unsigned char *buffer);
-int validateChecksum(void);
+class Buffer
+{
+public:
+    Buffer();
+
+    void clear();
+    void writeLong(const unsigned long v);
+    void writeShort(const unsigned short v);
+    void writeByte(const uint8_t v);
+    void writeArray(const uint8_t bytes[], const int count);
+    //void writePacket(const uint8_t size, const uint8_t ctrl, const unsigned short dstSUSyID, const unsigned long dstSerial, const unsigned short packetcount, const uint8_t a, const uint8_t b, const uint8_t c);
+    void writePacket(uint8_t longwords, uint8_t ctrl, unsigned short ctrl2, unsigned short dstSUSyID, unsigned long dstSerial);
+    void writePacketTrailer();
+    void writePacketHeader(const unsigned int control, const uint8_t *destaddress);
+    void writePacketLength();
+    bool validateChecksum();
+    bool isCrcValid();
+
+    std::vector<uint8_t>& data();
+
+private:
+    std::vector<uint8_t> m_data;
+
+    friend class Inverter;
+};
 
 #endif

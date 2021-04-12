@@ -74,9 +74,7 @@ void setClsData(std::vector<ElectricParameters>& data, uint8_t cls, T value, T E
     data.at(cls-1).*field = value;
 }
 
-SbfSpot::SbfSpot(Ethernet& ethernet, Importer& import) :
-    m_ethernet(ethernet),
-    m_import(import)
+SbfSpot::SbfSpot()
 {
 }
 
@@ -141,18 +139,20 @@ int SbfSpot::DaysInMonth(int month, int year)
         return days[month];
 }
 
-void SbfSpot::encodeInitRequest(u_int8_t* buffer)
+const std::vector<uint8_t>& SbfSpot::encodeInitRequest()
 {
-    writePacketHeader(buffer, 0, nullptr);
-    writePacket(buffer, 0x09, 0xA0, 0, anySUSyID, anySerial);
-    writeLong(buffer, 0x00000200);
-    writeLong(buffer, 0);
-    writeLong(buffer, 0);
-    writeLong(buffer, 0);
-    writePacketLength(buffer);
+    m_buffer.writePacketHeader(0, nullptr);
+    m_buffer.writePacket(0x09, 0xA0, 0, anySUSyID, anySerial);
+    m_buffer.writeLong(0x00000200);
+    m_buffer.writeLong(0);
+    m_buffer.writeLong(0);
+    m_buffer.writeLong(0);
+    m_buffer.writePacketLength();
+
+    return m_buffer.data();
 }
 
-void SbfSpot::encodeLoginRequest(uint8_t* buffer, uint16_t susyId, uint32_t serial, SmaUserGroup userGroup, const std::string& password)
+const std::vector<uint8_t>& SbfSpot::encodeLoginRequest(uint16_t susyId, uint32_t serial, SmaUserGroup userGroup, const std::string& password)
 {
 #define MAX_PWLENGTH 12
     unsigned char pw[MAX_PWLENGTH] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -189,7 +189,7 @@ void SbfSpot::encodeLoginRequest(uint8_t* buffer, uint16_t susyId, uint32_t seri
 #else
         if (DEBUG_NORMAL)
             std::cout << "Bluetooth not supported on this platform" << std::endl;
-        return;
+        return m_emptyBuffer;
 #endif
     }
     else    // CT_ETHERNET
@@ -198,31 +198,29 @@ void SbfSpot::encodeLoginRequest(uint8_t* buffer, uint16_t susyId, uint32_t seri
         {
             pcktID++;
             now = time(NULL);
-            writePacketHeader(buffer, 0x01, addr_unknown);
+            m_buffer.writePacketHeader(0x01, addr_unknown);
             if (susyId != SID_SB240)
-                writePacket(buffer, 0x0E, 0xA0, 0x0100, susyId, serial);
+                m_buffer.writePacket(0x0E, 0xA0, 0x0100, susyId, serial);
             else
-                writePacket(buffer, 0x0E, 0xE0, 0x0100, susyId, serial);
+                m_buffer.writePacket(0x0E, 0xE0, 0x0100, susyId, serial);
 
-            writeLong(buffer, 0xFFFD040C);
-            writeLong(buffer, userGroup);	// User / Installer
-            writeLong(buffer, 0x00000384); // Timeout = 900sec ?
-            writeLong(buffer, now);
-            writeLong(buffer, 0);
-            writeArray(buffer, pw, sizeof(pw));
-            writePacketTrailer(buffer);
-            writePacketLength(buffer);
+            m_buffer.writeLong(0xFFFD040C);
+            m_buffer.writeLong(userGroup);	// User / Installer
+            m_buffer.writeLong(0x00000384); // Timeout = 900sec ?
+            m_buffer.writeLong(now);
+            m_buffer.writeLong(0);
+            m_buffer.writeArray(pw, sizeof(pw));
+            m_buffer.writePacketTrailer();
+            m_buffer.writePacketLength();
         }
-        while (!isCrcValid(buffer[packetposition-3], buffer[packetposition-2]));
+        while (!m_buffer.isCrcValid());
     }
 
-    return;
+    return m_buffer.data();
 }
 
-void SbfSpot::encodeLoginRequest(std::vector<uint8_t>& buffer, SmaUserGroup userGroup, const std::string& password)
+const std::vector<uint8_t>& SbfSpot::encodeLoginRequest(SmaUserGroup userGroup, const std::string& password)
 {
-    buffer.resize(128);
-
 #define MAX_PWLENGTH 12
     unsigned char pw[MAX_PWLENGTH] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
@@ -239,56 +237,60 @@ void SbfSpot::encodeLoginRequest(std::vector<uint8_t>& buffer, SmaUserGroup user
     {
         pcktID++;
 
-        writePacketHeader(buffer.data(), 0x01, addr_unknown);
-        writePacket(buffer.data(), 0x0E, 0xA0, 0x0100, 0xFFFF, 0xFFFFFFFF);
-        writeLong(buffer.data(), 0xFFFD040C);
-        writeLong(buffer.data(), userGroup);	// User / Installer
-        writeLong(buffer.data(), 0x00000384); // Timeout = 900sec ?
-        writeLong(buffer.data(), now);
-        writeLong(buffer.data(), 0);
-        writeArray(buffer.data(), pw, sizeof(pw));
-        writePacketTrailer(buffer.data());
-        writePacketLength(buffer.data());
+        m_buffer.writePacketHeader(0x01, addr_unknown);
+        m_buffer.writePacket(0x0E, 0xA0, 0x0100, 0xFFFF, 0xFFFFFFFF);
+        m_buffer.writeLong(0xFFFD040C);
+        m_buffer.writeLong(userGroup);	// User / Installer
+        m_buffer.writeLong(0x00000384); // Timeout = 900sec ?
+        m_buffer.writeLong(now);
+        m_buffer.writeLong(0);
+        m_buffer.writeArray(pw, sizeof(pw));
+        m_buffer.writePacketTrailer();
+        m_buffer.writePacketLength();
     }
-    while (!isCrcValid(buffer[packetposition-3], buffer[packetposition-2]));
+    while (!m_buffer.isCrcValid());
 
-    buffer.resize(packetposition);
+    return m_buffer.data();
 }
 
-void SbfSpot::encodeLogoutRequest(uint8_t* buffer)
+const std::vector<uint8_t>& SbfSpot::encodeLogoutRequest()
 {
     do
     {
         pcktID++;
-        writePacketHeader(buffer, 0x01, addr_unknown);
-        writePacket(buffer, 0x08, 0xA0, 0x0300, anySUSyID, anySerial);
-        writeLong(buffer, 0xFFFD010E);
-        writeLong(buffer, 0xFFFFFFFF);
-        writePacketTrailer(buffer);
-        writePacketLength(buffer);
+        m_buffer.writePacketHeader(0x01, addr_unknown);
+        m_buffer.writePacket(0x08, 0xA0, 0x0300, anySUSyID, anySerial);
+        m_buffer.writeLong(0xFFFD010E);
+        m_buffer.writeLong(0xFFFFFFFF);
+        m_buffer.writePacketTrailer();
+        m_buffer.writePacketLength();
     }
-    while (!isCrcValid(buffer[packetposition-3], pcktBuf[packetposition-2]));
+    while (!m_buffer.isCrcValid());
+
+    return m_buffer.data();
 }
 
-void SbfSpot::encodeDataRequest(uint8_t* buffer, uint16_t susyId, uint32_t serial, SmaInverterDataSet dataSet)
+const std::vector<uint8_t>& SbfSpot::encodeDataRequest(uint16_t susyId, uint32_t serial, SmaInverterDataSet dataSet)
 {
     auto request = sma::SmaInverterRequests::create(dataSet);
 
     do
     {
         pcktID++;
-        writePacketHeader(buffer, 0x01, addr_unknown);
+        m_buffer.writePacketHeader(0x01, addr_unknown);
         if (susyId == SID_SB240)
-            writePacket(buffer, 0x09, 0xE0, 0, susyId, serial);
+            m_buffer.writePacket(0x09, 0xE0, 0, susyId, serial);
         else
-            writePacket(buffer, 0x09, 0xA0, 0, susyId, serial);
-        writeLong(buffer, request.command);
-        writeLong(buffer, request.first);
-        writeLong(buffer, request.last);
-        writePacketTrailer(buffer);
-        writePacketLength(buffer);
+            m_buffer.writePacket(0x09, 0xA0, 0, susyId, serial);
+        m_buffer.writeLong(request.command);
+        m_buffer.writeLong(request.first);
+        m_buffer.writeLong(request.last);
+        m_buffer.writePacketTrailer();
+        m_buffer.writePacketLength();
     }
-    while (!isCrcValid(buffer[packetposition-3], buffer[packetposition-2]));
+    while (!m_buffer.isCrcValid());
+
+    return m_buffer.data();
 }
 
 void SbfSpot::decodeResponse(const std::vector<uint8_t>& buffer, InverterDataMap& inverterDataMap, LiveData& inverter, std::set<LriDef>& lris)
@@ -331,7 +333,7 @@ void SbfSpot::decodeResponse(const std::vector<uint8_t>& buffer, InverterDataMap
             if (recordsize == 0) recordsize = 28;
             //This function gives us the time when the inverter was switched off
             //inverter.SleepTime = datetime;
-            inverter.acTotalPower = value;
+            inverter.acPowerTotal = value;
             // inverter.flags |= type;
             break;
 
@@ -435,7 +437,7 @@ void SbfSpot::decodeResponse(const std::vector<uint8_t>& buffer, InverterDataMap
             if (recordsize == 0) recordsize = 16;
             //In case SPOT_ETODAY missing, this function gives us inverter time (eg: SUNNY TRIPOWER 6.0)
             //inverter.InverterDatetime = datetime;
-            inverter.energyTotal = value64;
+            inverter.energyExportTotal = value64;
             // inverter.flags |= type;
             break;
 
@@ -443,7 +445,7 @@ void SbfSpot::decodeResponse(const std::vector<uint8_t>& buffer, InverterDataMap
             if (recordsize == 0) recordsize = 16;
             //This function gives us the current inverter time
             //inverter.InverterDatetime = datetime;
-            inverter.energyToday = value64;
+            inverter.energyExportToday = value64;
             // inverter.flags |= type;
             break;
 

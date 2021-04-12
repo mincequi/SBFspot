@@ -190,10 +190,10 @@ int MqttMsgPackExport::exportLiveData(std::time_t timestamp,
         packer.pack_ext(4, -1); // Timestamp type
         packer.pack_ext_body((const char*)(&t), 4);
         // 3. Yield Total
-        packer.pack_uint8(static_cast<uint8_t>(Property::EnergyTotal));
+        packer.pack_uint8(static_cast<uint8_t>(Property::EnergyExportTotal));
         packer.pack_float(static_cast<float>(inv.ETotal));
         // 4. Yield Today
-        packer.pack_uint8(static_cast<uint8_t>(Property::EnergyToday));
+        packer.pack_uint8(static_cast<uint8_t>(Property::EnergyExportToday));
         packer.pack_float(static_cast<float>(inv.EToday));
         // 5. Power AC
         packer.pack_uint8(static_cast<uint8_t>(Property::Power));
@@ -240,7 +240,7 @@ int MqttMsgPackExport::exportLiveData(const LiveData& liveData)
     packer.pack_ext_body((const char*)(&t), 4);
     // 3. Power AC
     packer.pack_uint8(static_cast<uint8_t>(Property::Power));
-    packer.pack(liveData.acTotalPower);
+    packer.pack(liveData.acPowerTotal);
 
     publish(topic, sbuf, 0);
 

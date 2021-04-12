@@ -115,7 +115,7 @@ void SmaManager::startNextLiveTimer()
 
 void SmaManager::onLiveTimeout()
 {
-    qInfo() << "Live timeout:" << m_currentTimePoint;
+    qInfo() << "Polling inverters, timestamp:" << m_currentTimePoint;
     for (auto& kv : m_inverters) {
         if (kv.second->m_state == SmaInverter::State::Invalid)
             continue;
