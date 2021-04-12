@@ -64,6 +64,7 @@ void HexDump(const std::vector<uint8_t>& buffer, uint radix);
 char *FormatFloat(char *str, float value, int width, int precision, char decimalpoint);
 char *FormatDouble(char *str, double value, int width, int precision, char decimalpoint);
 std::string realpath(const char *path);
+std::string asIp(uint32_t ip);
 
 #define DEBUG_LOW (debug >= 1)
 #define DEBUG_NORMAL (debug >= 2)

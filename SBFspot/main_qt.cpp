@@ -37,10 +37,13 @@ DISCLAIMER:
 #include "Cache.h"
 #include "Config.h"
 #include "ExporterManager.h"
+#include "Logging.h"
 #include "sma/SmaManager.h"
 
 int main(int argc, char *argv[])
 {
+    Logging::init(argc, argv);
+
     // Read the command line and store settings in config struct.
     Config config;
     int rc = config.parseCmdline(argc, argv);

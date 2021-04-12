@@ -37,6 +37,7 @@ DISCLAIMER:
 #include "Defines.h"
 #include "SBFspot.h"
 #include <time.h>
+#include <sstream>
 #include <string.h>
 #include <stdio.h>
 #if defined(WIN32)
@@ -366,4 +367,12 @@ std::string realpath(const char *path)
     else
         return std::string(path);
 #endif
+}
+
+std::string asIp(uint32_t ip)
+{
+    std::stringstream ss;
+    uint8_t* data = reinterpret_cast<uint8_t*>(&ip);
+    ss << static_cast<uint>(data[0]) << "." << static_cast<uint>(data[1]) << "." << static_cast<uint>(data[2]) << "." << static_cast<uint>(data[3]);
+    return ss.str();
 }

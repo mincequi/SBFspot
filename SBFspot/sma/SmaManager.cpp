@@ -42,6 +42,8 @@ DISCLAIMER:
 #include "Config.h"
 #include "Exporter.h"
 #include "LiveData.h"
+#include "Logging.h"
+#include "misc.h"
 
 namespace sma {
 
@@ -88,7 +90,7 @@ void SmaManager::onDiscoveryResponseDatagram(const QNetworkDatagram& datagram)
 {
     auto ip = datagram.senderAddress().toIPv4Address();
     if (!m_inverters.count(ip)) {
-        qInfo() << "Found inverter at: " << datagram.senderAddress();
+        LOG_S(INFO) << "Found inverter at: " << datagram.senderAddress().toString().toStdString();
         m_inverters.emplace(ip, new SmaInverter(this, m_config, m_ethernet, m_exporter, ip));
         m_inverters.at(ip)->m_lastSeen = std::time(nullptr);
     } else {
@@ -115,7 +117,7 @@ void SmaManager::startNextLiveTimer()
 
 void SmaManager::onLiveTimeout()
 {
-    qInfo() << "Polling inverters, timestamp:" << m_currentTimePoint;
+    LOG_S(INFO) << "Polling inverters, timestamp:" << m_currentTimePoint;
     for (auto& kv : m_inverters) {
         if (kv.second->m_state == SmaInverter::State::Invalid)
             continue;
@@ -133,7 +135,7 @@ void SmaManager::timerEvent(QTimerEvent* event)
         auto it = m_inverters.begin();
         while (it != m_inverters.end()) {
             if (now - it->second->m_lastSeen > 3600) {
-                qInfo() << "Inverter at ip" << QHostAddress(it->first) << "not seen for an hour. Removing.";
+                LOG_S(INFO) << "Inverter at ip" << asIp(it->first) << "not seen for an hour. Removing.";
                 delete it->second;
                 it = m_inverters.erase(it);
             } else {

@@ -34,7 +34,6 @@ DISCLAIMER:
 
 #include "SmaInverter.h"
 
-#include <QDebug>
 #include <QNetworkDatagram>
 #include <QtConcurrent>
 
@@ -42,6 +41,7 @@ DISCLAIMER:
 #include <Defines.h>
 #include <Ethernet_qt.h>
 #include <Exporter.h>
+#include <Logging.h>
 #include <SBFspot.h>
 #include <sma/SmaInverterRequests.h>
 
@@ -152,9 +152,9 @@ void SmaInverter::requestDataSet(SmaInverterDataSet dataSet)
 
 void SmaInverter::exportData()
 {
-    qDebug() << "Inverter" << m_serial;
+    LOG_S(1) << "Inverter" << m_serial;
     for (const auto& kv : m_pendingDataMap) {
-        qDebug() << "    key:" << QByteArray::number(kv.first, 16) << ", value:" << kv.second;
+        LOG_S(1) << "    key:" << QByteArray::number(kv.first, 16) << ", value:" << kv.second;
     }
 
     m_pendingData.fixup();
@@ -164,7 +164,7 @@ void SmaInverter::exportData()
 
 void SmaInverter::onDatagram(const QNetworkDatagram& datagram)
 {
-    qDebug() << "Received datagram from:" << datagram.senderAddress();
+    LOG_S(1) << "Received datagram from:" << datagram.senderAddress().toString().toStdString();
 
     const char* data = datagram.data().data() + sizeof(ethPacketHeaderL1) - 1;
     ethPacket *pckt = (ethPacket*)data;
@@ -172,7 +172,7 @@ void SmaInverter::onDatagram(const QNetworkDatagram& datagram)
     case State::Invalid:
         m_susyId = pckt->Source.SUSyID;	// Fix Issue 98
         m_serial = pckt->Source.Serial;	// Fix Issue 98
-        qInfo() << "Inverter at" << datagram.senderAddress() << "has serial:" << m_serial;
+        LOG_S(INFO) << "Inverter at " << datagram.senderAddress().toString().toStdString() << " has serial: " << m_serial;
         resetPendingData();
         m_state = State::Initialized;
         return;

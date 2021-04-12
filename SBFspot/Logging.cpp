@@ -32,63 +32,42 @@ DISCLAIMER:
 
 ************************************************************************************************/
 
-#include "MqttExporter_qt.h"
-
-#include <QHostAddress>
-#include <qmqtt_message.h>
-
-#include "Config.h"
-#include "LiveData.h"
 #include "Logging.h"
-#include "Serializer.h"
 
-namespace mqtt {
+#include <QByteArray>
 
-MqttExporter_qt::MqttExporter_qt(const Config& config, const Serializer& serializer)
-    : m_config(config),
-      m_serializer(serializer),
-      m_client(QString::fromStdString(config.mqtt_host), config.mqtt_port, false, false)
-{
-    QObject::connect(&m_client, &QMQTT::Client::error, this, &MqttExporter_qt::onError);
-    m_client.connectToHost();
+void Logging::init(int& argc, char* argv[]) {
+    /* Everything with a verbosity equal or greater than g_stderr_verbosity will be
+        written to stderr. You can set this in code or via the -v argument.
+        Set to loguru::Verbosity_OFF to write nothing to stderr.
+        Default is 0, i.e. only log ERROR, WARNING and INFO are written to stderr.
+        */
+    loguru::g_stderr_verbosity  = 0;
+    loguru::g_colorlogtostderr  = true; // True by default.
+    loguru::g_flush_interval_ms = 0; // 0 (unbuffered) by default.
+    loguru::g_preamble          = true; // Prefix each log line with date, time etc? True by default.
+
+    /* Specify the verbosity used by loguru to log its info messages including the header
+        logged when logged::init() is called or on exit. Default is 0 (INFO).
+        */
+    loguru::g_internal_verbosity = 1;
+
+    loguru::g_preamble_date    = false;
+    loguru::g_preamble_time    = true; // The time of the current day
+    loguru::g_preamble_uptime  = false; // The time since init call
+    loguru::g_preamble_thread  = false; // The logging thread
+    loguru::g_preamble_file    = true; // The file from which the log originates from
+    loguru::g_preamble_verbose = true; // The verbosity field
+    loguru::g_preamble_pipe    = true; // The pipe symbol right before the message
+
+    loguru::init(argc, argv);
 }
 
-MqttExporter_qt::~MqttExporter_qt()
+Logging::Logging()
 {
 }
 
-std::string MqttExporter_qt::name() const
+std::ostream& operator<< (std::ostream& out, QByteArray const& array)
 {
-    return "MqttExporter_qt";
-}
-
-int MqttExporter_qt::exportLiveData(const LiveData& liveData)
-{
-    if (!m_client.isConnectedToHost()) {
-        m_client.connectToHost();
-    }
-
-    static quint16 id = 0;
-    std::string topic = m_config.mqtt_topic;
-    boost::replace_first(topic, "{plantname}", m_config.plantname);
-    boost::replace_first(topic, "{serial}", std::to_string(liveData.serial));
-    topic += "/live";
-
-    auto data = m_serializer.serialize(liveData);
-    QMQTT::Message message(++id,
-                           QString::fromStdString(topic),
-                           QByteArray::fromRawData(data.data(), data.size()),
-                           0,
-                           true);
-
-    m_client.publish(message);
-
-    return 0;
-}
-
-void MqttExporter_qt::onError(const QMQTT::ClientError error)
-{
-    LOG_S(1) << "MQTT error:" << error;
-}
-
+    return out << array.toHex().toStdString();
 }

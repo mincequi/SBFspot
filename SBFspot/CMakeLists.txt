@@ -14,7 +14,7 @@ pkg_check_modules(Bluetooth IMPORTED_TARGET bluez)
 pkg_check_modules(MessagePack IMPORTED_TARGET msgpack)
 pkg_check_modules(Mosquitto IMPORTED_TARGET libmosquittopp)
 
-set(CMAKE_CXX_FLAGS "-Wno-deprecated-declarations -DQT_NO_DEBUG_OUTPUT")
+set(CMAKE_CXX_FLAGS "-Wno-deprecated-declarations -DQT_NO_DEBUG_OUTPUT -DLOGURU_WITH_STREAMS")
 
 set(DB "SQLITE" CACHE STRING "DB backend to use: NOSQL, SQLITE, MYSQL, MARIADB")
 
@@ -153,6 +153,7 @@ add_executable(${PROJECT_NAME}_qt
     Exporter.cpp
     ExporterManager.cpp
     LiveData.cpp
+    Logging.cpp
     SBFNet.cpp
     SBFspot.cpp
     Timer.cpp
@@ -165,6 +166,12 @@ add_executable(${PROJECT_NAME}_qt
     sma/SmaInverter.cpp
     sma/SmaInverterRequests.cpp
     sma/SmaManager.cpp
+    thirdparty/loguru/loguru.cpp
+)
+
+target_include_directories(${PROJECT_NAME}_qt
+PRIVATE
+    thirdparty/loguru/
 )
 
 target_link_libraries(${PROJECT_NAME}_qt

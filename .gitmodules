@@ -4,3 +4,6 @@
 [submodule "SBFspot/thirdparty/qmqtt"]
 	path = SBFspot/thirdparty/qmqtt
 	url = https://github.com/emqx/qmqtt.git
+[submodule "SBFspot/thirdparty/loguru"]
+	path = SBFspot/thirdparty/loguru
+	url = https://github.com/emilk/loguru.git

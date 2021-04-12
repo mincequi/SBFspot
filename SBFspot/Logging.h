@@ -32,63 +32,20 @@ DISCLAIMER:
 
 ************************************************************************************************/
 
-#include "MqttExporter_qt.h"
+#pragma once
 
-#include <QHostAddress>
-#include <qmqtt_message.h>
+#include <loguru.hpp>
 
-#include "Config.h"
-#include "LiveData.h"
-#include "Logging.h"
-#include "Serializer.h"
+class QByteArray;
+class QHostAddress;
 
-namespace mqtt {
-
-MqttExporter_qt::MqttExporter_qt(const Config& config, const Serializer& serializer)
-    : m_config(config),
-      m_serializer(serializer),
-      m_client(QString::fromStdString(config.mqtt_host), config.mqtt_port, false, false)
+class Logging
 {
-    QObject::connect(&m_client, &QMQTT::Client::error, this, &MqttExporter_qt::onError);
-    m_client.connectToHost();
-}
+public:
+    static void init(int& argc, char* argv[]);
 
-MqttExporter_qt::~MqttExporter_qt()
-{
-}
+private:
+    Logging();
+};
 
-std::string MqttExporter_qt::name() const
-{
-    return "MqttExporter_qt";
-}
-
-int MqttExporter_qt::exportLiveData(const LiveData& liveData)
-{
-    if (!m_client.isConnectedToHost()) {
-        m_client.connectToHost();
-    }
-
-    static quint16 id = 0;
-    std::string topic = m_config.mqtt_topic;
-    boost::replace_first(topic, "{plantname}", m_config.plantname);
-    boost::replace_first(topic, "{serial}", std::to_string(liveData.serial));
-    topic += "/live";
-
-    auto data = m_serializer.serialize(liveData);
-    QMQTT::Message message(++id,
-                           QString::fromStdString(topic),
-                           QByteArray::fromRawData(data.data(), data.size()),
-                           0,
-                           true);
-
-    m_client.publish(message);
-
-    return 0;
-}
-
-void MqttExporter_qt::onError(const QMQTT::ClientError error)
-{
-    LOG_S(1) << "MQTT error:" << error;
-}
-
-}
+std::ostream& operator<< (std::ostream& out, QByteArray const& c);
