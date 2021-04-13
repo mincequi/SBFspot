@@ -46,9 +46,21 @@ public:
     ExporterManager(const Config& config, Cache& cache);
     ~ExporterManager();
 
-private:
-    virtual int exportLiveData(const LiveData& liveData) override;
+    bool open() override;
+    void close() override;
 
+    // New functions
+    void exportConfig(const InverterData& inverterData) override;
+    void exportLiveData(const LiveData& liveData) override;
+    void exportDayStats(const DayStats& inverters) override;
+
+    // TODO: these functions shall be removed/replaced.
+    void exportSpotData(std::time_t timestamp, const std::vector<InverterData>& inverters) override;
+    void exportDayData(const std::vector<InverterData>& inverters) override;
+    void exportMonthData(const std::vector<InverterData>& inverters) override;
+    void exportEventData(const std::vector<InverterData>& inverters, const std::string& dt_range_csv) override;
+
+private:
     const Config&   m_config;
     Cache&          m_cache;
 

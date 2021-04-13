@@ -56,14 +56,11 @@ public:
     void connectToHost();
     void disconnectFromHost();
 
-    int exportConfig(const InverterData& inverterData) override;
-    int exportDayStats(std::time_t timestamp,
-                       const std::vector<DayStats>& dayStats) override;
-    int exportLiveData(std::time_t timestamp,
-                       const std::vector<InverterData>& inverterData) override;
-    int exportLiveData(const LiveData& emeterData) override;
-    int exportDayData(std::time_t timestamp,
-                      const DataPerInverter& inverterData) override;
+    void exportConfig(const InverterData& inverterData) override;
+    void exportDayStats(const DayStats& dayStats) override;
+    void exportLiveData(const LiveData& emeterData) override;
+
+    void exportDayData(std::time_t timestamp, const DataPerInverter& inverterData) override;
 
 private:
     void publish(const std::string& topic, const msgpack::sbuffer& buffer, uint8_t qos = 0);

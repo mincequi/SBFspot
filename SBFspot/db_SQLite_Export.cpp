@@ -36,8 +36,19 @@ DISCLAIMER:
 
 #include "db_SQLite_Export.h"
 
-int db_SQL_Export::exportDayData(const std::vector<InverterData>& inverters)
+#include "Config.h"
+#include "TagDefs.h"
+
+db_SQL_Export::db_SQL_Export(const Config& config) :
+    db_SQL_Base(config),
+    m_config(config)
 {
+}
+
+void db_SQL_Export::exportDayData(const std::vector<InverterData>& inverters)
+{
+    if (!isopen()) return;
+
     const char *sql = "INSERT INTO DayData(TimeStamp,Serial,TotalYield,Power,PVoutput) VALUES(?1,?2,?3,?4,?5)";
     int rc = SQLITE_OK;
 
@@ -114,12 +125,12 @@ int db_SQL_Export::exportDayData(const std::vector<InverterData>& inverters)
             exec_query("ROLLBACK");
         }
     }
-
-    return rc;
 }
 
-int db_SQL_Export::exportMonthData(const std::vector<InverterData>& inverters)
+void db_SQL_Export::exportMonthData(const std::vector<InverterData>& inverters)
 {
+    if (!isopen()) return;
+
     const char *sql = "INSERT INTO MonthData(TimeStamp,Serial,TotalYield,DayYield) VALUES(?1,?2,?3,?4)";
     int rc = SQLITE_OK;
 
@@ -182,12 +193,15 @@ int db_SQL_Export::exportMonthData(const std::vector<InverterData>& inverters)
             exec_query("ROLLBACK");
         }
     }
-
-    return rc;
 }
 
-int db_SQL_Export::exportSpotData(std::time_t timestamp, const std::vector<InverterData>& data)
+void db_SQL_Export::exportSpotData(std::time_t timestamp, const std::vector<InverterData>& data)
 {
+    if (!isopen()) return;
+
+    type_label(data);
+    device_status(data, timestamp);
+
     std::stringstream sql;
     int rc = SQLITE_OK;
 
@@ -228,12 +242,12 @@ int db_SQL_Export::exportSpotData(std::time_t timestamp, const std::vector<Inver
             break;
         }
     }
-
-    return rc;
 }
 
-int db_SQL_Export::exportEventData(const std::vector<InverterData>& inverters, TagDefs& tags)
+void db_SQL_Export::exportEventData(const std::vector<InverterData>& inverters, const std::string& dt_range_csv)
 {
+    if (!isopen()) return;
+
     const char *sql = "INSERT INTO EventData(EntryID,TimeStamp,Serial,SusyID,EventCode,EventType,Category,EventGroup,Tag,OldValue,NewValue,UserGroup) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)";
     int rc = SQLITE_OK;
 
@@ -246,23 +260,23 @@ int db_SQL_Export::exportEventData(const std::vector<InverterData>& inverters, T
         {
             for (auto it=inverter.eventData.begin(); it!=inverter.eventData.end(); ++it)
             {
-                std::string grp = tags.getDesc(it->Group());
-                std::string tag = tags.getDesc(it->Tag());
+                std::string grp = tagdefs.getDesc(it->Group());
+                std::string tag = tagdefs.getDesc(it->Tag());
 
                 // If description contains "%s", replace it with localized parameter
                 size_t start_pos = tag.find("%s");
                 if (start_pos != std::string::npos)
-                    tag.replace(start_pos, 2, tags.getDescForLRI(it->Parameter()));
+                    tag.replace(start_pos, 2, tagdefs.getDescForLRI(it->Parameter()));
 
-                std::string usrgrp = tags.getDesc(it->UserGroupTagID());
+                std::string usrgrp = tagdefs.getDesc(it->UserGroupTagID());
                 std::stringstream oldval;
                 std::stringstream newval;
 
                 switch (it->DataType())
                 {
                 case DT_STATUS:
-                    oldval << tags.getDesc(it->OldVal() & 0xFFFF);
-                    newval << tags.getDesc(it->NewVal() & 0xFFFF);
+                    oldval << tagdefs.getDesc(it->OldVal() & 0xFFFF);
+                    newval << tagdefs.getDesc(it->NewVal() & 0xFFFF);
                     break;
 
                 case DT_STRING:
@@ -316,12 +330,12 @@ int db_SQL_Export::exportEventData(const std::vector<InverterData>& inverters, T
             rc = exec_query("ROLLBACK");
         }
     }
-
-    return rc;
 }
 
-int db_SQL_Export::exportBatteryData(const std::vector<InverterData>& inverters, time_t spottime)
+void db_SQL_Export::exportBatteryData(std::time_t timestamp, const std::vector<InverterData>& inverters)
 {
+    if (!isopen()) return;
+
     const char *sql = "INSERT INTO SpotDataX(TimeStamp,Serial,Key,Value) VALUES(?1,?2,?3,?4)";
     int rc = SQLITE_OK;
 
@@ -334,15 +348,15 @@ int db_SQL_Export::exportBatteryData(const std::vector<InverterData>& inverters,
         {
             if ((inverter.DevClass == BatteryInverter) || (inverter.hasBattery))
             {
-                if ((rc = insert_battery_data(pStmt, spottime, inverter.Serial, BatChaStt >> 8, inverter.BatChaStt)) != SQLITE_OK) break;
-                if ((rc = insert_battery_data(pStmt, spottime, inverter.Serial, BatTmpVal >> 8, inverter.BatTmpVal)) != SQLITE_OK) break;
-                if ((rc = insert_battery_data(pStmt, spottime, inverter.Serial, BatVol >> 8, inverter.BatVol)) != SQLITE_OK) break;
-                if ((rc = insert_battery_data(pStmt, spottime, inverter.Serial, BatAmp >> 8, inverter.BatAmp)) != SQLITE_OK) break;
-                //if ((rc = insert_battery_data(pStmt, spottime, inverter.Serial, BatDiagCapacThrpCnt >> 8, inverter.BatDiagCapacThrpCnt)) != SQLITE_OK) break;
-                //if ((rc = insert_battery_data(pStmt, spottime, inverter.Serial, BatDiagTotAhIn >> 8, inverter.BatDiagTotAhIn)) != SQLITE_OK) break;
-                //if ((rc = insert_battery_data(pStmt, spottime, inverter.Serial, BatDiagTotAhOut >> 8, inverter.BatDiagTotAhOut)) != SQLITE_OK) break;
-                if ((rc = insert_battery_data(pStmt, spottime, inverter.Serial, MeteringGridMsTotWIn >> 8, inverter.MeteringGridMsTotWIn)) != SQLITE_OK) break;
-                if ((rc = insert_battery_data(pStmt, spottime, inverter.Serial, MeteringGridMsTotWOut >> 8, inverter.MeteringGridMsTotWOut)) != SQLITE_OK) break;
+                if ((rc = insert_battery_data(pStmt, timestamp, inverter.Serial, BatChaStt >> 8, inverter.BatChaStt)) != SQLITE_OK) break;
+                if ((rc = insert_battery_data(pStmt, timestamp, inverter.Serial, BatTmpVal >> 8, inverter.BatTmpVal)) != SQLITE_OK) break;
+                if ((rc = insert_battery_data(pStmt, timestamp, inverter.Serial, BatVol >> 8, inverter.BatVol)) != SQLITE_OK) break;
+                if ((rc = insert_battery_data(pStmt, timestamp, inverter.Serial, BatAmp >> 8, inverter.BatAmp)) != SQLITE_OK) break;
+                //if ((rc = insert_battery_data(pStmt, timestamp, inverter.Serial, BatDiagCapacThrpCnt >> 8, inverter.BatDiagCapacThrpCnt)) != SQLITE_OK) break;
+                //if ((rc = insert_battery_data(pStmt, timestamp, inverter.Serial, BatDiagTotAhIn >> 8, inverter.BatDiagTotAhIn)) != SQLITE_OK) break;
+                //if ((rc = insert_battery_data(pStmt, timestamp, inverter.Serial, BatDiagTotAhOut >> 8, inverter.BatDiagTotAhOut)) != SQLITE_OK) break;
+                if ((rc = insert_battery_data(pStmt, timestamp, inverter.Serial, MeteringGridMsTotWIn >> 8, inverter.MeteringGridMsTotWIn)) != SQLITE_OK) break;
+                if ((rc = insert_battery_data(pStmt, timestamp, inverter.Serial, MeteringGridMsTotWOut >> 8, inverter.MeteringGridMsTotWOut)) != SQLITE_OK) break;
             }
         }
 
@@ -356,8 +370,6 @@ int db_SQL_Export::exportBatteryData(const std::vector<InverterData>& inverters,
             exec_query("ROLLBACK");
         }
     }
-
-    return rc;
 }
 
 int db_SQL_Export::insert_battery_data(sqlite3_stmt* pStmt, int32_t tm, int32_t sn, int32_t key, int32_t val)

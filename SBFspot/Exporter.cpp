@@ -36,34 +36,49 @@ DISCLAIMER:
 
 #include "Config.h"
 
+ExporterType Exporter::type() const
+{
+    return ExporterType::None;
+}
+
 std::string Exporter::name() const
 {
     return "";
 }
 
-int Exporter::exportConfig(const InverterData& /*inverterData*/)
+bool Exporter::isLive() const
 {
-    return 0;
+    return false;
 }
 
-int Exporter::exportDayStats(std::time_t /*timestamp*/,
-                           const std::vector<DayStats>& /*dayStats*/)
+bool Exporter::open()
 {
-    return 0;
+    return true;
 }
 
-int Exporter::exportDayData(std::time_t /*timestamp*/,
-                          const DataPerInverter& /*inverterData*/)
+void Exporter::close()
 {
-    return 0;
 }
 
-int Exporter::exportLiveData(std::time_t /*timestamp*/, const std::vector<InverterData>& /*inverterData*/)
+void Exporter::exportConfig(const InverterData& /*inverterData*/)
 {
-    return 0;
 }
 
-int Exporter::exportLiveData(const LiveData& /*liveData*/)
+void Exporter::exportDayStats(const DayStats& /*dayStats*/)
 {
-    return 0;
 }
+
+void Exporter::exportDayData(std::time_t /*timestamp*/,
+                             const DataPerInverter& /*inverterData*/)
+{
+}
+
+void Exporter::exportLiveData(const LiveData& /*liveData*/)
+{
+}
+
+void Exporter::exportDayData(const std::vector<InverterData>&) {}
+void Exporter::exportMonthData(const std::vector<InverterData>&) {}
+void Exporter::exportSpotData(std::time_t, const std::vector<InverterData>&) {}
+void Exporter::exportEventData(const std::vector<InverterData>&, const std::string&) {}
+void Exporter::exportBatteryData(std::time_t, const std::vector<InverterData>&) {}

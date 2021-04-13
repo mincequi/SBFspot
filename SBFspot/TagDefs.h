@@ -56,7 +56,7 @@ private:
 		std::string m_desc;		// Description
 
 	public:
-		TD() { }
+        TD() { }
 		TD(std::string tag, unsigned int lri, std::string desc) : m_tag(tag), m_lri(lri), m_desc(desc) {}
 		std::string getTag() const { return m_tag; }
 		unsigned int getLRI() const { return m_lri; }
@@ -72,14 +72,15 @@ private:
     void print_error(std::string msg, unsigned int line, std::string fpath);
     void addTag(unsigned int tagID, std::string tag, unsigned int lri, std::string desc);
 
+    std::string getTag(unsigned int tagID) { return m_tagdefmap[tagID].getTag(); }
+    unsigned int getLRI(unsigned int tagID) { return m_tagdefmap[tagID].getLRI(); }
+    std::map<unsigned int, TD>::size_type size(void) const { return m_tagdefmap.size(); }
+
 public:
 	int readall(std::string path, std::string locale);
-	std::string getTag(unsigned int tagID) { return m_tagdefmap[tagID].getTag(); }
-	unsigned int getTagIDForLRI(unsigned int LRI);
-	std::string getTagForLRI(unsigned int LRI);
-	std::string getDescForLRI(unsigned int LRI);
-	unsigned int getLRI(unsigned int tagID) { return m_tagdefmap[tagID].getLRI(); }
-	std::string getDesc(unsigned int tagID) { return m_tagdefmap[tagID].getDesc(); }
-	std::string getDesc(unsigned int tagID, std::string _default) { return m_tagdefmap[tagID].getDesc().empty() ? _default : m_tagdefmap[tagID].getDesc(); }
-	std::map<unsigned int, TD>::size_type size(void) const { return m_tagdefmap.size(); }
+    std::string getDescForLRI(unsigned int LRI);
+    std::string getDesc(unsigned int tagID) { return m_tagdefmap[tagID].getDesc(); }
+    std::string getDesc(unsigned int tagID, std::string _default) { return m_tagdefmap[tagID].getDesc().empty() ? _default : m_tagdefmap[tagID].getDesc(); }
 };
+
+extern TagDefs tagdefs;

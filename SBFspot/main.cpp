@@ -39,6 +39,7 @@ DISCLAIMER:
 #include "Importer.h"
 #include "Inverter.h"
 #include "SBFspot.h"
+#include "TagDefs.h"
 #include "Timer.h"
 #include "misc.h"
 
@@ -53,15 +54,16 @@ int main(int argc, char **argv)
 	SetConsoleOutputCP(CP_UTF8);
 #endif
 
-    //Read the command line and store settings in config struct
+    //Read config file and store settings in config struct
     Config config;
-    int rc = config.parseCmdline(argc, argv);
+    int rc = config.readConfig();	//Config struct contains fullpath to config file
+    if (rc != 0) return rc;
+
+    //Read the command line and store settings in config struct.
+    //Note: this overrules settings that are provided by config file.
+    rc = config.parseCmdline(argc, argv);
     if (rc == -1) return 1;	//Invalid commandline - Quit, error
     if (rc == 1) return 0;	//Nothing to do - Quit, no error
-
-    //Read config file and store settings in config struct
-    rc = config.readConfig();	//Config struct contains fullpath to config file
-    if (rc != 0) return rc;
 
     //Copy some config settings to public variables
     debug = config.debug;

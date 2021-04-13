@@ -62,7 +62,7 @@ std::string MqttExporter_qt::name() const
     return "MqttExporter_qt";
 }
 
-int MqttExporter_qt::exportLiveData(const LiveData& liveData)
+void MqttExporter_qt::exportLiveData(const LiveData& liveData)
 {
     if (!m_client.isConnectedToHost()) {
         m_client.connectToHost();
@@ -82,8 +82,6 @@ int MqttExporter_qt::exportLiveData(const LiveData& liveData)
                            true);
 
     m_client.publish(message);
-
-    return 0;
 }
 
 void MqttExporter_qt::onError(const QMQTT::ClientError error)

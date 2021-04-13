@@ -40,6 +40,11 @@ DISCLAIMER:
 
 using namespace std;
 
+db_SQL_Base::db_SQL_Base(const Config& config) :
+    m_config(config)
+{
+}
+
 string db_SQL_Base::status_text(int status)
 {
 	switch (status)

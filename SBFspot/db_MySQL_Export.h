@@ -45,14 +45,18 @@ extern int verbose;
 class db_SQL_Export : public db_SQL_Base
 {
 public:
-	int day_data(InverterData *inverters[]);
-	int month_data(InverterData *inverters[]);
-	int spot_data(InverterData *inv[], time_t spottime);
-	int event_data(InverterData *inv[], TagDefs& tags);
-	int battery_data(InverterData *inverters[], time_t spottime);
+    db_SQL_Export(const Config& config);
+
+    void day_data(InverterData *inverters[]);
+    void month_data(InverterData *inverters[]);
+    void spot_data(InverterData *inv[], time_t spottime);
+    void event_data(InverterData *inv[], TagDefs& tags);
+    void battery_data(InverterData *inverters[], time_t spottime);
 
 private:
 	int insert_battery_data(MYSQL_STMT *pStmt, int32_t tm, int32_t sn, int32_t key, int32_t val);
+
+    const Config& m_config;
 };
 
 #endif //#if defined(USE_MYSQL)

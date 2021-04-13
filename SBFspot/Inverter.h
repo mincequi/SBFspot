@@ -38,9 +38,9 @@ DISCLAIMER:
 
 #include "ArchData.h"
 #include "Cache.h"
+#include "ExporterManager.h"
 #include "LiveData.h"
 #include "SBFNet.h"
-#include "SQLselect.h"
 #include "mqtt.h"
 
 struct Config;
@@ -72,21 +72,10 @@ private:
     int logOn();
     void logOff();
 
-    bool dbOpen();
-    void dbClose();
-
     int importSpotData(std::time_t timestamp);
     void importDayData();
     void importMonthData();
     void importEventData();
-
-    void exportSpotData(std::time_t timestamp);
-    void exportDayData();
-    void exportMonthData();
-    void exportEventData(const std::string& dt_range_csv);
-
-    void exportSpotDataDb(std::time_t timestamp);
-    void exportSpotDataMqtt(std::time_t timestamp);
 
     void CalcMissingSpot(InverterData& invData);
 
@@ -101,9 +90,6 @@ private:
     Cache m_cache;
     std::vector<DayStats>   m_dayStats;
 
-#if defined(USE_SQLITE) || defined(USE_MYSQL)
-    db_SQL_Export m_db;
-#endif
-    MqttExporter m_mqtt;
+    ExporterManager m_exporterManager;
 };
 

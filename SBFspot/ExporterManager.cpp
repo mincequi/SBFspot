@@ -35,13 +35,25 @@ DISCLAIMER:
 #include "ExporterManager.h"
 
 #include <Config.h>
+#include <CSVexport.h>
+#include <SQLselect.h>
+#include <mqtt.h>
 #include <mqtt/MqttExporter_qt.h>
 
 ExporterManager::ExporterManager(const Config& config, Cache& cache) :
     m_config(config),
     m_cache(cache)
 {
-    m_exporters.push_back(new mqtt::MqttExporter_qt(config, m_msgPackSerializer));
+    if (config.exporters.count(ExporterType::Csv)) {
+        m_exporters.push_back(new CsvExporter(config));
+    }
+    if (config.exporters.count(ExporterType::Sql)) {
+        m_exporters.push_back(new db_SQL_Export(config));
+    }
+    if (config.exporters.count(ExporterType::Mqtt)) {
+        m_exporters.push_back(new mqtt::MqttExporter_qt(config, m_msgPackSerializer));
+        m_exporters.push_back(new MqttExporter(config));
+    }
 }
 
 ExporterManager::~ExporterManager()
@@ -52,13 +64,137 @@ ExporterManager::~ExporterManager()
     m_exporters.clear();
 }
 
-int ExporterManager::exportLiveData(const LiveData& liveData)
+bool ExporterManager::open()
 {
-    if (m_config.mqtt) {
-        for (auto& exporter : m_exporters) {
-            exporter->exportLiveData(liveData);
+    for (const auto& exporter : m_exporters) {
+        exporter->open();
+    }
+    return true;
+}
+
+void ExporterManager::close()
+{
+    for (const auto& exporter : m_exporters) {
+        exporter->close();
+    }
+}
+
+void ExporterManager::exportSpotData(std::time_t timestamp, const std::vector<InverterData>& inverters)
+{
+    for (const auto& exporter : m_exporters) {
+        if (exporter->isLive()) {
+            exporter->exportSpotData(timestamp, inverters);
         }
     }
 
-    return 0;
+    // SQL, CSV, ... are archive exporters and will cause disk I/O.
+    // These can severely exhaust disk space and shall be rate limited.
+    if (!m_config.daemon ||
+            (m_config.archiveInterval > 0 &&
+             (timestamp % m_config.archiveInterval == 0)))
+    {
+        if (inverters[0].DevClass == SolarInverter && m_config.nospot == 0)
+        {
+            for (const auto& exporter : m_exporters) {
+                if (!exporter->isLive()) {
+                    exporter->exportSpotData(timestamp, inverters);
+                }
+            }
+        }
+
+        if (hasBatteryDevice && (m_config.nospot == 0)) {
+            for (const auto& exporter : m_exporters) {
+                exporter->exportBatteryData(timestamp, inverters);
+            }
+        }
+
+        // TODO: reimplement exporting historic data via MQTT
+        // if (m_config.mqtt == 1)
+        // {
+        //     // Create timestamp for start of day
+        //     std::tm* lt = std::localtime(&timestamp);
+        //     lt->tm_hour = 0;
+        //     lt->tm_min = 0;
+        //     lt->tm_sec = 0;
+        //     auto tsStart = mktime(lt);
+        //     // Get data from DB
+        //     auto data = m_db.getInverterData(tsStart, timestamp);
+        //     m_mqtt.exportDayData(tsStart, data);
+        // }
+    }
 }
+
+void ExporterManager::exportConfig(const InverterData& inverterData)
+{
+    for (const auto& exporter : m_exporters) {
+        exporter->exportConfig(inverterData);
+    }
+}
+
+void ExporterManager::exportLiveData(const LiveData& liveData)
+{
+    for (auto& exporter : m_exporters) {
+        exporter->exportLiveData(liveData);
+    }
+}
+
+void ExporterManager::exportDayData(const std::vector<InverterData>& inverters)
+{
+    for (auto& exporter : m_exporters) {
+        exporter->exportDayData(inverters);
+    }
+}
+
+void ExporterManager::exportMonthData(const std::vector<InverterData>& inverters)
+{
+    for (auto& exporter : m_exporters) {
+        exporter->exportMonthData(inverters);
+    }
+}
+
+void ExporterManager::exportEventData(const std::vector<InverterData>& inverters, const std::string& dt_range_csv)
+{
+    for (auto& exporter : m_exporters) {
+        exporter->exportEventData(inverters, dt_range_csv);
+    }
+}
+
+/*
+void ExporterManager::exportSpotDataMqtt(std::time_t timestamp, const std::vector<InverterData>& inverters)
+{
+    // Compute statistics
+    m_dayStats.resize(inverters.size());
+    for (uint32_t i = 0; i < inverters.size(); ++i)
+    {
+        bool isDirty = false;
+        m_dayStats[i].serial = inverters[i].Serial;
+        if (m_dayStats[i].powerMax < inverters[i].Pac1)
+        {
+            m_dayStats[i].powerMax = inverters[i].Pac1;
+            isDirty = true;
+        }
+        m_dayStats[i].stringPowerMax.resize(2);
+        if (m_dayStats[i].stringPowerMax[0] < inverters[i].Pdc1)
+        {
+            m_dayStats[i].stringPowerMax[0] = inverters[i].Pdc1;
+            isDirty = true;
+        }
+        if (m_dayStats[i].stringPowerMax[1] < inverters[i].Pdc2)
+        {
+            m_dayStats[i].stringPowerMax[1] = inverters[i].Pdc2;
+            isDirty = true;
+        }
+        if (isDirty)
+        {
+            m_dayStats[i].timestamp = timestamp;
+            exportDayStats(m_dayStats[i]);
+        }
+    }
+
+    auto rc = m_mqtt.exportLiveData(timestamp, inverters);
+    if (rc != 0)
+    {
+        std::cout << "Error " << rc << " while publishing to MQTT Broker" << std::endl;
+    }
+}
+*/

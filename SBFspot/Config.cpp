@@ -34,6 +34,7 @@ DISCLAIMER:
 
 #include "Config.h"
 
+#include "Logging.h"
 #include "SBFspot.h"
 #include "version.h"
 #include "misc.h"
@@ -55,27 +56,14 @@ using namespace std;
 
 int Config::parseCmdline(int argc, char **argv)
 {
-    this->debug = 0;			// debug level - 0=none, 5=highest
-    this->verbose = 0;		// verbose level - 0=none, 5=highest
-    this->archDays = 1;		// today only
-    this->archMonths = 1;	// this month only
-    this->archEventMonths = 1;	// this month only
     this->forceInq = 0;		// Inquire inverter also during the night
     this->userGroup = UG_USER;
-    // WebSolarLog support (http://www.websolarlog.com/index.php/tag/sma-spot/)
-    // This is an undocumented feature and should only be used for WebSolarLog
-    this->wsl = 0;
-    this->quiet = 0;
-    this->nocsv = 0;
-    this->nospot = 0;
-    this->nosql = 0;
     // 123Solar Web Solar logger support(http://www.123solar.org/)
     // This is an undocumented feature and should only be used for 123solar
     this->s123 = S123_NOP;
     this->loadlive = 0;	//force settings to prepare for live loading to http://pvoutput.org/loadlive.jsp
     this->startdate = 0;
     this->settime = 0;
-    this->mqtt = 0;
 
     bool help_requested = false;
 
@@ -238,11 +226,11 @@ int Config::parseCmdline(int argc, char **argv)
 
         //Set NoCSV flag (Disable CSV export - Overrules Config setting)
         else if (stricmp(argv[i], "-nocsv") == 0)
-            this->nocsv = 1;
+            this->exporters.erase(ExporterType::Csv);
 
         //Set NoSQL flag (Disable SQL export)
         else if (stricmp(argv[i], "-nosql") == 0)
-            this->nosql = 1;
+            this->exporters.erase(ExporterType::Sql);
 
         //Set NoSpot flag (Disable Spot CSV export)
         else if (stricmp(argv[i], "-sp0") == 0)
@@ -329,10 +317,10 @@ int Config::parseCmdline(int argc, char **argv)
         }
 
         else if (stricmp(argv[i], "-mqtt") == 0)
-            this->mqtt = 1;
+            this->exporters.insert(ExporterType::Mqtt);
 
         else if (stricmp(argv[i], "-ble") == 0)
-            this->ble = 1;
+            this->exporters.insert(ExporterType::Ble);
 
         else if (stricmp(argv[i], "-loop") == 0)
             this->daemon = true;
@@ -384,13 +372,10 @@ int Config::readConfig()
     strcpy(this->DateFormat, "%d/%m/%Y");
     strcpy(this->TimeFormat, "%H:%M:%S");
     this->synchTime = 1;
-    this->CSV_Export = 1;
     this->CSV_ExtendedHeader = 1;
     this->CSV_Header = 1;
     this->CSV_SaveZeroPower = 1;
     this->SunRSOffset = 900;
-    this->SpotTimeSource = 0;
-    this->SpotWebboxHeader = 0;
     this->MIS_Enabled = 0;
     strcpy(this->locale, "en-US");
     this->synchTimeLow = 1;
@@ -570,7 +555,10 @@ int Config::readConfig()
                 {
                     lValue = strtol(value, &pEnd, 10);
                     if (((lValue == 0) || (lValue == 1)) && (*pEnd == 0))
-                        this->CSV_Export = (int)lValue;
+                        if (lValue)
+                            exporters.insert(ExporterType::Csv);
+                        else
+                            exporters.erase(ExporterType::Csv);
                     else
                     {
                         fprintf(stderr, CFG_InvalidValue, variable, CFG_Boolean);
@@ -787,10 +775,6 @@ int Config::readConfig()
         rc = -2;
     }
 
-    //Overrule CSV_Export from config with Commandline setting -nocsv
-    if (this->nocsv == 1)
-        this->CSV_Export = 0;
-
     //Silently enable CSV_Header when CSV_ExtendedHeader is enabled
     if (this->CSV_ExtendedHeader == 1)
         this->CSV_Header = 1;
@@ -821,7 +805,7 @@ int Config::readConfig()
     {
         this->outputPath.append("/LoadLive");
         strcpy(this->DateTimeFormat, "%H:%M");
-        this->CSV_Export = 1;
+        this->exporters.insert(ExporterType::Csv);
         this->decimalpoint = '.';
         this->CSV_Header = 0;
         this->CSV_ExtendedHeader = 0;
@@ -878,7 +862,6 @@ void Config::showConfig()
         "\nDecimalPoint=" << dp2txt(this->decimalpoint) << \
         "\nCSV_Delimiter=" << delim2txt(this->delimiter) << \
         "\nPrecision=" << this->precision << \
-        "\nCSV_Export=" << this->CSV_Export << \
         "\nCSV_ExtendedHeader=" << this->CSV_ExtendedHeader << \
         "\nCSV_Header=" << this->CSV_Header << \
         "\nCSV_SaveZeroPower=" << this->CSV_SaveZeroPower << \
@@ -897,16 +880,14 @@ void Config::showConfig()
         "\nSQL_Password=<undisclosed>" << std::endl;
 #endif
 
-    if (this->mqtt == 1)
-    {
-        std::cout << "MQTT_Host=" << this->mqtt_host << \
-            "\nMQTT_Port=" << this->mqtt_port << \
-            "\nMQTT_Topic=" << this->mqtt_topic << \
-            "\nMQTT_Publisher=" << this->mqtt_publish_exe << \
-            "\nMQTT_PublisherArgs=" << this->mqtt_publish_args << \
-            "\nMQTT_Data=" << this->mqtt_publish_data << \
-            "\nMQTT_ItemFormat=" << this->mqtt_item_format << std::endl;
-    }
+    LOG_IF_S(INFO, exporters.count(ExporterType::Mqtt))
+            << "MQTT_Host=" << this->mqtt_host << \
+               "\nMQTT_Port=" << this->mqtt_port << \
+               "\nMQTT_Topic=" << this->mqtt_topic << \
+               "\nMQTT_Publisher=" << this->mqtt_publish_exe << \
+               "\nMQTT_PublisherArgs=" << this->mqtt_publish_args << \
+               "\nMQTT_Data=" << this->mqtt_publish_data << \
+               "\nMQTT_ItemFormat=" << this->mqtt_item_format << std::endl;
 
     std::cout << "### End of Config ###" << std::endl;
 }

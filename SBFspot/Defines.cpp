@@ -56,6 +56,4 @@ uint8_t LocalBTAddress[6] = {0, 0, 0, 0, 0, 0};		//Hold byte array with BT addre
 unsigned long AppSerial = 0;
 unsigned int cmdcode = 0;
 
-TagDefs tagdefs = TagDefs();
-
 SOCKET sock = 0;

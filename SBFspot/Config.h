@@ -91,15 +91,14 @@ struct Config
     char	DateTimeFormat[32];
     char	DateFormat[32];
     char	TimeFormat[32];
-    int		CSV_Export;
     int		CSV_Header;
     int		CSV_ExtendedHeader;
     int		CSV_SaveZeroPower;
     int		SunRSOffset;			// Offset to start before sunrise and end after sunset
     SmaUserGroup    userGroup;      // USER|INSTALLER
     char	prgVersion[16];
-    int		SpotTimeSource;			// 0=Use inverter time; 1=Use PC time in Spot CSV
-    int		SpotWebboxHeader;		// 0=Use standard Spot CSV hdr; 1=Webbox style hdr
+    int		SpotTimeSource = 0;     // 0=Use inverter time; 1=Use PC time in Spot CSV
+    int		SpotWebboxHeader = 0;   // 0=Use standard Spot CSV hdr; 1=Webbox style hdr
     char	locale[6];				// default en-US
     int		MIS_Enabled;			// Multi Inverter Support
     std::string	timezone;
@@ -118,22 +117,20 @@ struct Config
     std::string mqtt_item_delimiter;// default comma
 
     //Commandline settings
-    int		debug;				// -d			Debug level (0-5)
-    int		verbose;			// -v			Verbose output level (0-5)
-    int		archDays;			// -ad			Number of days back to get Archived DayData (0=disabled, 1=today, ...)
-    int		archMonths;			// -am			Number of months back to get Archived MonthData (0=disabled, 1=this month, ...)
-    int		archEventMonths;	// -ae			Number of months back to get Archived Events (0=disabled, 1=this month, ...)
-    int		forceInq;			// -finq		Inquire inverter also during the night
-    int		wsl;				// -wsl			WebSolarLog support (http://www.websolarlog.com/index.php/tag/sma-spot/)
-    int		quiet;				// -q			Silent operation (No output except for -wsl)
-    int		nocsv;				// -nocsv		Disables CSV export (Overrules CSV_Export in config)
-    int		nospot;				// -sp0			Disables Spot CSV export
-    int		nosql;				// -nosql		Disables SQL export
+    int		debug = 0;			// -d			Debug level (0-5)
+    int		verbose = 0;        // -v			Verbose output level (0-5)
+    int		archDays = 1;       // -ad			Number of days back to get Archived DayData (0=disabled, 1=today, ...)
+    int		archMonths = 1;     // -am			Number of months back to get Archived MonthData (0=disabled, 1=this month, ...)
+    int		archEventMonths = 1;    // -ae			Number of months back to get Archived Events (0=disabled, 1=this month, ...)
+    int		forceInq = 0;       // -finq		Inquire inverter also during the night
+    int		wsl = 0;            // -wsl			WebSolarLog support (http://www.websolarlog.com/index.php/tag/sma-spot/)
+    int		quiet = 0;          // -q			Silent operation (No output except for -wsl)
+    int		nospot = 0;         // -sp0			Disables Spot CSV export
     int		loadlive;			// -loadlive	Force settings to prepare for live loading to http://pvoutput.org/loadlive.jsp
     time_t	startdate;			// -startdate	Start reading of historic data at the given date (YYYYMMDD)
     S123_COMMAND	s123;		// -123s		123Solar Web Solar logger support(http://www.123solar.org/)
     int		settime;			// -settime		Set plant time
-    int		mqtt;				// -mqtt		Publish spot data to mqtt broker
-    bool	ble = false;		// -ble			Publish spot data via Bluetooth LE
     bool	daemon = false;		// -loop		Run SBF spot in daemon mode
+
+    std::set<ExporterType> exporters = { ExporterType::Csv, ExporterType::Sql };    // The exporters to use for publishing data.
 };

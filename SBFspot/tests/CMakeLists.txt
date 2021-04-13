@@ -53,6 +53,7 @@ if (Mosquitto_FOUND AND MessagePack_FOUND)
         ../mqtt.cpp
         ../MqttMsgPackExporter.cpp
         ../sunrise_sunset.cpp
+        ../TagDefs.cpp
         ../Timer.cpp
     )
     target_link_libraries(mqttexportertest
@@ -69,6 +70,7 @@ if (Mosquitto_FOUND AND MessagePack_FOUND)
         ../mqtt.cpp
         ../MqttMsgPackExporter.cpp
         ../sunrise_sunset.cpp
+        ../TagDefs.cpp
         ../Timer.cpp
     )
     target_link_libraries(mqttsubscribertest

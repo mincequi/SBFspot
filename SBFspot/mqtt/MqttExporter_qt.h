@@ -52,7 +52,7 @@ public:
     virtual ~MqttExporter_qt();
 
     virtual std::string name() const override;
-    virtual int exportLiveData(const LiveData& liveData) override;
+    virtual void exportLiveData(const LiveData& liveData) override;
 
 private:
     void onError(const QMQTT::ClientError error);

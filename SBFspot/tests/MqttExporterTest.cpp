@@ -103,6 +103,10 @@ int main()
     MqttMsgPackExport mqtt(config);
     do
     {
+        auto now = std::time(nullptr);
+        now -= rand()%1728000;
+        dayStats.timestamp = now;
+
         auto timePoint = timer.nextTimePoint();
         inverterData.ETotal = (rand()%5000)*(rand()%5000);
         inverterData.EToday = timePoint%100*1000;
@@ -113,11 +117,9 @@ int main()
         inverterData.TotalPac = inverterData.Pdc1 + inverterData.Pdc2 - rand()%1000;
         std::this_thread::sleep_until(std::chrono::system_clock::from_time_t(timePoint));
 
-        auto now = std::time(nullptr);
-        now -= rand()%1728000;
         mqtt.exportConfig(inverterData);
-        mqtt.exportDayStats(now, {dayStats});
-        mqtt.exportLiveData(now, {inverterData});
+        mqtt.exportDayStats(dayStats);
+        mqtt.exportSpotData(now, {inverterData});
     }
     while(true);
 

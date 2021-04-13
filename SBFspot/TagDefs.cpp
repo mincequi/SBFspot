@@ -43,6 +43,8 @@ DISCLAIMER:
 
 using namespace boost::algorithm;
 
+TagDefs tagdefs = TagDefs();
+
 bool TagDefs::isverbose(int level)
 {
     return !quiet && (verbose >= level);
@@ -158,30 +160,6 @@ int TagDefs::readall(std::string path, std::string locale)
 	fs.close();
 
 	return READ_OK;
-}
-
-unsigned int TagDefs::getTagIDForLRI(unsigned int LRI)
-{
-	LRI &= 0x00FFFF00;
-	for (std::map<unsigned long, TD>::iterator it=m_tagdefmap.begin(); it!=m_tagdefmap.end(); ++it)
-	{
-		if (LRI == it->second.getLRI())
-			return it->first;
-	}
-
-	return 0;
-}
-
-std::string TagDefs::getTagForLRI(unsigned int LRI)
-{
-	LRI &= 0x00FFFF00;
-	for (std::map<unsigned long, TD>::iterator it=m_tagdefmap.begin(); it!=m_tagdefmap.end(); ++it)
-	{
-		if (LRI == it->second.getLRI())
-			return it->second.getTag();
-	}
-
-	return "";
 }
 
 std::string TagDefs::getDescForLRI(unsigned int LRI)

@@ -64,11 +64,12 @@ private:
     std::string m_errortext;
 
 protected:
-	MYSQL *m_dbHandle;
+    const Config& m_config;
+    MYSQL *m_dbHandle = nullptr;
 	std::string m_database;
 
 public:
-	db_SQL_Base() { m_dbHandle = NULL; }
+    db_SQL_Base(const Config& config);
 	~db_SQL_Base() { if (m_dbHandle) close(); }
 	int open(const std::string server, const std::string user, const std::string pass, const std::string database, const unsigned int port);
 	int close(void);

@@ -36,13 +36,11 @@ DISCLAIMER:
 
 #include "Config.h"
 #include "SBFspot.h"
+#include "TagDefs.h"
 #include "misc.h"
 
 MqttExporter::MqttExporter(const Config& config)
     : m_config(config)
-#if(defined MOSQUITTO_FOUND && defined MSGPACK_FOUND)
-    , m_msgPackExporter(config)
-#endif
 {
 }
 
@@ -55,44 +53,8 @@ std::string MqttExporter::name() const
     return "MqttExport";
 }
 
-int MqttExporter::exportConfig(const InverterData& inverterData)
+void MqttExporter::exportSpotData(std::time_t timestamp, const std::vector<InverterData> &inverterData)
 {
-    if (m_config.mqtt_item_format != "MSGPACK")
-        return 0;
-
-#if(!defined MOSQUITTO_FOUND || !defined MSGPACK_FOUND)
-    return 0;
-#else
-    return m_msgPackExporter.exportConfig(inverterData);
-#endif
-}
-
-int MqttExporter::exportDayStats(std::time_t timestamp,
-                               const std::vector<DayStats>& dayStats)
-{
-    if (m_config.mqtt_item_format != "MSGPACK")
-        return 0;
-
-#if(!defined MOSQUITTO_FOUND || !defined MSGPACK_FOUND)
-    return 0;
-#else
-    return m_msgPackExporter.exportDayStats(timestamp, dayStats);
-#endif
-}
-
-int MqttExporter::exportLiveData(std::time_t timestamp,
-                               const std::vector<InverterData>& inverterData)
-{
-    if (m_config.mqtt_item_format == "MSGPACK") {
-#if(!defined MOSQUITTO_FOUND || !defined MSGPACK_FOUND)
-        return 0;
-#else
-        return m_msgPackExporter.exportLiveData(timestamp, inverterData);
-#endif
-    }
-
-	int rc = 0;
-
 	// Split message body
 	std::vector<std::string> items;
     boost::split(items, m_config.mqtt_publish_data, boost::is_any_of(","));
@@ -122,7 +84,6 @@ int MqttExporter::exportLiveData(std::time_t timestamp,
 
 		for (std::vector<std::string>::iterator it = items.begin(); it != items.end(); ++it)
 		{
-			time_t timestamp = time(NULL);
 			key = *it;
 			memset(value, 0, sizeof(value));
 			std::transform((key).begin(), (key).end(), (key).begin(), ::tolower);
@@ -195,38 +156,10 @@ int MqttExporter::exportLiveData(std::time_t timestamp,
 		boost::replace_first(mqtt_command_line, "{message}", mqtt_message.str());
 
 		int system_rc = ::system(mqtt_command_line.c_str());
-
 		if (system_rc != 0) // Error
 		{
             std::cout << "MQTT: Failed to execute '" << m_config.mqtt_publish_exe << "' mosquitto clients installed?" << std::endl;
-			rc = system_rc;
 		}
     } // for (const auto& inv : inverterData)
-
-	return rc;
 }
 
-int MqttExporter::exportLiveData(const LiveData& liveData)
-{
-    if (m_config.mqtt_item_format == "MSGPACK") {
-#if(!defined MOSQUITTO_FOUND || !defined MSGPACK_FOUND)
-        return 0;
-#else
-        return m_msgPackExporter.exportLiveData(liveData);
-#endif
-    }
-
-    return 0;
-}
-
-int MqttExporter::exportDayData(std::time_t timestamp, const DataPerInverter& inverterData)
-{
-    if (m_config.mqtt_item_format != "MSGPACK")
-        return 0;
-
-#if(!defined MOSQUITTO_FOUND || !defined MSGPACK_FOUND)
-    return 0;
-#else
-    return m_msgPackExporter.exportDayData(timestamp, inverterData);
-#endif
-}

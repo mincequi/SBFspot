@@ -35,7 +35,6 @@ DISCLAIMER:
 #pragma once
 
 #include "osselect.h"
-#include "TagDefs.h"
 
 // Constants
 #define COMMBUFSIZE 2048 // Size of Communications Buffer (Bluetooth/Ethernet)
@@ -81,7 +80,5 @@ extern uint8_t LocalBTAddress[6];
 
 extern unsigned long AppSerial;
 extern unsigned int cmdcode;
-
-extern TagDefs tagdefs;
 
 extern SOCKET sock;

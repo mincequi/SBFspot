@@ -54,6 +54,8 @@ extern int verbose;
 #define SQL_RECOMMENDED_SCHEMA_VERSION 1
 #define SQL_BUSY_RETRY_COUNT 20
 
+class Config;
+
 class db_SQL_Base
 {
 public:
@@ -64,11 +66,12 @@ public:
 	};
 
 protected:
-	sqlite3 *m_dbHandle;
+    const Config& m_config;
+    sqlite3 *m_dbHandle = nullptr;
 	std::string m_database;
 
 public:
-	db_SQL_Base() { m_dbHandle = NULL; }
+    db_SQL_Base(const Config& config);
 	~db_SQL_Base() { if (m_dbHandle) close(); }
     int open(const std::string& database);
 	int close(void);

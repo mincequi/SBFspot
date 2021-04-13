@@ -65,7 +65,7 @@ std::string MqttMsgPackExport::name() const
     return "MqttMsgPackExport";
 }
 
-int MqttMsgPackExport::exportConfig(const InverterData& inv)
+void MqttMsgPackExport::exportConfig(const InverterData& inv)
 {
     connectToHost();
 
@@ -114,109 +114,49 @@ int MqttMsgPackExport::exportConfig(const InverterData& inv)
     }
 
     publish(topic, sbuf, 1);
-
-    return 0;
 }
 
-int MqttMsgPackExport::exportDayStats(std::time_t timestamp,
-                                      const std::vector<DayStats>& dayStats)
+void MqttMsgPackExport::exportDayStats(const DayStats& stats)
 {
     connectToHost();
 
-    for (const auto& stats : dayStats)
+    std::string topic = m_config.mqtt_topic;
+    boost::replace_first(topic, "{plantname}", m_config.plantname);
+    boost::replace_first(topic, "{serial}", std::to_string(stats.serial));
+    topic += "/today/stats";
+
+    // Pack manually (because a float in map gets stored as double and timestamp is not supported yet).
+    msgpack::sbuffer sbuf;
+    msgpack::packer<msgpack::sbuffer> packer(sbuf);
+    // Map with number of elements
+    packer.pack_map(4);
+    // 1. Protocol version
+    packer.pack_uint8(static_cast<uint8_t>(Property::Version));
+    packer.pack_uint8(0);
+    // 2. Timestamp
+    packer.pack_uint8(static_cast<uint8_t>(Property::Timestamp));
+    auto t = htonl(stats.timestamp);
+    packer.pack_ext(4, -1); // Timestamp type
+    packer.pack_ext_body((const char*)(&t), 4);
+    // 3. Power max today
+    packer.pack_uint8(static_cast<uint8_t>(Property::PowerMaxToday));
+    packer.pack_float(stats.powerMax);
+    // 4. Power DC
+    packer.pack_uint8(static_cast<uint8_t>(Property::Strings));
+    packer.pack_array(stats.stringPowerMax.size());   // Store an array to provide data for each Mpp.
+
+    for (uint32_t i = 0; i < stats.stringPowerMax.size(); ++i)
     {
-        std::string topic = m_config.mqtt_topic;
-        boost::replace_first(topic, "{plantname}", m_config.plantname);
-        boost::replace_first(topic, "{serial}", std::to_string(stats.serial));
-        topic += "/today/stats";
-
-        // Pack manually (because a float in map gets stored as double and timestamp is not supported yet).
-        msgpack::sbuffer sbuf;
-        msgpack::packer<msgpack::sbuffer> packer(sbuf);
-        // Map with number of elements
-        packer.pack_map(4);
-        // 1. Protocol version
-        packer.pack_uint8(static_cast<uint8_t>(Property::Version));
-        packer.pack_uint8(0);
-        // 2. Timestamp
-        packer.pack_uint8(static_cast<uint8_t>(Property::Timestamp));
-        auto t = htonl(timestamp);
-        packer.pack_ext(4, -1); // Timestamp type
-        packer.pack_ext_body((const char*)(&t), 4);
-        // 3. Power max today
-        packer.pack_uint8(static_cast<uint8_t>(Property::PowerMaxToday));
-        packer.pack_float(stats.powerMax);
-        // 4. Power DC
-        packer.pack_uint8(static_cast<uint8_t>(Property::Strings));
-        packer.pack_array(stats.stringPowerMax.size());   // Store an array to provide data for each Mpp.
-
-        for (uint32_t i = 0; i < stats.stringPowerMax.size(); ++i)
-        {
-            // 4.X
-            packer.pack_map(1);
-            packer.pack_uint8(static_cast<uint8_t>(Property::StringPowerMaxToday));
-            packer.pack_float(static_cast<float>(stats.stringPowerMax[i]));
-        }
-
-        publish(topic, sbuf, 1);
+        // 4.X
+        packer.pack_map(1);
+        packer.pack_uint8(static_cast<uint8_t>(Property::StringPowerMaxToday));
+        packer.pack_float(static_cast<float>(stats.stringPowerMax[i]));
     }
 
-    return 0;
+    publish(topic, sbuf, 1);
 }
 
-int MqttMsgPackExport::exportLiveData(std::time_t timestamp,
-                                      const std::vector<InverterData>& inverterData)
-{
-    connectToHost();
-
-    for (const auto& inv : inverterData)
-    {
-        std::string topic = m_config.mqtt_topic;
-        boost::replace_first(topic, "{plantname}", m_config.plantname);
-        boost::replace_first(topic, "{serial}", std::to_string(inv.Serial));
-        topic += "/live";
-
-        // Pack manually (because a float in map gets stored as double and timestamp is not supported yet).
-        msgpack::sbuffer sbuf;
-        msgpack::packer<msgpack::sbuffer> packer(sbuf);
-        // Map with number of elements
-        packer.pack_map(6);
-        // 1. Protocol version
-        packer.pack_uint8(static_cast<uint8_t>(Property::Version));
-        packer.pack_uint8(0);
-        // 2. Timestamp
-        packer.pack_uint8(static_cast<uint8_t>(Property::Timestamp));
-        auto t = htonl(timestamp);
-        packer.pack_ext(4, -1); // Timestamp type
-        packer.pack_ext_body((const char*)(&t), 4);
-        // 3. Yield Total
-        packer.pack_uint8(static_cast<uint8_t>(Property::EnergyExportTotal));
-        packer.pack_float(static_cast<float>(inv.ETotal));
-        // 4. Yield Today
-        packer.pack_uint8(static_cast<uint8_t>(Property::EnergyExportToday));
-        packer.pack_float(static_cast<float>(inv.EToday));
-        // 5. Power AC
-        packer.pack_uint8(static_cast<uint8_t>(Property::Power));
-        packer.pack_float(static_cast<float>(inv.TotalPac));
-        // 6. Power DC
-        packer.pack_uint8(static_cast<uint8_t>(Property::Strings));
-        packer.pack_array(2);   // Store an array to provide data for each Mpp.
-        // 6.1 MPP1
-        packer.pack_map(1);
-        packer.pack_uint8(static_cast<uint8_t>(Property::Power));
-        packer.pack_float(static_cast<float>(inv.Pdc1));
-        // 6.2 MPP2
-        packer.pack_map(1);
-        packer.pack_uint8(static_cast<uint8_t>(Property::Power));
-        packer.pack_float(static_cast<float>(inv.Pdc2));
-
-        publish(topic, sbuf, 0);
-    }
-
-    return 0;
-}
-
-int MqttMsgPackExport::exportLiveData(const LiveData& liveData)
+void MqttMsgPackExport::exportLiveData(const LiveData& liveData)
 {
     connectToHost();
 
@@ -243,11 +183,9 @@ int MqttMsgPackExport::exportLiveData(const LiveData& liveData)
     packer.pack(liveData.acPowerTotal);
 
     publish(topic, sbuf, 0);
-
-    return 0;
 }
 
-int MqttMsgPackExport::exportDayData(std::time_t timestamp, const DataPerInverter& inverterData)
+void MqttMsgPackExport::exportDayData(std::time_t timestamp, const DataPerInverter& inverterData)
 {
     connectToHost();
 
@@ -300,8 +238,6 @@ int MqttMsgPackExport::exportDayData(std::time_t timestamp, const DataPerInverte
 
         publish(topic, sbuf, 0);
     }
-
-    return 0;
 }
 
 void MqttMsgPackExport::connectToHost()

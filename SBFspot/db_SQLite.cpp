@@ -36,11 +36,18 @@ DISCLAIMER:
 
 #include "db_SQLite.h"
 
+#include "Config.h"
+
 #include <sys/time.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 
 using namespace std;
+
+db_SQL_Base::db_SQL_Base(const Config& config) :
+    m_config(config)
+{
+}
 
 string db_SQL_Base::status_text(int status)
 {
@@ -74,7 +81,7 @@ int db_SQL_Base::open(const string& database)
 
 	if (!m_dbHandle)	// Not yet open?
 	{
-		m_database = database;
+        m_database = m_config.sqlDatabase;
 
 		if (database.size() > 0)
 			result = sqlite3_open_v2(database.c_str(), &m_dbHandle, SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX, NULL);

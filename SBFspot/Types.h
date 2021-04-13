@@ -34,6 +34,7 @@ DISCLAIMER:
 
 #pragma once
 
+#include <ctime>
 #include <list>
 #include <map>
 #include <string>
@@ -41,6 +42,15 @@ DISCLAIMER:
 
 #include "Defines.h"
 #include "EventData.h"
+
+enum class ExporterType : uint16_t {
+    None = 0x0,
+    Csv = 0x01,
+    Sql = 0x02,
+    Mqtt = 0x10,
+    Ble = 0x20,
+    LoRaWan = 0x40
+};
 
 typedef enum
 {
@@ -69,6 +79,7 @@ typedef struct
 struct DayStats
 {
     uint32_t    serial;
+    std::time_t timestamp = 0;  // [sec]
     float       powerMax;
     std::vector<float> stringPowerMax;    // Maximum power per string
 };

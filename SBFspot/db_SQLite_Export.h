@@ -37,22 +37,30 @@ DISCLAIMER:
 #if defined(USE_SQLITE)
 
 #include "db_SQLite.h"
+#include "Exporter.h"
 #include <sstream>
 
 extern int quiet;
 extern int verbose;
 
-class db_SQL_Export : public db_SQL_Base
+class Config;
+class TagDefs;
+
+class db_SQL_Export : public db_SQL_Base, public Exporter
 {
 public:
-    int exportDayData(const std::vector<InverterData>& inverters);
-    int exportMonthData(const std::vector<InverterData>& inverters);
-    int exportSpotData(std::time_t timestamp, const std::vector<InverterData>& data);
-    int exportEventData(const std::vector<InverterData>& inverters, TagDefs& tags);
-    int exportBatteryData(const std::vector<InverterData>& inverters, time_t spottime);
+    db_SQL_Export(const Config& config);
+
+    void exportDayData(const std::vector<InverterData>& inverters) override;
+    void exportMonthData(const std::vector<InverterData>& inverters) override;
+    void exportSpotData(std::time_t timestamp, const std::vector<InverterData>& data) override;
+    void exportEventData(const std::vector<InverterData>& inverters, const std::string& dt_range_csv) override;
+    void exportBatteryData(std::time_t timestamp, const std::vector<InverterData>& inverters) override;
 
 private:
     int insert_battery_data(sqlite3_stmt* pStmt, int32_t tm, int32_t sn, int32_t key, int32_t val);
+
+    const Config& m_config;
 };
 
 #endif //#if defined(USE_SQLITE)

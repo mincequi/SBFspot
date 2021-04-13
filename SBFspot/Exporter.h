@@ -57,8 +57,7 @@ public:
     //              - Name
     //              - PowerMax
     //              - ...
-    enum class Property : uint8_t
-    {
+    enum class Property : uint8_t {
         // Static properties
         Version = 0,    // Protocol version:    uint (max 15)
         Name = 1,       // Device name:         string (max length 23)
@@ -107,16 +106,34 @@ public:
 
     virtual ~Exporter() = default;
 
+    virtual ExporterType type() const;
+
     virtual std::string name() const;
 
+    virtual bool open();
+    virtual void close();
+
+    /**
+     * @brief Indicates whether this exporter is a "live" exporter.
+     *
+     * Live exporters do not store data or cause disk I/O. So, live exporters
+     * can run at lower intervals without exhausting disk space.
+     *
+     * @return True if the exporter is a live exporter.
+     */
+    virtual bool isLive() const;
+
     // TODO: use DeviceConfig data type here (instead of InverterData).
-    virtual int exportConfig(const InverterData& inverterData);
-    virtual int exportDayStats(std::time_t timestamp,
-                               const std::vector<DayStats>& dayStats);
-    // TODO: remove this function in favor of second exportLiveData.
-    virtual int exportLiveData(std::time_t timestamp,
-                               const std::vector<InverterData>& inverterData);
-    virtual int exportLiveData(const LiveData& liveData);
-    virtual int exportDayData(std::time_t timestamp,
-                              const DataPerInverter& inverterData);
+    virtual void exportConfig(const InverterData& inverterData);
+    virtual void exportDayStats(const DayStats& dayStats);
+    virtual void exportLiveData(const LiveData& liveData);
+    virtual void exportDayData(std::time_t timestamp,
+                               const DataPerInverter& inverterData);
+
+    // TODO: remove this obsolete functions
+    virtual void exportDayData(const std::vector<InverterData>& inverters);
+    virtual void exportMonthData(const std::vector<InverterData>& inverters);
+    virtual void exportSpotData(std::time_t timestamp, const std::vector<InverterData>& inverters);
+    virtual void exportEventData(const std::vector<InverterData>& inverters, const std::string& dt_range_csv);
+    virtual void exportBatteryData(std::time_t timestamp, const std::vector<InverterData>& inverters);
 };

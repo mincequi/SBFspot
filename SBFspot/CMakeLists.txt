@@ -18,6 +18,10 @@ set(CMAKE_CXX_FLAGS "-Wno-deprecated-declarations -DQT_NO_DEBUG_OUTPUT -DLOGURU_
 
 set(DB "SQLITE" CACHE STRING "DB backend to use: NOSQL, SQLITE, MYSQL, MARIADB")
 
+include_directories(
+    thirdparty/loguru/
+)
+
 set(COMMON_SOURCES
     ArchData.cpp
     Config.cpp
@@ -39,6 +43,7 @@ set(COMMON_SOURCES
     mqtt.cpp
     sunrise_sunset.cpp
     sma/SmaInverterRequests.cpp
+    thirdparty/loguru/loguru.cpp
 )
 
 FILE(GLOB SQLITE_RESOURCES *SQLite.sql)
@@ -148,6 +153,7 @@ COMPONENTS
 add_executable(${PROJECT_NAME}_qt
     Cache.cpp
     Config.cpp
+    CSVexport.cpp
     Defines.cpp
     Ethernet_qt.cpp
     Exporter.cpp
@@ -167,11 +173,6 @@ add_executable(${PROJECT_NAME}_qt
     sma/SmaInverterRequests.cpp
     sma/SmaManager.cpp
     thirdparty/loguru/loguru.cpp
-)
-
-target_include_directories(${PROJECT_NAME}_qt
-PRIVATE
-    thirdparty/loguru/
 )
 
 target_link_libraries(${PROJECT_NAME}_qt
