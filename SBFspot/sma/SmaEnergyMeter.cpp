@@ -35,14 +35,7 @@ DISCLAIMER:
 #include "SmaEnergyMeter.h"
 
 #include "LiveData.h"
-
-#ifdef _WIN32
-#include <Winsock2.h>
-#include <Ws2tcpip.h>
-#define poll(a, b, c)  WSAPoll((a), (b), (c))
-#else
-#include <poll.h>
-#endif
+#include "Logging.h"
 
 #include <SpeedwireSocketFactory.hpp>
 #include <SpeedwireByteEncoding.hpp>
@@ -97,15 +90,12 @@ LiveData SmaEnergyMeter::parsePacket(const char* data, uint16_t size)
     SpeedwireHeader protocol(data, size);
     bool valid = protocol.checkHeader();
     if (valid) {
-        uint32_t group = protocol.getGroup();
-        uint16_t length = protocol.getLength();
         uint16_t protocolID = protocol.getProtocolID();
-        int      offset = protocol.getPayloadOffset();
+        auto offset = protocol.getPayloadOffset();
 
         if (protocolID == SpeedwireHeader::sma_emeter_protocol_id) {
             //printf("RECEIVED EMETER PACKET  time 0x%016llx\n", LocalHost::getTickCountInMs());
             SpeedwireEmeterProtocol emeter(data + offset, size - offset);
-            uint16_t susyid = emeter.getSusyID();
             uint32_t serial = emeter.getSerialNumber();
             uint32_t timer = emeter.getTime();
 
@@ -114,7 +104,14 @@ LiveData SmaEnergyMeter::parsePacket(const char* data, uint16_t size)
             LiveData liveData(serial);
             liveData.ac.resize(3);
             void* obis = emeter.getFirstObisElement();
-            while (obis != NULL) {
+            while (obis != nullptr) {
+                auto channel = SpeedwireEmeterProtocol::getObisChannel(obis);
+                auto index = SpeedwireEmeterProtocol::getObisIndex(obis);
+                auto type = SpeedwireEmeterProtocol::getObisType(obis);
+                bool doLog = ((index%10) == 1) || ((index%10) == 2);
+                uint64_t value = (type == 4) ? SpeedwireEmeterProtocol::getObisValue4(obis) : SpeedwireEmeterProtocol::getObisValue8(obis);
+                LOG_IF_F(1, doLog, "OBIS %i:%i.%i.0  > %llu", channel, index, type, value);
+
                 //emeter.printObisElement(obis, stderr);
                 // ugly hack to calculate the signed power value
                 if (SpeedwireEmeterProtocol::getObisType(obis) == 4) {

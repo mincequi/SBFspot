@@ -174,18 +174,18 @@ const std::vector<uint8_t>& SbfSpot::encodeLoginRequest(uint16_t susyId, uint32_
         {
             pcktID++;
             now = time(NULL);
-            writePacketHeader(buffer, 0x01, addr_unknown);
-            writePacket(buffer, 0x0E, 0xA0, 0x0100, anySUSyID, anySerial);
-            writeLong(buffer, 0xFFFD040C);
-            writeLong(buffer, userGroup);	// User / Installer
-            writeLong(buffer, 0x00000384); // Timeout = 900sec ?
-            writeLong(buffer, now);
-            writeLong(buffer, 0);
-            writeArray(buffer, pw, sizeof(pw));
-            writePacketTrailer(buffer);
-            writePacketLength(buffer);
+            m_buffer.writePacketHeader(0x01, addr_unknown);
+            m_buffer.writePacket(0x0E, 0xA0, 0x0100, anySUSyID, anySerial);
+            m_buffer.writeLong(0xFFFD040C);
+            m_buffer.writeLong(userGroup);	// User / Installer
+            m_buffer.writeLong(0x00000384); // Timeout = 900sec ?
+            m_buffer.writeLong(now);
+            m_buffer.writeLong(0);
+            m_buffer.writeArray(pw, sizeof(pw));
+            m_buffer.writePacketTrailer();
+            m_buffer.writePacketLength();
         }
-        while (!isCrcValid(buffer[packetposition-3], buffer[packetposition-2]));
+        while (!m_buffer.isCrcValid());
 #else
         if (DEBUG_NORMAL)
             std::cout << "Bluetooth not supported on this platform" << std::endl;

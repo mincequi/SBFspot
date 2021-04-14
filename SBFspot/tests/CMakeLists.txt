@@ -25,24 +25,24 @@ add_executable(cachetest
     ../Cache.cpp
 )
 
-if (Bluetooth_FOUND)
-    add_executable(bluetoothtest
-        BluetoothTest.cpp
-        ../Bluetooth.cpp
-        ../Defines.cpp
-        ../Ethernet.cpp
-        ../Importer.cpp
-        ../misc.cpp
-        ../sunrise_sunset.cpp
-        ../SBFNet.cpp
-        ../SBFspot.cpp
-        ../Timer.cpp
-        ../sma/SmaInverterRequests.cpp
-    )
-    target_link_libraries(bluetoothtest
-        PkgConfig::Bluetooth
-    )
-endif()
+#if (Bluetooth_FOUND)
+#    add_executable(bluetoothtest
+#        BluetoothTest.cpp
+#        ../Bluetooth.cpp
+#        ../Defines.cpp
+#        ../Ethernet.cpp
+#        ../Importer.cpp
+#        ../misc.cpp
+#        ../sunrise_sunset.cpp
+#        ../SBFNet.cpp
+#        ../SBFspot.cpp
+#        ../Timer.cpp
+#        ../sma/SmaInverterRequests.cpp
+#    )
+#    target_link_libraries(bluetoothtest
+#        PkgConfig::Bluetooth
+#    )
+#endif()
 
 if (Mosquitto_FOUND AND MessagePack_FOUND)
     add_executable(mqttexportertest

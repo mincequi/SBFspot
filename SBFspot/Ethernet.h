@@ -47,5 +47,3 @@ public:
 
     E_SBFSPOT ethGetPacket(Buffer& out);
 };
-
-

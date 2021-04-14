@@ -45,6 +45,9 @@ DISCLAIMER:
 
 InverterData** m_inverters;
 
+Bluetooth buetooth;
+Buffer buffer;
+
 int logOn(Config& config)
 {
     char msg[80];
@@ -56,7 +59,7 @@ int logOn(Config& config)
         if (attempts != 1) sleep(1);
         {
             printf("Connecting to %s (%d/%d)\n", config.BT_Address, attempts, config.BT_ConnectRetries);
-            rc = bthConnect(config.BT_Address);
+            rc = buetooth.bthConnect(config.BT_Address);
         }
         attempts++;
     }
@@ -98,16 +101,16 @@ void logOff()
     do
     {
         pcktID++;
-        writePacketHeader(0x01, addr_unknown);
-        writePacket(0x08, 0xA0, 0x0300, anySUSyID, anySerial);
-        writeLong(0xFFFD010E);
-        writeLong(0xFFFFFFFF);
-        writePacketTrailer();
-        writePacketLength();
+        buffer.writePacketHeader(0x01, addr_unknown);
+        buffer.writePacket(0x08, 0xA0, 0x0300, anySUSyID, anySerial);
+        buffer.writeLong(0xFFFD010E);
+        buffer.writeLong(0xFFFFFFFF);
+        buffer.writePacketTrailer();
+        buffer.writePacketLength();
     }
-    while (!isCrcValid(pcktBuf[packetposition-3], pcktBuf[packetposition-2]));
+    while (!buffer.isCrcValid());
 
-    bthSend(pcktBuf);
+    buetooth.bthSend(buffer.data().data());
 }
 
 int main(int argc, char **argv)

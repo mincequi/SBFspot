@@ -16,11 +16,12 @@ COMPONENTS
     Concurrent Network Sql REQUIRED
 )
 
-pkg_check_modules(Bluetooth IMPORTED_TARGET bluez)
+# Disable bluetooth for now
+#pkg_check_modules(Bluetooth IMPORTED_TARGET bluez)
 pkg_check_modules(MessagePack IMPORTED_TARGET msgpack)
 pkg_check_modules(Mosquitto IMPORTED_TARGET libmosquittopp)
 
-set(CMAKE_CXX_FLAGS "-Wno-deprecated-declarations -DQT_NO_DEBUG_OUTPUT -DLOGURU_WITH_STREAMS")
+set(CMAKE_CXX_FLAGS "-Wno-deprecated-declarations -DQT_NO_DEBUG_OUTPUT -DLOGURU_WITH_STREAMS -lpthread -ldl")
 
 set(DB "SQLITE" CACHE STRING "DB backend to use: NOSQL, SQLITE, MYSQL, MARIADB")
 
@@ -65,11 +66,11 @@ set(COMMON_RESOURCES
     date_time_zonespec.csv
 )
 
-if (Bluetooth_FOUND)
-    list(APPEND COMMON_SOURCES
-        Bluetooth.cpp
-    )
-endif()
+#if (Bluetooth_FOUND)
+#    list(APPEND COMMON_SOURCES
+#        Bluetooth.cpp
+#    )
+#endif()
 
 if (Mosquitto_FOUND AND MessagePack_FOUND)
     list(APPEND COMMON_SOURCES
@@ -115,10 +116,10 @@ add_executable(${PROJECT_NAME}
 )
 
 # Optional libs
-if (Bluetooth_FOUND)
-    add_compile_definitions(BLUETOOTH_FOUND)
-    target_link_libraries(${PROJECT_NAME} PkgConfig::Bluetooth)
-endif()
+#if (Bluetooth_FOUND)
+#    add_compile_definitions(BLUETOOTH_FOUND)
+#    target_link_libraries(${PROJECT_NAME} PkgConfig::Bluetooth)
+#endif()
 if (MessagePack_FOUND)
     add_compile_definitions(MSGPACK_FOUND MSGPACK_USE_BOOST)
     target_link_libraries(${PROJECT_NAME} PkgConfig::MessagePack)

@@ -36,6 +36,7 @@ DISCLAIMER:
 
 #include "osselect.h"
 
+#include "bluetooth.h"
 #include "Types.h"
 
 struct Config;
@@ -59,5 +60,6 @@ public:
 private:
     const Config& m_config;
     Ethernet& m_ethernet;
+    Bluetooth m_bluetooth;
 };
 
