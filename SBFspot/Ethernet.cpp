@@ -230,7 +230,6 @@ E_SBFSPOT Ethernet::ethGetPacket(Buffer& out)
 {
     if (DEBUG_NORMAL) printf("ethGetPacket()\n");
     E_SBFSPOT rc = E_OK;
-    out.clear();
 
     do
     {
@@ -252,6 +251,7 @@ E_SBFSPOT Ethernet::ethGetPacket(Buffer& out)
                 if (DEBUG_HIGH) HexDump(buffer, 10);
                 if (btohl(pkHdr->pcktHdrL2.MagicNumber) == ETH_L2SIGNATURE)
                 {
+                    out.clear();
                     // Copy CommBuf to packetbuffer
                     // Dummy byte to align with BTH (7E)
                     out.data().push_back(0);

@@ -41,16 +41,13 @@ DISCLAIMER:
 
 namespace msgpack {
 
-MsgPackSerializer::MsgPackSerializer()
-{
+MsgPackSerializer::MsgPackSerializer() {
 }
 
-MsgPackSerializer::~MsgPackSerializer()
-{
+MsgPackSerializer::~MsgPackSerializer() {
 }
 
-std::vector<char> MsgPackSerializer::serialize(const LiveData& liveData) const
-{
+ByteBuffer MsgPackSerializer::serialize(const LiveData& liveData) const {
     // Pack manually (because a float in map gets stored as double and timestamp is not supported yet).
     msgpack::sbuffer sbuf;
     msgpack::packer<msgpack::sbuffer> packer(sbuf);

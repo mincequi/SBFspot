@@ -32,14 +32,14 @@ DISCLAIMER:
 
 ************************************************************************************************/
 
-#pragma once
+#include "Serializer.h"
 
-#include "Types.h"
 
-struct LiveData;
+ByteBuffer Serializer::serialize(const LiveData&) const {
+    return {};
+}
 
-class Serializer {
-public:
-    virtual ByteBuffer serialize(const LiveData& liveData) const;
-    virtual ByteBuffer serialize(const InverterData& inverterData) const;
-};
+ByteBuffer Serializer::serialize(const InverterData&) const {
+    return {};
+}
+

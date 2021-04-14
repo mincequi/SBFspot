@@ -54,10 +54,24 @@ DISCLAIMER:
 
 using namespace std;
 
+void Config::parseAppPath(const char* appPath)
+{
+    // Get path of executable
+    // Fix Issue 169 (expand symlinks)
+    this->AppPath = appPath;
+
+    size_t pos = this->AppPath.find_last_of("/\\");
+    if (pos != std::string::npos)
+        this->AppPath.erase(++pos);
+    else
+        this->AppPath.clear();
+
+    //Build fullpath to config file (SBFspot.cfg should be in same folder as SBFspot.exe)
+    this->ConfigFile = this->AppPath + "SBFspot.cfg";
+}
+
 int Config::parseCmdline(int argc, char **argv)
 {
-    this->forceInq = 0;		// Inquire inverter also during the night
-    this->userGroup = UG_USER;
     // 123Solar Web Solar logger support(http://www.123solar.org/)
     // This is an undocumented feature and should only be used for 123solar
     this->s123 = S123_NOP;
@@ -79,19 +93,6 @@ int Config::parseCmdline(int argc, char **argv)
         if (stricmp(argv[i], "-?") == 0)
             help_requested = true;
     }
-
-    // Get path of executable
-    // Fix Issue 169 (expand symlinks)
-    this->AppPath = realpath(argv[0]);
-
-    size_t pos = this->AppPath.find_last_of("/\\");
-    if (pos != std::string::npos)
-        this->AppPath.erase(++pos);
-    else
-        this->AppPath.clear();
-
-    //Build fullpath to config file (SBFspot.cfg should be in same folder as SBFspot.exe)
-    this->ConfigFile = this->AppPath + "SBFspot.cfg";
 
     char *pEnd = NULL;
     long lValue = 0;
@@ -384,7 +385,7 @@ int Config::readConfig()
 #if defined(WIN32)
     this->mqtt_publish_exe = "%ProgramFiles%\\mosquitto\\mosquitto_pub.exe";
 #else
-    this->mqtt_publish_exe = "/usr/bin/mosquitto_pub";
+    this->mqtt_publish_exe = "/usr/local/bin/mosquitto_pub";
 #endif
 
     this->sqlPort = 3306;

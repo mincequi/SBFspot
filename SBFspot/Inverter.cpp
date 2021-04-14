@@ -347,22 +347,22 @@ E_SBFSPOT Inverter::getDeviceList(std::vector<InverterData>& inverters, int mult
             return (E_SBFSPOT)errorcode;
         }
 
-        unsigned short rcvpcktID = get_short(pcktBuf+27) & 0x7FFF;
+        unsigned short rcvpcktID = get_short(response.data().data()+27) & 0x7FFF;
         if (pcktID == rcvpcktID)
         {
-            uint32_t serial = get_long(pcktBuf + 17);
+            uint32_t serial = get_long(response.data().data() + 17);
             if (serial == inverters[multigateIndex].Serial)
             {
                 rc = E_NODATA;
                 validPcktID = 1;
                 for (int i = 41; i < packetposition - 3; i += recordsize)
                 {
-                    uint16_t devclass = get_short(pcktBuf + i + 4);
+                    uint16_t devclass = get_short(response.data().data() + i + 4);
                     if (devclass == 3)
                     {
                         InverterData inverter;
-                        inverter.SUSyID = get_short(pcktBuf + i + 6);
-                        inverter.Serial = get_long(pcktBuf + i + 8);
+                        inverter.SUSyID = get_short(response.data().data() + i + 6);
+                        inverter.Serial = get_long(response.data().data() + i + 8);
                         inverter.IPAddress = inverters[multigateIndex].IPAddress;
                         inverter.multigateIndex = multigateIndex;
                         inverters.push_back(inverter);
@@ -408,10 +408,10 @@ int Inverter::getInverterData(std::vector<InverterData>& inverters, SmaInverterD
             if ((ConnType == CT_BLUETOOTH) && (!m_buffer.validateChecksum()))
                 return E_CHKSUM;
 
-            unsigned short rcvpcktID = get_short(pcktBuf+27) & 0x7FFF;
+            unsigned short rcvpcktID = get_short(m_buffer.data().data()+27) & 0x7FFF;
             if (pcktID == rcvpcktID)
             {
-                int inv = m_sbfSpot.getInverterIndexBySerial(inverters, get_short(pcktBuf + 15), get_long(pcktBuf + 17));
+                int inv = m_sbfSpot.getInverterIndexBySerial(inverters, get_short(m_buffer.data().data() + 15), get_long(m_buffer.data().data() + 17));
                 if (inv >= 0)
                 {
                     validPcktID = 1;
@@ -423,22 +423,22 @@ int Inverter::getInverterData(std::vector<InverterData>& inverters, SmaInverterD
                     unsigned char Vmajor = 0;
                     for (int ii = 41; ii < packetposition - 3; ii += recordsize)
                     {
-                        uint32_t code = ((uint32_t)get_long(pcktBuf + ii));
+                        uint32_t code = ((uint32_t)get_long(m_buffer.data().data() + ii));
                         LriDef lri = (LriDef)(code & 0x00FFFF00);
                         uint32_t cls = code & 0xFF;
                         unsigned char dataType = code >> 24;
-                        time_t datetime = (time_t)get_long(pcktBuf + ii + 4);
+                        time_t datetime = (time_t)get_long(m_buffer.data().data() + ii + 4);
 
                         // fix: We can't rely on dataType because it can be both 0x00 or 0x40 for DWORDs
                         if ((lri == MeteringDyWhOut) || (lri == MeteringTotWhOut) || (lri == MeteringTotFeedTms) || (lri == MeteringTotOpTms))	//QWORD
                             //if ((code == SPOT_ETODAY) || (code == SPOT_ETOTAL) || (code == SPOT_FEEDTM) || (code == SPOT_OPERTM))	//QWORD
                         {
-                            value64 = get_longlong(pcktBuf + ii + 8);
+                            value64 = get_longlong(m_buffer.data().data() + ii + 8);
                             if ((value64 == (int64_t)NaN_S64) || (value64 == (int64_t)NaN_U64)) value64 = 0;
                         }
                         else if ((dataType != 0x10) && (dataType != 0x08))	//Not TEXT or STATUS, so it should be DWORD
                         {
-                            value = (int32_t)get_long(pcktBuf + ii + 16);
+                            value = (int32_t)get_long(m_buffer.data().data() + ii + 16);
                             if ((value == (int32_t)NaN_S32) || (value == (int32_t)NaN_U32)) value = 0;
                         }
 
@@ -629,7 +629,7 @@ int Inverter::getInverterData(std::vector<InverterData>& inverters, SmaInverterD
                             //This function gives us the time when the inverter was switched on
                             inverters[inv].WakeupTime = datetime;
                             char deviceName[33];
-                            strncpy(deviceName, (char *)pcktBuf + ii + 8, sizeof(deviceName)-1);
+                            strncpy(deviceName, (char *)m_buffer.data().data() + ii + 8, sizeof(deviceName)-1);
                             inverters[inv].DeviceName = deviceName;
                             inverters[inv].flags |= type;
                             if (DEBUG_NORMAL) printf("%-12s: '%s' %s", "INV_NAME", inverters[inv].DeviceName.c_str(), ctime(&datetime));
@@ -637,15 +637,15 @@ int Inverter::getInverterData(std::vector<InverterData>& inverters, SmaInverterD
 
                         case NameplatePkgRev: //INV_SWVER
                             if (recordsize == 0) recordsize = 40;
-                            Vtype = pcktBuf[ii + 24];
+                            Vtype = m_buffer.data().data()[ii + 24];
                             char ReleaseType[4];
                             if (Vtype > 5)
                                 sprintf(ReleaseType, "%d", Vtype);
                             else
                                 sprintf(ReleaseType, "%c", "NEABRS"[Vtype]); //NOREV-EXPERIMENTAL-ALPHA-BETA-RELEASE-SPECIAL
-                            Vbuild = pcktBuf[ii + 25];
-                            Vminor = pcktBuf[ii + 26];
-                            Vmajor = pcktBuf[ii + 27];
+                            Vbuild = m_buffer.data().data()[ii + 25];
+                            Vminor = m_buffer.data().data()[ii + 26];
+                            Vmajor = m_buffer.data().data()[ii + 27];
                             //Vmajor and Vminor = 0x12 should be printed as '12' and not '18' (BCD)
                             char swVersion[16];
                             snprintf(swVersion, sizeof(swVersion), "%c%c.%c%c.%02d.%s", '0'+(Vmajor >> 4), '0'+(Vmajor & 0x0F), '0'+(Vminor >> 4), '0'+(Vminor & 0x0F), Vbuild, ReleaseType);
@@ -658,8 +658,8 @@ int Inverter::getInverterData(std::vector<InverterData>& inverters, SmaInverterD
                             if (recordsize == 0) recordsize = 40;
                             for (int idx = 8; idx < recordsize; idx += 4)
                             {
-                                unsigned long attribute = ((unsigned long)get_long(pcktBuf + ii + idx)) & 0x00FFFFFF;
-                                unsigned char status = pcktBuf[ii + idx + 3];
+                                unsigned long attribute = ((unsigned long)get_long(m_buffer.data().data() + ii + idx)) & 0x00FFFFFF;
+                                unsigned char status = m_buffer.data().data()[ii + idx + 3];
                                 if (attribute == 0xFFFFFE) break;	//End of attributes
                                 if (status == 1)
                                 {
@@ -684,8 +684,8 @@ int Inverter::getInverterData(std::vector<InverterData>& inverters, SmaInverterD
                             if (recordsize == 0) recordsize = 40;
                             for (int idx = 8; idx < recordsize; idx += 4)
                             {
-                                unsigned long attribute = ((unsigned long)get_long(pcktBuf + ii + idx)) & 0x00FFFFFF;
-                                unsigned char attValue = pcktBuf[ii + idx + 3];
+                                unsigned long attribute = ((unsigned long)get_long(m_buffer.data().data() + ii + idx)) & 0x00FFFFFF;
+                                unsigned char attValue = m_buffer.data().data()[ii + idx + 3];
                                 if (attribute == 0xFFFFFE) break;	//End of attributes
                                 if (attValue == 1)
                                 {
@@ -711,8 +711,8 @@ int Inverter::getInverterData(std::vector<InverterData>& inverters, SmaInverterD
                             if (recordsize == 0) recordsize = 40;
                             for (int idx = 8; idx < recordsize; idx += 4)
                             {
-                                unsigned long attribute = ((unsigned long)get_long(pcktBuf + ii + idx)) & 0x00FFFFFF;
-                                unsigned char attValue = pcktBuf[ii + idx + 3];
+                                unsigned long attribute = ((unsigned long)get_long(m_buffer.data().data() + ii + idx)) & 0x00FFFFFF;
+                                unsigned char attValue = m_buffer.data().data()[ii + idx + 3];
                                 if (attribute == 0xFFFFFE) break;	//End of attributes
                                 if (attValue == 1)
                                     inverters[inv].DeviceStatus = attribute;
@@ -725,8 +725,8 @@ int Inverter::getInverterData(std::vector<InverterData>& inverters, SmaInverterD
                             if (recordsize == 0) recordsize = 40;
                             for (int idx = 8; idx < recordsize; idx += 4)
                             {
-                                unsigned long attribute = ((unsigned long)get_long(pcktBuf + ii + idx)) & 0x00FFFFFF;
-                                unsigned char attValue = pcktBuf[ii + idx + 3];
+                                unsigned long attribute = ((unsigned long)get_long(m_buffer.data().data() + ii + idx)) & 0x00FFFFFF;
+                                unsigned char attValue = m_buffer.data().data()[ii + idx + 3];
                                 if (attribute == 0xFFFFFE) break;	//End of attributes
                                 if (attValue == 1)
                                     inverters[inv].GridRelayStatus = attribute;

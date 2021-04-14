@@ -353,3 +353,4 @@ typedef enum
 
 using DataPerInverter = std::map<uint32_t, std::list<InverterData>>;
 using InverterDataMap = std::map<LriDef, float>;
+using ByteBuffer = std::vector<uint8_t>;

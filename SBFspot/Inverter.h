@@ -41,7 +41,6 @@ DISCLAIMER:
 #include "ExporterManager.h"
 #include "LiveData.h"
 #include "SBFNet.h"
-#include "mqtt.h"
 
 struct Config;
 class Ethernet;

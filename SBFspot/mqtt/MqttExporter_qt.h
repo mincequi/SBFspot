@@ -51,8 +51,11 @@ public:
     MqttExporter_qt(const Config& config, const Serializer& serializer);
     virtual ~MqttExporter_qt();
 
-    virtual std::string name() const override;
-    virtual void exportLiveData(const LiveData& liveData) override;
+    std::string name() const override;
+    bool isLive() const override;
+
+    void exportLiveData(const LiveData& liveData) override;
+    void exportSpotData(std::time_t timestamp, const std::vector<InverterData>& inverters) override;
 
 private:
     void onError(const QMQTT::ClientError error);

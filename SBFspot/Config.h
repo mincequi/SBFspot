@@ -50,6 +50,7 @@ struct StringConfig
 
 struct Config
 {
+    void parseAppPath(const char* appPath);
     int parseCmdline(int argc, char **argv);
     int readConfig();
     void showConfig();
@@ -95,7 +96,7 @@ struct Config
     int		CSV_ExtendedHeader;
     int		CSV_SaveZeroPower;
     int		SunRSOffset;			// Offset to start before sunrise and end after sunset
-    SmaUserGroup    userGroup;      // USER|INSTALLER
+    SmaUserGroup    userGroup = UG_USER;    // USER|INSTALLER
     char	prgVersion[16];
     int		SpotTimeSource = 0;     // 0=Use inverter time; 1=Use PC time in Spot CSV
     int		SpotWebboxHeader = 0;   // 0=Use standard Spot CSV hdr; 1=Webbox style hdr

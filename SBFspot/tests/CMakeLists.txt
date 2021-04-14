@@ -50,7 +50,6 @@ if (Mosquitto_FOUND AND MessagePack_FOUND)
         ../Defines.cpp
         ../Exporter.cpp
         ../misc.cpp
-        ../mqtt.cpp
         ../MqttMsgPackExporter.cpp
         ../sunrise_sunset.cpp
         ../TagDefs.cpp
@@ -67,7 +66,6 @@ if (Mosquitto_FOUND AND MessagePack_FOUND)
         ../Defines.cpp
         ../Exporter.cpp
         ../misc.cpp
-        ../mqtt.cpp
         ../MqttMsgPackExporter.cpp
         ../sunrise_sunset.cpp
         ../TagDefs.cpp

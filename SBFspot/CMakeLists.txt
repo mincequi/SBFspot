@@ -2,6 +2,8 @@ project(SBFspot)
 
 cmake_minimum_required(VERSION 3.6)
 
+# Qt specific stuff
+set(CMAKE_AUTOMOC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -9,6 +11,10 @@ set(qmqtt_SHARED OFF)
 
 find_package(PkgConfig)
 find_package(Boost REQUIRED COMPONENTS date_time)
+find_package(Qt5
+COMPONENTS
+    Concurrent Network Sql REQUIRED
+)
 
 pkg_check_modules(Bluetooth IMPORTED_TARGET bluez)
 pkg_check_modules(MessagePack IMPORTED_TARGET msgpack)
@@ -30,11 +36,13 @@ set(COMMON_SOURCES
     Ethernet.cpp
     EventData.cpp
     Exporter.cpp
+    ExporterManager.cpp
     Importer.cpp
     Inverter.cpp
     Cache.cpp
     SBFNet.cpp
     SBFspot.cpp
+    Serializer.cpp
     TagDefs.cpp
     Timer.cpp
     Types.cpp
@@ -42,6 +50,9 @@ set(COMMON_SOURCES
     misc.cpp
     mqtt.cpp
     sunrise_sunset.cpp
+    json/JsonSerializer.cpp
+    mqtt/MqttExporter_qt.cpp
+    msgpack/MsgPackSerializer.cpp
     sma/SmaInverterRequests.cpp
     thirdparty/loguru/loguru.cpp
 )
@@ -124,6 +135,8 @@ add_subdirectory(thirdparty/qmqtt)
 target_link_libraries(${PROJECT_NAME}
     Boost::date_time
     ${COMMON_LIBRARIES}
+    Qt5::Network
+    qmqtt
     speedwire
 )
 
@@ -142,30 +155,29 @@ install(FILES
     RENAME SBFspot.default.cfg
 )
 
-# Qt specific stuff
-set(CMAKE_AUTOMOC ON)
-
-find_package(Qt5
-COMPONENTS
-    Concurrent Network REQUIRED
-)
-
 add_executable(${PROJECT_NAME}_qt
     Cache.cpp
     Config.cpp
     CSVexport.cpp
     Defines.cpp
     Ethernet_qt.cpp
+    EventData.cpp
     Exporter.cpp
     ExporterManager.cpp
     LiveData.cpp
     Logging.cpp
     SBFNet.cpp
     SBFspot.cpp
+    Serializer.cpp
+    TagDefs.cpp
     Timer.cpp
+    db_SQLite.cpp
+    db_SQLite_Export.cpp
     main_qt.cpp
     misc.cpp
+    mqtt.cpp
     sunrise_sunset.cpp
+    json/JsonSerializer.cpp
     mqtt/MqttExporter_qt.cpp
     msgpack/MsgPackSerializer.cpp
     sma/SmaEnergyMeter.cpp
@@ -179,6 +191,8 @@ target_link_libraries(${PROJECT_NAME}_qt
     Boost::date_time
     Qt5::Concurrent
     Qt5::Network
+    Qt5::Sql
     qmqtt
     speedwire
+    sqlite3
 )

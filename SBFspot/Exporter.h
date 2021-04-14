@@ -131,9 +131,9 @@ public:
                                const DataPerInverter& inverterData);
 
     // TODO: remove this obsolete functions
-    virtual void exportDayData(const std::vector<InverterData>& inverters);
-    virtual void exportMonthData(const std::vector<InverterData>& inverters);
     virtual void exportSpotData(std::time_t timestamp, const std::vector<InverterData>& inverters);
     virtual void exportEventData(const std::vector<InverterData>& inverters, const std::string& dt_range_csv);
     virtual void exportBatteryData(std::time_t timestamp, const std::vector<InverterData>& inverters);
+    virtual void exportDayData(const std::vector<InverterData>& inverters);
+    virtual void exportMonthData(const std::vector<InverterData>& inverters);
 };

@@ -34,14 +34,14 @@ DISCLAIMER:
 
 #pragma once
 
-#include "Exporter.h"
+#include <Exporter.h>
+#include <json/JsonSerializer.h>
 #include <msgpack/MsgPackSerializer.h>
 
 class Cache;
-class Config;
+struct Config;
 
-class ExporterManager : public Exporter
-{
+class ExporterManager : public Exporter {
 public:
     ExporterManager(const Config& config, Cache& cache);
     ~ExporterManager();
@@ -52,7 +52,7 @@ public:
     // New functions
     void exportConfig(const InverterData& inverterData) override;
     void exportLiveData(const LiveData& liveData) override;
-    void exportDayStats(const DayStats& inverters) override;
+    void exportDayStats(const DayStats& dayStats) override;
 
     // TODO: these functions shall be removed/replaced.
     void exportSpotData(std::time_t timestamp, const std::vector<InverterData>& inverters) override;
@@ -64,6 +64,7 @@ private:
     const Config&   m_config;
     Cache&          m_cache;
 
+    json::JsonSerializer m_jsonSerializer;
     msgpack::MsgPackSerializer m_msgPackSerializer;
     std::list<Exporter*> m_exporters;
 };

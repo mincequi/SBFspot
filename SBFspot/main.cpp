@@ -56,6 +56,7 @@ int main(int argc, char **argv)
 
     //Read config file and store settings in config struct
     Config config;
+    config.parseAppPath(argv[0]);
     int rc = config.readConfig();	//Config struct contains fullpath to config file
     if (rc != 0) return rc;
 

@@ -35,7 +35,6 @@ DISCLAIMER:
 #include "../Config.h"
 #include "../Defines.h"
 #include "../Inverter.h"
-#include "../mqtt.h"
 #include "../MqttMsgPackExporter.h"
 #include "../Timer.h"
 

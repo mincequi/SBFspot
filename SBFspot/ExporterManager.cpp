@@ -42,8 +42,8 @@ DISCLAIMER:
 
 ExporterManager::ExporterManager(const Config& config, Cache& cache) :
     m_config(config),
-    m_cache(cache)
-{
+    m_cache(cache),
+    m_jsonSerializer(config) {
     if (config.exporters.count(ExporterType::Csv)) {
         m_exporters.push_back(new CsvExporter(config));
     }
@@ -51,21 +51,22 @@ ExporterManager::ExporterManager(const Config& config, Cache& cache) :
         m_exporters.push_back(new db_SQL_Export(config));
     }
     if (config.exporters.count(ExporterType::Mqtt)) {
-        m_exporters.push_back(new mqtt::MqttExporter_qt(config, m_msgPackSerializer));
-        m_exporters.push_back(new MqttExporter(config));
+        if (config.mqtt_item_format == "MSGPACK") {
+            m_exporters.push_back(new mqtt::MqttExporter_qt(config, m_msgPackSerializer));
+        } else {
+            m_exporters.push_back(new MqttExporter(config, m_jsonSerializer));
+        }
     }
 }
 
-ExporterManager::~ExporterManager()
-{
+ExporterManager::~ExporterManager() {
     for (auto& exporter : m_exporters) {
         delete exporter;
     }
     m_exporters.clear();
 }
 
-bool ExporterManager::open()
-{
+bool ExporterManager::open() {
     for (const auto& exporter : m_exporters) {
         exporter->open();
     }
@@ -79,8 +80,7 @@ void ExporterManager::close()
     }
 }
 
-void ExporterManager::exportSpotData(std::time_t timestamp, const std::vector<InverterData>& inverters)
-{
+void ExporterManager::exportSpotData(std::time_t timestamp, const std::vector<InverterData>& inverters) {
     for (const auto& exporter : m_exporters) {
         if (exporter->isLive()) {
             exporter->exportSpotData(timestamp, inverters);
@@ -124,44 +124,44 @@ void ExporterManager::exportSpotData(std::time_t timestamp, const std::vector<In
     }
 }
 
-void ExporterManager::exportConfig(const InverterData& inverterData)
-{
+void ExporterManager::exportConfig(const InverterData& inverterData) {
     for (const auto& exporter : m_exporters) {
         exporter->exportConfig(inverterData);
     }
 }
 
-void ExporterManager::exportLiveData(const LiveData& liveData)
-{
+void ExporterManager::exportLiveData(const LiveData& liveData) {
     for (auto& exporter : m_exporters) {
         exporter->exportLiveData(liveData);
     }
 }
 
-void ExporterManager::exportDayData(const std::vector<InverterData>& inverters)
-{
+void ExporterManager::exportDayStats(const DayStats& dayStats) {
+    for (auto& exporter : m_exporters) {
+        exporter->exportDayStats(dayStats);
+    }
+}
+
+void ExporterManager::exportDayData(const std::vector<InverterData>& inverters) {
     for (auto& exporter : m_exporters) {
         exporter->exportDayData(inverters);
     }
 }
 
-void ExporterManager::exportMonthData(const std::vector<InverterData>& inverters)
-{
+void ExporterManager::exportMonthData(const std::vector<InverterData>& inverters) {
     for (auto& exporter : m_exporters) {
         exporter->exportMonthData(inverters);
     }
 }
 
-void ExporterManager::exportEventData(const std::vector<InverterData>& inverters, const std::string& dt_range_csv)
-{
+void ExporterManager::exportEventData(const std::vector<InverterData>& inverters, const std::string& dt_range_csv) {
     for (auto& exporter : m_exporters) {
         exporter->exportEventData(inverters, dt_range_csv);
     }
 }
 
 /*
-void ExporterManager::exportSpotDataMqtt(std::time_t timestamp, const std::vector<InverterData>& inverters)
-{
+void ExporterManager::exportSpotDataMqtt(std::time_t timestamp, const std::vector<InverterData>& inverters) {
     // Compute statistics
     m_dayStats.resize(inverters.size());
     for (uint32_t i = 0; i < inverters.size(); ++i)

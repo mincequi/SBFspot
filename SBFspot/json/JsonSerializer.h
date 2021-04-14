@@ -34,12 +34,22 @@ DISCLAIMER:
 
 #pragma once
 
-#include "Types.h"
+#include "Serializer.h"
 
-struct LiveData;
+struct Config;
+struct InverterData;
 
-class Serializer {
+namespace json {
+
+class JsonSerializer : public Serializer {
 public:
-    virtual ByteBuffer serialize(const LiveData& liveData) const;
-    virtual ByteBuffer serialize(const InverterData& inverterData) const;
+    JsonSerializer(const Config& config);
+    ~JsonSerializer();
+
+private:
+    virtual ByteBuffer serialize(const InverterData& inverterData) const override;
+
+    const Config& m_config;
 };
+
+}

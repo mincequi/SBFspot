@@ -38,14 +38,13 @@ DISCLAIMER:
 
 namespace msgpack {
 
-class MsgPackSerializer : public Serializer
-{
+class MsgPackSerializer : public Serializer {
 public:
     MsgPackSerializer();
     ~MsgPackSerializer();
 
 private:
-    virtual std::vector<char> serialize(const LiveData& liveData) const override;
+    virtual ByteBuffer serialize(const LiveData& liveData) const override;
 };
 
 }

@@ -44,6 +44,8 @@ DISCLAIMER:
 
 namespace mqtt {
 
+static quint16 msgId = 0;
+
 MqttExporter_qt::MqttExporter_qt(const Config& config, const Serializer& serializer)
     : m_config(config),
       m_serializer(serializer),
@@ -62,26 +64,54 @@ std::string MqttExporter_qt::name() const
     return "MqttExporter_qt";
 }
 
+bool MqttExporter_qt::isLive() const
+{
+    return true;
+}
+
 void MqttExporter_qt::exportLiveData(const LiveData& liveData)
 {
     if (!m_client.isConnectedToHost()) {
         m_client.connectToHost();
     }
 
-    static quint16 id = 0;
     std::string topic = m_config.mqtt_topic;
     boost::replace_first(topic, "{plantname}", m_config.plantname);
     boost::replace_first(topic, "{serial}", std::to_string(liveData.serial));
     topic += "/live";
 
     auto data = m_serializer.serialize(liveData);
-    QMQTT::Message message(++id,
+    QMQTT::Message message(++msgId,
                            QString::fromStdString(topic),
-                           QByteArray::fromRawData(data.data(), data.size()),
+                           QByteArray::fromRawData(reinterpret_cast<const char*>(data.data()), data.size()),
                            0,
                            true);
 
     m_client.publish(message);
+}
+
+void MqttExporter_qt::exportSpotData(std::time_t /*timestamp*/, const std::vector<InverterData>& inverters)
+{
+    if (!m_client.isConnectedToHost()) {
+        m_client.connectToHost();
+    }
+
+    for (const auto& inverterData : inverters) {
+        auto buffer = m_serializer.serialize(inverterData);
+        if (buffer.empty()) continue;
+
+        std::string topic = m_config.mqtt_topic;
+        boost::replace_first(topic, "{plantname}", m_config.plantname);
+        boost::replace_first(topic, "{serial}", std::to_string(inverterData.Serial));
+
+        QMQTT::Message message(++msgId,
+                               QString::fromStdString(topic),
+                               QByteArray::fromRawData(reinterpret_cast<const char*>(buffer.data()), buffer.size()),
+                               0,
+                               true);
+
+        m_client.publish(message);
+    }
 }
 
 void MqttExporter_qt::onError(const QMQTT::ClientError error)

@@ -38,11 +38,12 @@ DISCLAIMER:
 
 struct Config;
 struct InverterData;
+class Serializer;
 
 class MqttExporter : public Exporter
 {
 public:
-    MqttExporter(const Config& config);
+    MqttExporter(const Config& config, const Serializer& serializer);
     ~MqttExporter();
 
     std::string name() const override;
@@ -51,4 +52,5 @@ public:
 
 private:
     const Config& m_config;
+    const Serializer& m_serializer;
 };

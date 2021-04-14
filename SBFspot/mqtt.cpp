@@ -36,11 +36,13 @@ DISCLAIMER:
 
 #include "Config.h"
 #include "SBFspot.h"
+#include "Serializer.h"
 #include "TagDefs.h"
 #include "misc.h"
 
-MqttExporter::MqttExporter(const Config& config)
-    : m_config(config)
+MqttExporter::MqttExporter(const Config& config, const Serializer& serializer) :
+    m_config(config),
+    m_serializer(serializer)
 {
 }
 
@@ -55,16 +57,6 @@ std::string MqttExporter::name() const
 
 void MqttExporter::exportSpotData(std::time_t timestamp, const std::vector<InverterData> &inverterData)
 {
-	// Split message body
-	std::vector<std::string> items;
-    boost::split(items, m_config.mqtt_publish_data, boost::is_any_of(","));
-
-	std::stringstream mqtt_message;
-	std::string key;
-	char value[80];
-    int prec = m_config.precision;
-	char dp = '.';
-
     for (const auto& inv : inverterData)
 	{
 #if defined(WIN32)
@@ -80,80 +72,17 @@ void MqttExporter::exportSpotData(std::time_t timestamp, const std::vector<Inver
         boost::replace_first(mqtt_command_line, "{port}", std::to_string(m_config.mqtt_port));
         boost::replace_first(mqtt_command_line, "{topic}", m_config.mqtt_topic);
 
-		mqtt_message.str("");
+        auto buffer = m_serializer.serialize(inv);
+        std::string str(buffer.begin(), buffer.end());
 
-		for (std::vector<std::string>::iterator it = items.begin(); it != items.end(); ++it)
-		{
-			key = *it;
-			memset(value, 0, sizeof(value));
-			std::transform((key).begin(), (key).end(), (key).begin(), ::tolower);
-            if (key == "timestamp")				snprintf(value, sizeof(value) - 1, "\"%s\"", strftime_t(m_config.DateTimeFormat, timestamp));
-            else if (key == "sunrise")			snprintf(value, sizeof(value) - 1, "\"%s %02d:%02d:00\"", strftime_t(m_config.DateFormat, timestamp), (int)m_config.sunrise, (int)((m_config.sunrise - (int)m_config.sunrise) * 60));
-            else if (key == "sunset")			snprintf(value, sizeof(value) - 1, "\"%s %02d:%02d:00\"", strftime_t(m_config.DateFormat, timestamp), (int)m_config.sunset, (int)((m_config.sunset - (int)m_config.sunset) * 60));
-            else if (key == "invserial")		snprintf(value, sizeof(value) - 1, "%lu", inv.Serial);
-            else if (key == "invname")			snprintf(value, sizeof(value) - 1, "\"%s\"", inv.DeviceName.c_str());
-            else if (key == "invclass")			snprintf(value, sizeof(value) - 1, "\"%s\"", inv.DeviceClass.c_str());
-            else if (key == "invtype")			snprintf(value, sizeof(value) - 1, "\"%s\"", inv.DeviceType.c_str());
-            else if (key == "invswver")			snprintf(value, sizeof(value) - 1, "\"%s\"", inv.SWVersion.c_str());
-            else if (key == "invtime")			snprintf(value, sizeof(value) - 1, "\"%s\"", strftime_t(m_config.DateTimeFormat, inv.InverterDatetime));
-            else if (key == "invstatus")		snprintf(value, sizeof(value) - 1, "\"%s\"", tagdefs.getDesc(inv.DeviceStatus, "?").c_str());
-            else if (key == "invtemperature")	FormatFloat(value, (float)inv.Temperature / 100, 0, prec, dp);
-            else if (key == "invgridrelay")		snprintf(value, sizeof(value) - 1, "\"%s\"", tagdefs.getDesc(inv.GridRelayStatus, "?").c_str());
-            else if (key == "pdc1")				FormatFloat(value, (float)inv.Pdc1, 0, prec, dp);
-            else if (key == "pdc2")				FormatFloat(value, (float)inv.Pdc2, 0, prec, dp);
-            else if (key == "idc1")				FormatFloat(value, (float)inv.Idc1 / 1000, 0, prec, dp);
-            else if (key == "idc2")				FormatFloat(value, (float)inv.Idc2 / 1000, 0, prec, dp);
-            else if (key == "udc1")				FormatFloat(value, (float)inv.Udc1 / 100, 0, prec, dp);
-            else if (key == "udc2")				FormatFloat(value, (float)inv.Udc2 / 100, 0, prec, dp);
-            else if (key == "etotal")			FormatDouble(value, (double)inv.ETotal / 1000, 0, prec, dp);
-            else if (key == "etoday")			FormatDouble(value, (double)inv.EToday / 1000, 0, prec, dp);
-            else if (key == "pactot")			FormatFloat(value, (float)inv.TotalPac, 0, prec, dp);
-            else if (key == "pac1")				FormatFloat(value, (float)inv.Pac1, 0, prec, dp);
-            else if (key == "pac2")				FormatFloat(value, (float)inv.Pac2, 0, prec, dp);
-            else if (key == "pac3")				FormatFloat(value, (float)inv.Pac3, 0, prec, dp);
-            else if (key == "uac1")				FormatFloat(value, (float)inv.Uac1 / 100, 0, prec, dp);
-            else if (key == "uac2")				FormatFloat(value, (float)inv.Uac2 / 100, 0, prec, dp);
-            else if (key == "uac3")				FormatFloat(value, (float)inv.Uac3 / 100, 0, prec, dp);
-            else if (key == "iac1")				FormatFloat(value, (float)inv.Iac1 / 1000, 0, prec, dp);
-            else if (key == "iac2")				FormatFloat(value, (float)inv.Iac2 / 1000, 0, prec, dp);
-            else if (key == "iac3")				FormatFloat(value, (float)inv.Iac3 / 1000, 0, prec, dp);
-            else if (key == "gridfreq")			FormatFloat(value, (float)inv.GridFreq / 100, 0, prec, dp);
-            else if (key == "opertm")			FormatDouble(value, (double)inv.OperationTime / 3600, 0, prec, dp);
-            else if (key == "feedtm")			FormatDouble(value, (double)inv.FeedInTime / 3600, 0, prec, dp);
-            else if (key == "battmpval")		FormatFloat(value, ((float)inv.BatTmpVal) / 10, 0, prec, dp);
-            else if (key == "batvol")			FormatFloat(value, ((float)inv.BatVol) / 100, 0, prec, dp);
-            else if (key == "batamp")			FormatFloat(value, ((float)inv.BatAmp) / 1000, 0, prec, dp);
-            else if (key == "batchastt")		FormatFloat(value, ((float)inv.BatChaStt), 0, prec, dp);
-
-			// None of the above, so it's an unhandled item or a typo...
-			else if (VERBOSE_NORMAL) std::cout << "MQTT: Don't know what to do with '" << *it << "'" << std::endl;
-
-            std::string key_value = m_config.mqtt_item_format;
-			boost::replace_all(key_value, "{key}", (*it));
-			boost::replace_first(key_value, "{value}", value);
-
-			boost::replace_all(key_value, "\"\"", "\"");
-#if defined(WIN32)
-			boost::replace_all(key_value, "\"", "\"\"");
-#endif
-
-			// Append delimiter, except for first item
-			if (mqtt_message.str() != "")
-			{
-                mqtt_message << m_config.mqtt_item_delimiter;
-			}
-
-			mqtt_message << key_value;
-		}
-
-        if (VERBOSE_NORMAL) std::cout << "MQTT: Publishing (" << m_config.mqtt_topic << ") " << mqtt_message.str() << std::endl;
+        if (VERBOSE_NORMAL) std::cout << "MQTT: Publishing (" << m_config.mqtt_topic << ") " << str << std::endl;
 
 		std::stringstream serial;
 		serial.str("");
         serial << inv.Serial;
         boost::replace_first(mqtt_command_line, "{plantname}", m_config.plantname);
 		boost::replace_first(mqtt_command_line, "{serial}", serial.str());
-		boost::replace_first(mqtt_command_line, "{message}", mqtt_message.str());
+        boost::replace_first(mqtt_command_line, "{message}", str);
 
 		int system_rc = ::system(mqtt_command_line.c_str());
 		if (system_rc != 0) // Error
