@@ -36,6 +36,7 @@ DISCLAIMER:
 
 #include <Config.h>
 #include <CSVexport.h>
+#include <LiveData.h>
 #include <SQLselect.h>
 #include <mqtt.h>
 #include <mqtt/MqttExporter_qt.h>
@@ -132,7 +133,14 @@ void ExporterManager::exportConfig(const InverterData& inverterData) {
 
 void ExporterManager::exportLiveData(const LiveData& liveData) {
     for (auto& exporter : m_exporters) {
-        exporter->exportLiveData(liveData);
+        // Live exporters always export.
+        // Non-live exporter only export when timestamp matches archive interval.
+        if (exporter->isLive()) {
+            exporter->exportLiveData(liveData);
+        } else if ((m_config.archiveInterval > 0 &&
+                    (liveData.timestamp % m_config.archiveInterval == 0))) {
+            exporter->exportLiveData(liveData);
+        }
     }
 }
 

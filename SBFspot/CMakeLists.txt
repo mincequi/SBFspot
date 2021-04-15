@@ -21,7 +21,8 @@ COMPONENTS
 pkg_check_modules(MessagePack IMPORTED_TARGET msgpack)
 pkg_check_modules(Mosquitto IMPORTED_TARGET libmosquittopp)
 
-set(CMAKE_CXX_FLAGS "-Wno-deprecated-declarations -DQT_NO_DEBUG_OUTPUT -DLOGURU_WITH_STREAMS -lpthread -ldl")
+set(CMAKE_CXX_FLAGS "-Wno-deprecated-declarations -DQT_NO_DEBUG_OUTPUT -DLOGURU_WITH_STREAMS")
+set(CMAKE_EXE_LINKER_FLAGS "-lpthread -ldl")
 
 set(DB "SQLITE" CACHE STRING "DB backend to use: NOSQL, SQLITE, MYSQL, MARIADB")
 
@@ -31,6 +32,7 @@ include_directories(
 
 set(COMMON_SOURCES
     ArchData.cpp
+    Cache.cpp
     Config.cpp
     CSVexport.cpp
     Defines.cpp
@@ -40,7 +42,7 @@ set(COMMON_SOURCES
     ExporterManager.cpp
     Importer.cpp
     Inverter.cpp
-    Cache.cpp
+    LiveData.cpp
     SBFNet.cpp
     SBFspot.cpp
     Serializer.cpp

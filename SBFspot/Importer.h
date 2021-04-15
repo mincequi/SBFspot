@@ -55,7 +55,7 @@ public:
 
     int close();
     E_SBFSPOT getPacket(Buffer& buffer, const unsigned char senderaddr[6], int wait4Command);
-    int send(const std::vector<uint8_t>& buffer, const std::string& toIP);
+    int send(const ByteBuffer& buffer, const std::string& toIP);
 
 private:
     const Config& m_config;

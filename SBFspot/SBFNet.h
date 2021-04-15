@@ -37,7 +37,7 @@ DISCLAIMER:
 
 #include "osselect.h"
 
-#include <vector>
+#include "Types.h"
 
 extern uint16_t pcktID;
 extern int packetposition;
@@ -60,10 +60,10 @@ public:
     bool validateChecksum();
     bool isCrcValid();
 
-    std::vector<uint8_t>& data();
+    ByteBuffer& data();
 
 private:
-    std::vector<uint8_t> m_data;
+    ByteBuffer m_data;
 
     friend class Inverter;
 };

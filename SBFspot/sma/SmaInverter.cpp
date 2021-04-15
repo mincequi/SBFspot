@@ -57,27 +57,31 @@ SmaInverter::SmaInverter(QObject* parent, const Config& config, Ethernet_qt& ioD
 {
     resetPendingData();
 
-    connect(&m_requestTimer, &QTimer::timeout, this, &SmaInverter::onRequestTimeout);
-    m_requestTimer.setSingleShot(true);
-    m_requestTimer.setInterval(1000);
-
     init();
 }
 
-void SmaInverter::poll(std::time_t timestamp)
+void SmaInverter::startPoll(std::time_t timestamp)
 {
     if (m_state == State::Invalid) {
-        qWarning() << "Inverter not yet initialized";
+        LOG_S(WARNING) << "Inverter not yet initialized";
         return;
     }
     if (m_state == State::LoggedIn) {
-        qWarning() << "Another poll already running";
+        LOG_S(WARNING) << "Another poll already running";
         return;
     }
 
     m_pendingData.timestamp = timestamp;
     // Send login request to inverter. Once logged in, get all the data.
     login();
+}
+
+void SmaInverter::stopPoll()
+{
+    LOG_IF_S(WARNING, !m_pendingLris.empty()) << "Poll timed out. Discarding " << m_pendingLris.size() << " requests";
+
+    exportData();
+    logout();
 }
 
 void SmaInverter::resetPendingData()
@@ -133,15 +137,13 @@ void SmaInverter::requestData()
     requestDataSet(SpotACVoltage);
     requestDataSet(SpotACTotalPower);
     requestDataSet(SpotGridFrequency);
-
-    m_requestTimer.start();
 }
 
 void SmaInverter::requestDataSet(SmaInverterDataSet dataSet)
 {
     auto lri = static_cast<LriDef>(SmaInverterRequests::create(dataSet).first);
     if (lri == 0) {
-        qWarning() << "Illegal LRI";
+        LOG_S(WARNING) << "Illegal LRI";
     } else {
         m_pendingLris.insert(lri);
     }
@@ -152,9 +154,9 @@ void SmaInverter::requestDataSet(SmaInverterDataSet dataSet)
 
 void SmaInverter::exportData()
 {
-    LOG_S(1) << "Inverter" << m_serial;
+    LOG_S(3) << "Inverter" << m_serial;
     for (const auto& kv : m_pendingDataMap) {
-        LOG_S(1) << "    key:" << QByteArray::number(kv.first, 16) << ", value:" << kv.second;
+        LOG_S(3) << "    key:" << QByteArray::number(kv.first, 16) << ", value:" << kv.second;
     }
 
     m_pendingData.fixup();
@@ -164,15 +166,13 @@ void SmaInverter::exportData()
 
 void SmaInverter::onDatagram(const QNetworkDatagram& datagram)
 {
-    LOG_S(1) << "Received datagram from:" << datagram.senderAddress().toString().toStdString();
-
     const char* data = datagram.data().data() + sizeof(ethPacketHeaderL1) - 1;
     ethPacket *pckt = (ethPacket*)data;
     switch (m_state) {
     case State::Invalid:
         m_susyId = pckt->Source.SUSyID;	// Fix Issue 98
         m_serial = pckt->Source.Serial;	// Fix Issue 98
-        LOG_S(INFO) << "Inverter at " << datagram.senderAddress().toString().toStdString() << " has serial: " << m_serial;
+        LOG_S(INFO) << "Inverter " << datagram.senderAddress().toString().toStdString() << ", serial: " << m_serial;
         resetPendingData();
         m_state = State::Initialized;
         return;
@@ -181,23 +181,13 @@ void SmaInverter::onDatagram(const QNetworkDatagram& datagram)
             m_state = State::LoggedIn;
             requestData();
         } else {
-            qWarning() << "Login error. Password correct?";
+            LOG_S(ERROR) << "Login error. Password correct?";
         }
         return;
     case State::LoggedIn:
         m_sbfSpot.decodeResponse({ data, data + datagram.data().size() }, m_pendingDataMap, m_pendingData, m_pendingLris);
         break;
     }
-}
-
-void SmaInverter::onRequestTimeout()
-{
-    if (!m_pendingLris.empty()) {
-        qWarning() << "There are pending requests. Discarding them: " << m_pendingLris.size();
-    }
-
-    exportData();
-    logout();
 }
 
 }

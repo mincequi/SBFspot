@@ -117,7 +117,7 @@ public:
      * @brief Indicates whether this exporter is a "live" exporter.
      *
      * Live exporters do not store data or cause disk I/O. So, live exporters
-     * can run at lower intervals without exhausting disk space.
+     * can run at higher rates without exhausting disk space.
      *
      * @return True if the exporter is a live exporter.
      */

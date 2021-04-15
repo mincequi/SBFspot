@@ -110,7 +110,7 @@ LiveData SmaEnergyMeter::parsePacket(const char* data, uint16_t size)
                 auto type = SpeedwireEmeterProtocol::getObisType(obis);
                 bool doLog = ((index%10) == 1) || ((index%10) == 2);
                 uint64_t value = (type == 4) ? SpeedwireEmeterProtocol::getObisValue4(obis) : SpeedwireEmeterProtocol::getObisValue8(obis);
-                LOG_IF_F(1, doLog, "OBIS %i:%i.%i.0  > %llu", channel, index, type, value);
+                LOG_IF_F(2, doLog, "OBIS %i:%i.%i.0: %llu", channel, index, type, value);
 
                 //emeter.printObisElement(obis, stderr);
                 // ugly hack to calculate the signed power value

@@ -67,6 +67,7 @@ private:
 
     void startNextLiveTimer();
     void onLiveTimeout();
+    void onPollTimeout();
     void timerEvent(QTimerEvent *event) override;
 
     const Config&   m_config;
@@ -81,6 +82,7 @@ private:
     Timer  m_timeComputation;
     QTimer m_liveTimer;
     QTimer m_archiveTimer;
+    QTimer  m_pollTimer;
     std::time_t m_currentTimePoint = 0;
 
     friend class ::Ethernet_qt;

@@ -248,7 +248,7 @@ bool Buffer::isCrcValid()
         return true;   //Always true for ethernet
 }
 
-std::vector<uint8_t>& Buffer::data()
+ByteBuffer& Buffer::data()
 {
     return m_data;
 }

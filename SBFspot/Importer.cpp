@@ -78,7 +78,7 @@ E_SBFSPOT Importer::getPacket(Buffer& buffer, const unsigned char senderaddr[6],
     }
 }
 
-int Importer::send(const std::vector<uint8_t>& buffer, const std::string& toIP)
+int Importer::send(const ByteBuffer& buffer, const std::string& toIP)
 {
     if (m_config.ConnectionType == CT_BLUETOOTH)
     {

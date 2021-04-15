@@ -43,6 +43,7 @@ DISCLAIMER:
 #include <string>
 #include <vector>
 
+class ByteBuffer;
 struct InverterData;
 
 #ifndef MAX_PATH
@@ -60,7 +61,7 @@ char *strfgmtime_t (const char *format, const time_t rawtime);
 char *rtrim(char *txt);
 int get_tzOffset(/*OUT*/int *isDST);
 int CreatePath(const char *dir);
-void HexDump(const std::vector<uint8_t>& buffer, uint radix);
+void HexDump(const ByteBuffer& buffer, uint radix);
 char *FormatFloat(char *str, float value, int width, int precision, char decimalpoint);
 char *FormatDouble(char *str, double value, int width, int precision, char decimalpoint);
 std::string realpath(const char *path);

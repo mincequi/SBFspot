@@ -46,16 +46,22 @@ extern int verbose;
 class Config;
 class TagDefs;
 
-class db_SQL_Export : public db_SQL_Base, public Exporter
+class db_SQL_Export : public Exporter, protected db_SQL_Base
 {
 public:
     db_SQL_Export(const Config& config);
 
-    void exportDayData(const std::vector<InverterData>& inverters) override;
-    void exportMonthData(const std::vector<InverterData>& inverters) override;
+    bool open() override;
+    void close() override;
+
+    void exportLiveData(const LiveData& liveData) override;
+
     void exportSpotData(std::time_t timestamp, const std::vector<InverterData>& data) override;
     void exportEventData(const std::vector<InverterData>& inverters, const std::string& dt_range_csv) override;
     void exportBatteryData(std::time_t timestamp, const std::vector<InverterData>& inverters) override;
+
+    void exportDayData(const std::vector<InverterData>& inverters) override;
+    void exportMonthData(const std::vector<InverterData>& inverters) override;
 
 private:
     int insert_battery_data(sqlite3_stmt* pStmt, int32_t tm, int32_t sn, int32_t key, int32_t val);

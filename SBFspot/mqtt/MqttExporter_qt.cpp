@@ -87,6 +87,7 @@ void MqttExporter_qt::exportLiveData(const LiveData& liveData)
                            0,
                            true);
 
+    LOG_F(1, "Publishing topic: %s, payload size: %zu bytes", topic.c_str(), data.size());
     m_client.publish(message);
 }
 
@@ -110,13 +111,14 @@ void MqttExporter_qt::exportSpotData(std::time_t /*timestamp*/, const std::vecto
                                0,
                                true);
 
+        LOG_F(1, "Publishing topic: %s, payload size: %zu bytes", topic.c_str(), buffer.size());
         m_client.publish(message);
     }
 }
 
 void MqttExporter_qt::onError(const QMQTT::ClientError error)
 {
-    LOG_S(1) << "MQTT error:" << error;
+    LOG_S(WARNING) << "Client error:" << error;
 }
 
 }

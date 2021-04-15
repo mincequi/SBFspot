@@ -37,12 +37,64 @@ DISCLAIMER:
 #include "db_SQLite_Export.h"
 
 #include "Config.h"
+#include "LiveData.h"
+#include "Logging.h"
 #include "TagDefs.h"
 
 db_SQL_Export::db_SQL_Export(const Config& config) :
     db_SQL_Base(config),
     m_config(config)
 {
+}
+
+bool db_SQL_Export::open()
+{
+    auto rc = db_SQL_Base::open(m_config.sqlDatabase);
+    LOG_IF_F(ERROR, rc, "Error opening the database %s", m_config.sqlDatabase.c_str());
+    return rc;
+}
+
+void db_SQL_Export::close()
+{
+    db_SQL_Base::close();
+}
+
+void db_SQL_Export::exportLiveData(const LiveData& liveData)
+{
+    LOG_IF_F(WARNING, !isopen(), "Database is not open");
+    LOG_IF_F(WARNING, !liveData.isValid(), "LiveData is invalid");
+    if (!isopen() || !liveData.isValid()) return;
+
+    std::stringstream sql;
+    sql << "INSERT INTO SpotData VALUES(" <<
+           liveData.timestamp << ',' <<
+           liveData.serial << ',' <<
+           liveData.dc.at(0).power << ',' <<
+           liveData.dc.at(1).power << ',' <<
+           liveData.dc.at(0).current << ',' <<
+           liveData.dc.at(1).current << ',' <<
+           liveData.dc.at(0).voltage << ',' <<
+           liveData.dc.at(1).voltage << ',' <<
+           liveData.ac.at(0).power << ',' <<
+           liveData.ac.at(1).power << ',' <<
+           liveData.ac.at(2).power << ',' <<
+           liveData.ac.at(0).current << ',' <<
+           liveData.ac.at(1).current << ',' <<
+           liveData.ac.at(2).current << ',' <<
+           liveData.ac.at(0).voltage << ',' <<
+           liveData.ac.at(1).voltage << ',' <<
+           liveData.ac.at(2).voltage << ',' <<
+           liveData.energyExportToday << ',' <<
+           liveData.energyExportTotal << ',' <<
+           0.0f << "," << //(float)liveData.GridFreq/100 << ',' <<
+           0.0 << "," << //(double)liveData.OperationTime/3600 << ',' <<
+           0.0 << "," << //(double)liveData.FeedInTime/3600 << ',' <<
+           0.0f << "," << //(float)liveData.BT_Signal << ',' <<
+           "''" << "," << //s_quoted(status_text(liveData.DeviceStatus)) << ',' <<
+           "''" << "," << //s_quoted(status_text(liveData.GridRelayStatus)) << ',' <<
+           0.0f << ")"; //(float)liveData.Temperature/100 << ")";
+
+    LOG_IF_F(ERROR, exec_query(sql.str()), "exec_query() returned %s", sql.str().c_str());
 }
 
 void db_SQL_Export::exportDayData(const std::vector<InverterData>& inverters)
@@ -203,8 +255,6 @@ void db_SQL_Export::exportSpotData(std::time_t timestamp, const std::vector<Inve
     device_status(data, timestamp);
 
     std::stringstream sql;
-    int rc = SQLITE_OK;
-
     for (const auto& inv : data)
     {
         sql.str("");
@@ -236,9 +286,9 @@ void db_SQL_Export::exportSpotData(std::time_t timestamp, const std::vector<Inve
                s_quoted(status_text(inv.GridRelayStatus)) << ',' <<
                (float)inv.Temperature/100 << ")";
 
-        if ((rc = exec_query(sql.str())) != SQLITE_OK)
+        if ((exec_query(sql.str())) != SQLITE_OK)
         {
-            print_error("[spot_data]exec_query() returned", sql.str());
+            LOG_F(ERROR, "exec_query() returned %s", sql.str().c_str());
             break;
         }
     }

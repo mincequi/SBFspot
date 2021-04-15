@@ -126,9 +126,9 @@ int Ethernet::ethConnect(short port)
     return 0; //OK
 }
 
-std::vector<uint8_t> Ethernet::ethRead()
+ByteBuffer Ethernet::ethRead()
 {
-    std::vector<uint8_t> buf(2048);
+    ByteBuffer buf(2048);
 
     int bytes_read;
     short timeout = 5;
@@ -188,7 +188,7 @@ std::vector<uint8_t> Ethernet::ethRead()
     return buf;
 }
 
-int Ethernet::ethSend(const std::vector<uint8_t>& buffer, const std::string& toIP)
+int Ethernet::ethSend(const ByteBuffer& buffer, const std::string& toIP)
 {
     if (DEBUG_NORMAL) HexDump(buffer, 10);
 

@@ -262,7 +262,7 @@ void print_error(FILE *error_file, ERRORLEVEL error_level, const char *error_msg
     fflush(error_file);
 }
 
-void HexDump(const std::vector<uint8_t>& buffer, uint radix)
+void HexDump(const ByteBuffer& buffer, uint radix)
 {
     uint i, j;
     printf("--------:");

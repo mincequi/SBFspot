@@ -879,7 +879,7 @@ void Inverter::reset()
     m_dayStats.clear();
     m_dayStats.resize(m_inverters.size());
     auto now = std::time(nullptr);
-    for (auto i = 0; i < m_inverters.size(); ++i) {
+    for (size_t i = 0; i < m_inverters.size(); ++i) {
         m_dayStats[i].serial = m_inverters[i].Serial;
         m_dayStats[i].timestamp = now;
         m_exporterManager.exportDayStats(m_dayStats[i]);
@@ -889,13 +889,12 @@ void Inverter::reset()
 std::string Inverter::discover()
 {
     // Start with UDP broadcast to check for SMA devices on the LAN
-    m_buffer.data().resize(2048);
+    m_buffer.data().resize(20);
     m_buffer.writeLong(0x00414D53);  //Start of SMA header
     m_buffer.writeLong(0xA0020400);  //Unknown
     m_buffer.writeLong(0xFFFFFFFF);  //Unknown
     m_buffer.writeLong(0x20000000);  //Unknown
     m_buffer.writeLong(0x00000000);  //Unknown
-    m_buffer.m_data.resize(packetposition);
 
     m_ethernet.ethSend(m_buffer.data(), IP_Broadcast);
 

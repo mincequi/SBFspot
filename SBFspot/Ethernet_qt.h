@@ -36,6 +36,7 @@ DISCLAIMER:
 
 #include <QUdpSocket>
 
+class ByteBuffer;
 namespace sma {
 class SmaManager;
 }
@@ -47,7 +48,7 @@ class Ethernet_qt : public QObject
 public:
     Ethernet_qt(sma::SmaManager& processor);
 
-    void send(const std::vector<uint8_t>& data, uint32_t address, uint16_t port);
+    void send(const ByteBuffer& data, uint32_t address, uint16_t port);
     void send(const QByteArray& datagram, const std::string& address, uint16_t port);
 
 private:

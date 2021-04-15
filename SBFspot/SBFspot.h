@@ -68,17 +68,17 @@ public:
     static int getInverterIndexByAddress(const std::vector<InverterData>& inverters, unsigned char bt_addr[6]);
     static int getInverterIndexBySerial(const std::vector<InverterData>& inverters, unsigned short SUSyID, uint32_t Serial);
 
-    const std::vector<uint8_t>& encodeInitRequest();
-    const std::vector<uint8_t>& encodeLoginRequest(uint16_t susyId, uint32_t serial, SmaUserGroup userGroup, const std::string& password);
-    const std::vector<uint8_t>& encodeLoginRequest(SmaUserGroup userGroup, const std::string& password);
-    const std::vector<uint8_t>& encodeLogoutRequest();
-    const std::vector<uint8_t>& encodeDataRequest(uint16_t susyId, uint32_t serial, SmaInverterDataSet dataSet);
+    const ByteBuffer& encodeInitRequest();
+    const ByteBuffer& encodeLoginRequest(uint16_t susyId, uint32_t serial, SmaUserGroup userGroup, const std::string& password);
+    const ByteBuffer& encodeLoginRequest(SmaUserGroup userGroup, const std::string& password);
+    const ByteBuffer& encodeLogoutRequest();
+    const ByteBuffer& encodeDataRequest(uint16_t susyId, uint32_t serial, SmaInverterDataSet dataSet);
 
-    static void decodeResponse(const std::vector<uint8_t>& buffer, InverterDataMap& inverterDataMap, LiveData& data, std::set<LriDef>& lris);
+    static void decodeResponse(const ByteBuffer& buffer, InverterDataMap& inverterDataMap, LiveData& data, std::set<LriDef>& lris);
 
 private:
     Buffer  m_buffer;
-    const std::vector<uint8_t> m_emptyBuffer;
+    const ByteBuffer m_emptyBuffer;
 };
 
 extern const char *IP_Inverter;

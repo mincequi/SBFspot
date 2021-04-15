@@ -50,10 +50,10 @@ Ethernet_qt::Ethernet_qt(sma::SmaManager& processor)
     QObject::connect(&m_udpSocket, &QUdpSocket::readyRead, this, &Ethernet_qt::onReadyRead);
 }
 
-void Ethernet_qt::send(const std::vector<uint8_t>& data, uint32_t address, uint16_t port)
+void Ethernet_qt::send(const ByteBuffer& data, uint32_t address, uint16_t port)
 {
     // TODO: implement stream operator for std::vector<uint8_t>
-    LOG_S(1) << "Send datagram:" << QByteArray(reinterpret_cast<const char*>(data.data()), data.size());
+    LOG_S(2) << "Send datagram: " << QByteArray(reinterpret_cast<const char*>(data.data()), data.size());
     m_udpSocket.writeDatagram(reinterpret_cast<const char*>(data.data()), data.size(), QHostAddress(address), port);
 }
 
@@ -69,20 +69,19 @@ void Ethernet_qt::onReadyRead()
     while (m_udpSocket.hasPendingDatagrams()) {
         QNetworkDatagram datagram = m_udpSocket.receiveDatagram();
         if (addresses.contains(datagram.senderAddress())) {
-            LOG_F(1, "Discord datagram from localhost");
+            LOG_F(2, "Discard datagram from localhost");
         } else if (datagram.data().size() == 600 || datagram.data().size() == 608) {
             //LOG_F(1, "Received energy meter datagram. size: %i", datagram.data().size());
             m_processor.onEnergyMeterDatagram(datagram);
         } else if (datagram.data().startsWith(QByteArray::fromHex("534d4100000402A000000001000200000001"))) {
-            LOG_F(1, "Received discovery response datagram. size: %i", datagram.data().size());
+            LOG_F(2, "Received discovery response datagram. size: %i", datagram.data().size());
             m_processor.onDiscoveryResponseDatagram(datagram);
         } else if (datagram.senderAddress() == QHostAddress::LocalHost) {
-            LOG_F(1, "Discord datagram from localhost");
+            LOG_F(2, "Discard datagram from localhost");
         } else {
+            LOG_F(2, "Received datagram from: %s, size: %i bytes", datagram.senderAddress().toString().toStdString().c_str(), datagram.data().size());
             auto buffer = datagram.data();
             ethPacket *pckt = (ethPacket *)(datagram.data().data() + sizeof(ethPacketHeaderL1) - 1);
-            auto susyId = ntohs(pckt->Source.SUSyID);	// Fix Issue 98
-            auto serial = ntohl(pckt->Source.Serial);	// Fix Issue 98
             m_processor.onUnknownDatagram(datagram);
         }
     }

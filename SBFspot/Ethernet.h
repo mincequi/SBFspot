@@ -42,8 +42,8 @@ class Ethernet {
 public:
     int ethConnect(short port);
     int ethClose(void);
-    int ethSend(const std::vector<uint8_t>& buffer, const std::string& toIP);
-    std::vector<uint8_t> ethRead();
+    int ethSend(const ByteBuffer& buffer, const std::string& toIP);
+    ByteBuffer ethRead();
 
     E_SBFSPOT ethGetPacket(Buffer& out);
 };

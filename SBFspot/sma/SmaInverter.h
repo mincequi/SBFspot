@@ -38,7 +38,7 @@ DISCLAIMER:
 #include <ctime>
 #include <set>
 
-#include <QTimer>
+#include <QObject>
 
 #include "LiveData.h"
 #include "SBFspot.h"
@@ -58,7 +58,8 @@ class SmaInverter : public QObject
 public:
     SmaInverter(QObject* parent, const Config& config, Ethernet_qt& ioDevice, Exporter& exporter, uint32_t address);
 
-    void poll(std::time_t timestamp = 0);
+    void startPoll(std::time_t timestamp = 0);
+    void stopPoll();
 
 private:
     void resetPendingData();
@@ -70,7 +71,6 @@ private:
     void exportData();
 
     void onDatagram(const QNetworkDatagram& datagram);
-    void onRequestTimeout();
 
     const Config&   m_config;
     Ethernet_qt&    m_ioDevice;
@@ -91,8 +91,6 @@ private:
     std::set<LriDef>    m_pendingLris;
     LiveData            m_pendingData;
     InverterDataMap     m_pendingDataMap;
-
-    QTimer  m_requestTimer;
 
     friend class SmaManager;
 };

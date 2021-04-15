@@ -139,7 +139,7 @@ int SbfSpot::DaysInMonth(int month, int year)
         return days[month];
 }
 
-const std::vector<uint8_t>& SbfSpot::encodeInitRequest()
+const ByteBuffer& SbfSpot::encodeInitRequest()
 {
     m_buffer.writePacketHeader(0, nullptr);
     m_buffer.writePacket(0x09, 0xA0, 0, anySUSyID, anySerial);
@@ -152,7 +152,7 @@ const std::vector<uint8_t>& SbfSpot::encodeInitRequest()
     return m_buffer.data();
 }
 
-const std::vector<uint8_t>& SbfSpot::encodeLoginRequest(uint16_t susyId, uint32_t serial, SmaUserGroup userGroup, const std::string& password)
+const ByteBuffer& SbfSpot::encodeLoginRequest(uint16_t susyId, uint32_t serial, SmaUserGroup userGroup, const std::string& password)
 {
 #define MAX_PWLENGTH 12
     unsigned char pw[MAX_PWLENGTH] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -219,7 +219,7 @@ const std::vector<uint8_t>& SbfSpot::encodeLoginRequest(uint16_t susyId, uint32_
     return m_buffer.data();
 }
 
-const std::vector<uint8_t>& SbfSpot::encodeLoginRequest(SmaUserGroup userGroup, const std::string& password)
+const ByteBuffer& SbfSpot::encodeLoginRequest(SmaUserGroup userGroup, const std::string& password)
 {
 #define MAX_PWLENGTH 12
     unsigned char pw[MAX_PWLENGTH] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -253,7 +253,7 @@ const std::vector<uint8_t>& SbfSpot::encodeLoginRequest(SmaUserGroup userGroup, 
     return m_buffer.data();
 }
 
-const std::vector<uint8_t>& SbfSpot::encodeLogoutRequest()
+const ByteBuffer& SbfSpot::encodeLogoutRequest()
 {
     do
     {
@@ -270,7 +270,7 @@ const std::vector<uint8_t>& SbfSpot::encodeLogoutRequest()
     return m_buffer.data();
 }
 
-const std::vector<uint8_t>& SbfSpot::encodeDataRequest(uint16_t susyId, uint32_t serial, SmaInverterDataSet dataSet)
+const ByteBuffer& SbfSpot::encodeDataRequest(uint16_t susyId, uint32_t serial, SmaInverterDataSet dataSet)
 {
     auto request = sma::SmaInverterRequests::create(dataSet);
 
@@ -293,7 +293,7 @@ const std::vector<uint8_t>& SbfSpot::encodeDataRequest(uint16_t susyId, uint32_t
     return m_buffer.data();
 }
 
-void SbfSpot::decodeResponse(const std::vector<uint8_t>& buffer, InverterDataMap& inverterDataMap, LiveData& inverter, std::set<LriDef>& lris)
+void SbfSpot::decodeResponse(const ByteBuffer& buffer, InverterDataMap& inverterDataMap, LiveData& inverter, std::set<LriDef>& lris)
 {
     int32_t value = 0;
     int64_t value64 = 0;
