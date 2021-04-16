@@ -43,11 +43,6 @@ DISCLAIMER:
 extern int quiet;
 extern int verbose;
 
-#define SQL_NEXTSTATUSCHECK		"NextStatusCheck"
-#define SQL_SCHEMAVERSION		"SchemaVersion"
-#define SQL_BATCH_DATELIMIT		"Batch_DateLimit"
-#define SQL_BATCH_STATUSLIMIT	"Batch_StatusLimit"
-
 #define SQL_MINIMUM_SCHEMA_VERSION 1
 #define SQL_RECOMMENDED_SCHEMA_VERSION 1
 
@@ -86,10 +81,8 @@ public:
 	std::string intToString(const int i) { return static_cast<std::ostringstream*>( &(std::ostringstream() << i) )->str(); }
 
 protected:
-	std::string s_quoted(std::string str) { return "'" + str + "'"; }
-	std::string s_quoted(char *str) { return "'" + std::string(str) + "'"; }
+    std::string s_quoted(char *str) { return "'" + std::string(str) + "'"; }
 	bool isverbose(int level) { return !quiet && (verbose >= level); }
-	std::string status_text(int status);
 	void print_error(std::string msg) { std::cerr << timestamp() << "Error: " << msg << " : " << (m_dbHandle != NULL ? mysql_error(m_dbHandle) : "null") << std::endl; }
 	void print_error(std::string msg, std::string sql) { std::cerr << timestamp() << "Error: " << msg << " : " << (m_dbHandle != NULL ? mysql_error(m_dbHandle) : "null") << "\nExecuted Statement: " << sql << std::endl; }
 	std::string strftime_t(time_t utctime) { return static_cast<std::ostringstream*>( &(std::ostringstream() << utctime) )->str(); }

@@ -36,7 +36,7 @@ DISCLAIMER:
 
 #include "Config.h"
 #include "Defines.h"
-#include "Logging.h"
+#include "Logger.h"
 #include "SBFspot.h"
 #include "TagDefs.h"
 #include "misc.h"

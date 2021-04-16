@@ -39,7 +39,7 @@ DISCLAIMER:
 
 #include "Config.h"
 #include "LiveData.h"
-#include "Logging.h"
+#include "Logger.h"
 #include "Serializer.h"
 
 namespace mqtt {

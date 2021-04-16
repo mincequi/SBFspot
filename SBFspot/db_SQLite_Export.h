@@ -43,13 +43,13 @@ DISCLAIMER:
 extern int quiet;
 extern int verbose;
 
-class Config;
+struct SqlConfig;
 class TagDefs;
 
 class db_SQL_Export : public Exporter, protected db_SQL_Base
 {
 public:
-    db_SQL_Export(const Config& config);
+    db_SQL_Export(const SqlConfig& config);
 
     bool open() override;
     void close() override;
@@ -66,7 +66,7 @@ public:
 private:
     int insert_battery_data(sqlite3_stmt* pStmt, int32_t tm, int32_t sn, int32_t key, int32_t val);
 
-    const Config& m_config;
+    const SqlConfig& m_config;
 };
 
 #endif //#if defined(USE_SQLITE)

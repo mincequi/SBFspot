@@ -42,7 +42,7 @@ DISCLAIMER:
 #include "Config.h"
 #include "Exporter.h"
 #include "LiveData.h"
-#include "Logging.h"
+#include "Logger.h"
 #include "misc.h"
 
 namespace sma {
@@ -141,7 +141,7 @@ void SmaManager::onPollTimeout()
 {
     m_exporter.open();
 
-    LOG_S(1) << "Polling timed out";
+    LOG_S(1) << "Polling inverters finished";
     for (auto& kv : m_inverters) {
         if (kv.second->m_state != SmaInverter::State::LoggedIn)
             continue;

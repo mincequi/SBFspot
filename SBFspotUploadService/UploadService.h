@@ -24,6 +24,11 @@
 #include <string>
 #include "../SBFspotUploadCommon/Configuration.h"
 
+#define SQL_NEXTSTATUSCHECK     "NextStatusCheck"
+#define SQL_SCHEMAVERSION       "SchemaVersion"
+#define SQL_BATCH_DATELIMIT     "Batch_DateLimit"
+#define SQL_BATCH_STATUSLIMIT   "Batch_StatusLimit"
+
 class CSBFspotUploadService : public CServiceBase
 {
 public:

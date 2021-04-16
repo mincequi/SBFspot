@@ -34,18 +34,28 @@ DISCLAIMER:
 
 #pragma once
 
-#include <loguru.hpp>
+#include <ctime>
+#include <list>
+#include <string>
 
-class QByteArray;
-class QHostAddress;
+struct InverterData;
+struct LiveData;
 
-class Logging
-{
+namespace sql {
+
+class SqlQueries {
 public:
-    static void init(int& argc, char* argv[]);
+    static std::string createInvertersTable();
+    static std::string createDcDataTable();
+    static std::list<std::string> exportLiveData(const LiveData& liveData);
+
+    // TODO: these are obsolete and should be replaced by other function above
+    static std::string exportSpotData(std::time_t timestamp, const InverterData& inv);
+    static std::string s_quoted(std::string str) { return "'" + str + "'"; }
+    static std::string status_text(int status);
 
 private:
-    Logging();
+    SqlQueries();
 };
 
-std::ostream& operator<< (std::ostream& out, QByteArray const& c);
+}

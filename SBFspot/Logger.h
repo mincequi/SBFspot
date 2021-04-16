@@ -32,57 +32,20 @@ DISCLAIMER:
 
 ************************************************************************************************/
 
-#include "Exporter.h"
+#pragma once
 
-#include "Config.h"
+#include <loguru.hpp>
 
-ExporterType Exporter::type() const {
-    return ExporterType::None;
-}
+class QByteArray;
+class QHostAddress;
 
-std::string Exporter::name() const {
-    return "";
-}
+class Logger
+{
+public:
+    static void init(int& argc, char* argv[]);
 
-bool Exporter::isLive() const {
-    return false;
-}
+private:
+    Logger();
+};
 
-bool Exporter::init() {
-    return true;
-}
-
-bool Exporter::open() {
-    return true;
-}
-
-void Exporter::close() {
-}
-
-void Exporter::exportConfig(const InverterData& /*inverterData*/) {
-}
-
-void Exporter::exportDayStats(const DayStats& /*dayStats*/) {
-}
-
-void Exporter::exportDayData(std::time_t /*timestamp*/,
-                             const DataPerInverter& /*inverterData*/) {
-}
-
-void Exporter::exportLiveData(const LiveData& /*liveData*/) {
-}
-
-void Exporter::exportDayData(const std::vector<InverterData>&) {
-}
-
-void Exporter::exportMonthData(const std::vector<InverterData>&) {
-}
-
-void Exporter::exportSpotData(std::time_t, const std::vector<InverterData>&) {
-}
-
-void Exporter::exportEventData(const std::vector<InverterData>&, const std::string&) {
-}
-
-void Exporter::exportBatteryData(std::time_t, const std::vector<InverterData>&) {
-}
+std::ostream& operator<< (std::ostream& out, QByteArray const& c);

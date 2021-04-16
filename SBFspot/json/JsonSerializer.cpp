@@ -34,11 +34,11 @@ DISCLAIMER:
 
 #include "JsonSerializer.h"
 
-#include "Config.h"
-#include "Logging.h"
-#include "TagDefs.h"
-#include "Types.h"
-#include "misc.h"
+#include <Config.h>
+#include <Logger.h>
+#include <TagDefs.h>
+#include <Types.h>
+#include <misc.h>
 
 namespace json {
 

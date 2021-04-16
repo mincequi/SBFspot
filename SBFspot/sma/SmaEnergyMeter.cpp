@@ -35,7 +35,7 @@ DISCLAIMER:
 #include "SmaEnergyMeter.h"
 
 #include "LiveData.h"
-#include "Logging.h"
+#include "Logger.h"
 
 #include <SpeedwireSocketFactory.hpp>
 #include <SpeedwireByteEncoding.hpp>

@@ -36,37 +36,19 @@ DISCLAIMER:
 
 #include "db_SQLite.h"
 
-#include "Config.h"
-
 #include <sys/time.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 
+#include <Config.h>
+#include <Logger.h>
+#include <sql/SqlQueries.h>
+
 using namespace std;
 
-db_SQL_Base::db_SQL_Base(const Config& config) :
+db_SQL_Base::db_SQL_Base(const SqlConfig& config) :
     m_config(config)
 {
-}
-
-string db_SQL_Base::status_text(int status)
-{
-	switch (status)
-	{
-		//Grid Relay Status
-		case 311: return "Open";
-		case 51: return "Closed";
-
-		//Device Status
-		case 307: return "OK";
-		case 455: return "Warning";
-		case 35: return "Fault";
-
-		//NaNStt=Information not available
-		case 0xFFFFFD: return "N/A";
-
-		default: return "?";
-	}
 }
 
 int db_SQL_Base::open(const string& database)
@@ -75,13 +57,13 @@ int db_SQL_Base::open(const string& database)
 
 	if (sqlite3_threadsafe() == 0)
 	{
-		print_error("SQLite3 libs are not threadsafe");
+        LOG_S(ERROR) << "SQLite3 libs are not threadsafe";
 		return SQLITE_ERROR;
 	}
 
 	if (!m_dbHandle)	// Not yet open?
 	{
-        m_database = m_config.sqlDatabase;
+        m_database = m_config.databaseName;
 
 		if (database.size() > 0)
 			result = sqlite3_open_v2(database.c_str(), &m_dbHandle, SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX, NULL);
@@ -92,7 +74,7 @@ int db_SQL_Base::open(const string& database)
 			sqlite3_busy_timeout(m_dbHandle, 2000);
 		else
 		{
-			print_error("Can't open SQLite db [" + m_database + "]");
+            LOG_S(ERROR) << "Can't open SQLite db [" << m_database << "]";
 			m_dbHandle = NULL;
 		}
 	}
@@ -106,7 +88,7 @@ int db_SQL_Base::close(void)
 	int result = SQLITE_OK;
 
 	if((result = sqlite3_close(m_dbHandle)) != SQLITE_OK)
-        print_error("Can't close SQLite db [" + m_database + "]");
+        LOG_S(ERROR) << "Can't close SQLite db [" << m_database << "]";
     else
 	{
 		m_database = "";
@@ -126,7 +108,7 @@ int db_SQL_Base::exec_query(string qry)
 		result = sqlite3_exec(m_dbHandle, qry.c_str(), NULL, NULL, NULL);
 		if (result != SQLITE_OK)
 		{
-			print_error("sqlite3_exec() returned", qry);
+            LOG_S(ERROR) << "sqlite3_exec() returned" << qry;
 			if (++retrycount > SQL_BUSY_RETRY_COUNT)
 				break;
 		}
@@ -154,24 +136,24 @@ int db_SQL_Base::type_label(const std::vector<InverterData>& inverters)
 		// we do an INSERT OR IGNORE (for new records) followed by UPDATE (for existing records)
 		sql << "INSERT OR IGNORE INTO Inverters VALUES(" <<
             inverter.Serial << ',' <<
-            s_quoted(inverter.DeviceName) << ',' <<
-            s_quoted(inverter.DeviceType) << ',' <<
-            s_quoted(inverter.SWVersion) << ',' <<
+            sql::SqlQueries::s_quoted(inverter.DeviceName) << ',' <<
+            sql::SqlQueries::s_quoted(inverter.DeviceType) << ',' <<
+            sql::SqlQueries::s_quoted(inverter.SWVersion) << ',' <<
 			"0,0,0,0,0,0,'','',0)";
 
 		if ((rc = exec_query(sql.str())) != SQLITE_OK)
-			print_error("exec_query() returned", sql.str());
+            LOG_S(ERROR) << "exec_query() returned" << sql.str();
 
 		sql.str("");
 
 		sql << "UPDATE Inverters SET" <<
-            " Name=" << s_quoted(inverter.DeviceName) <<
-            ",Type=" << s_quoted(inverter.DeviceType) <<
-            ",SW_Version=" << s_quoted(inverter.SWVersion) <<
+            " Name=" << sql::SqlQueries::s_quoted(inverter.DeviceName) <<
+            ",Type=" << sql::SqlQueries::s_quoted(inverter.DeviceType) <<
+            ",SW_Version=" << sql::SqlQueries::s_quoted(inverter.SWVersion) <<
             " WHERE Serial=" << inverter.Serial;
 
 		if ((rc = exec_query(sql.str())) != SQLITE_OK)
-			print_error("exec_query() returned", sql.str());
+            LOG_S(ERROR) << "exec_query() returned" << sql.str();
 	}
 
 	return rc;
@@ -196,13 +178,13 @@ int db_SQL_Base::device_status(const std::vector<InverterData>& inverters, time_
             ",ETotal=" << inverter.ETotal <<
             ",OperatingTime=" << (double)inverter.OperationTime/3600 <<
             ",FeedInTime=" << (double)inverter.FeedInTime/3600 <<
-            ",Status=" << s_quoted(status_text(inverter.DeviceStatus)) <<
-            ",GridRelay=" << s_quoted(status_text(inverter.GridRelayStatus)) <<
+            ",Status=" << sql::SqlQueries::s_quoted(sql::SqlQueries::status_text(inverter.DeviceStatus)) <<
+            ",GridRelay=" << sql::SqlQueries::s_quoted(sql::SqlQueries::status_text(inverter.GridRelayStatus)) <<
             ",Temperature=" << (float)inverter.Temperature/100 <<
             " WHERE Serial=" << inverter.Serial;
 
 		if ((rc = exec_query(sql.str())) != SQLITE_OK)
-			print_error("exec_query() returned", sql.str());
+            LOG_S(ERROR) << "exec_query() returned" << sql.str();
 	}
 
 	return rc;
@@ -314,14 +296,14 @@ int db_SQL_Base::batch_set_pvoflag(const std::string &data, unsigned int Serial)
 				sql << ",";
 			else
 				firstitem = false;
-			sql << s_quoted(it->substr(0, 14));
+            sql << sql::SqlQueries::s_quoted(it->substr(0, 14));
 		}
 	}
 
 	sql << ")";
 
 	if ((rc = exec_query(sql.str())) != SQLITE_OK)
-		print_error("exec_query() returned", sql.str());
+        LOG_S(ERROR) << "exec_query() returned" << sql.str();
 
 	return rc;
 }
@@ -334,7 +316,7 @@ int db_SQL_Base::set_config(const std::string key, const std::string value)
 	sql << "INSERT OR REPLACE INTO Config (`Key`,`Value`) VALUES('" << key << "','" << value << "')";
 
 	if ((rc = exec_query(sql.str())) != SQLITE_OK)
-		print_error("exec_query() returned", sql.str());
+        LOG_S(ERROR) << "exec_query() returned" << sql.str();
 
 	return rc;
 }
@@ -405,29 +387,6 @@ DataPerInverter db_SQL_Base::getInverterData(std::time_t startTime, std::time_t 
     sqlite3_finalize(pStmt);
 
     return out;
-}
-
-std::string db_SQL_Base::timestamp(void)
-{
-    char buffer[100];
-#if !defined WIN32
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    struct tm *tm;
-    tm = localtime(&tv.tv_sec);
-
-    snprintf(buffer, sizeof(buffer), "[%04d-%02d-%02d %02d:%02d:%02d.%03d] ",
-             tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
-             tm->tm_hour, tm->tm_min, tm->tm_sec, (int)tv.tv_usec / 1000);
-#else
-    SYSTEMTIME time;
-    ::GetLocalTime(&time);
-
-    sprintf_s(buffer, sizeof(buffer), "[%04d-%02d-%02d %02d:%02d:%02d.%03d] ", time.wYear, time.wMonth, time.wDay, time.wHour, time.wMinute, time.wSecond, time.wMilliseconds);
-#endif
-
-	std::string sTimestamp(buffer);
-	return sTimestamp;
 }
 
 #endif // #if defined(USE_SQLITE)

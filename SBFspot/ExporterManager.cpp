@@ -40,6 +40,7 @@ DISCLAIMER:
 #include <SQLselect.h>
 #include <mqtt.h>
 #include <mqtt/MqttExporter_qt.h>
+#include <sql/SqlExporter_qt.h>
 
 ExporterManager::ExporterManager(const Config& config, Cache& cache) :
     m_config(config),
@@ -49,7 +50,8 @@ ExporterManager::ExporterManager(const Config& config, Cache& cache) :
         m_exporters.push_back(new CsvExporter(config));
     }
     if (config.exporters.count(ExporterType::Sql)) {
-        m_exporters.push_back(new db_SQL_Export(config));
+        m_exporters.push_back(new db_SQL_Export(config.sql));
+        m_exporters.push_back(new sql::SqlExporter_qt(config.sql));
     }
     if (config.exporters.count(ExporterType::Mqtt)) {
         if (config.mqtt_item_format == "MSGPACK") {
@@ -65,6 +67,13 @@ ExporterManager::~ExporterManager() {
         delete exporter;
     }
     m_exporters.clear();
+}
+
+bool ExporterManager::init() {
+    for (const auto& exporter : m_exporters) {
+        exporter->init();
+    }
+    return true;
 }
 
 bool ExporterManager::open() {

@@ -57,6 +57,8 @@ set(COMMON_SOURCES
     mqtt/MqttExporter_qt.cpp
     msgpack/MsgPackSerializer.cpp
     sma/SmaInverterRequests.cpp
+    sql/SqlExporter_qt.cpp
+    sql/SqlQueries.cpp
     thirdparty/loguru/loguru.cpp
 )
 
@@ -139,6 +141,7 @@ target_link_libraries(${PROJECT_NAME}
     Boost::date_time
     ${COMMON_LIBRARIES}
     Qt5::Network
+    Qt5::Sql
     qmqtt
     speedwire
 )
@@ -168,7 +171,7 @@ add_executable(${PROJECT_NAME}_qt
     Exporter.cpp
     ExporterManager.cpp
     LiveData.cpp
-    Logging.cpp
+    Logger.cpp
     SBFNet.cpp
     SBFspot.cpp
     Serializer.cpp
@@ -187,6 +190,8 @@ add_executable(${PROJECT_NAME}_qt
     sma/SmaInverter.cpp
     sma/SmaInverterRequests.cpp
     sma/SmaManager.cpp
+    sql/SqlExporter_qt.cpp
+    sql/SqlQueries.cpp
     thirdparty/loguru/loguru.cpp
 )
 

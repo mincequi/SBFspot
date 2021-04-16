@@ -45,16 +45,11 @@ DISCLAIMER:
 extern int quiet;
 extern int verbose;
 
-#define SQL_NEXTSTATUSCHECK		"NextStatusCheck"
-#define SQL_SCHEMAVERSION		"SchemaVersion"
-#define SQL_BATCH_DATELIMIT		"Batch_DateLimit"
-#define SQL_BATCH_STATUSLIMIT	"Batch_StatusLimit"
-
 #define SQL_MINIMUM_SCHEMA_VERSION 1
 #define SQL_RECOMMENDED_SCHEMA_VERSION 1
 #define SQL_BUSY_RETRY_COUNT 20
 
-class Config;
+struct SqlConfig;
 
 class db_SQL_Base
 {
@@ -66,12 +61,12 @@ public:
 	};
 
 protected:
-    const Config& m_config;
+    const SqlConfig& m_config;
     sqlite3 *m_dbHandle = nullptr;
 	std::string m_database;
 
 public:
-    db_SQL_Base(const Config& config);
+    db_SQL_Base(const SqlConfig& config);
 	~db_SQL_Base() { if (m_dbHandle) close(); }
     int open(const std::string& database);
 	int close(void);
@@ -87,15 +82,6 @@ public:
 	int get_config(const std::string key, int &value);
     // Obtain InverterData set for given time span
     DataPerInverter getInverterData(std::time_t startTime, std::time_t endTime);
-
-protected:
-	std::string s_quoted(std::string str) { return "'" + str + "'"; }
-	std::string s_quoted(char *str) { return "'" + std::string(str) + "'"; }
-	bool isverbose(int level) { return !quiet && (verbose >= level); }
-	std::string status_text(int status);
-	void print_error(std::string msg) { std::cerr << timestamp() << "Error: " << msg << ": '" << (m_dbHandle != NULL ? sqlite3_errmsg(m_dbHandle) : "null") << "'" << std::endl; }
-	void print_error(std::string msg, std::string sql) { std::cerr << timestamp() << "Error: " << msg << ": '" << (m_dbHandle != NULL ? sqlite3_errmsg(m_dbHandle) : "null") << "' while executing\n" << sql << std::endl; }
-	std::string timestamp(void);
 };
 
 #endif //#if defined(USE_SQLITE)

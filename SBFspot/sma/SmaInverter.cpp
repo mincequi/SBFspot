@@ -41,7 +41,7 @@ DISCLAIMER:
 #include <Defines.h>
 #include <Ethernet_qt.h>
 #include <Exporter.h>
-#include <Logging.h>
+#include <Logger.h>
 #include <SBFspot.h>
 #include <sma/SmaInverterRequests.h>
 

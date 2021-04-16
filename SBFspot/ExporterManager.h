@@ -46,6 +46,7 @@ public:
     ExporterManager(const Config& config, Cache& cache);
     ~ExporterManager();
 
+    bool init() override;
     bool open() override;
     void close() override;
 

@@ -48,6 +48,22 @@ struct StringConfig
     float powerPeak = 10000.0f;
 };
 
+enum class SqlType : int8_t
+{
+    SqLite = 0,
+    MySql = 1
+};
+
+struct SqlConfig
+{
+    SqlType     type = SqlType::SqLite;
+    std::string databaseName = "~/smadata/SBFspot.db"; // Database name (MYSQL) or filename (SQLITE)
+    std::string hostName;
+    uint16_t    port = 3306;
+    std::string userName;
+    std::string password;
+};
+
 struct Config
 {
     void parseAppPath(const char* appPath);
@@ -80,11 +96,7 @@ struct Config
     std::string outputPath;
     std::string outputPath_Events;
     std::string	plantname;
-    std::string sqlDatabase;
-    std::string sqlHostname;
-    std::string sqlUsername;
-    std::string sqlUserPassword;
-    unsigned int sqlPort;
+    SqlConfig   sql;            // SQL specific config
     int		synchTime;				// 1=Synch inverter time with computer time (default=0)
     float	sunrise;
     float	sunset;
@@ -123,7 +135,7 @@ struct Config
     int		archDays = 1;       // -ad			Number of days back to get Archived DayData (0=disabled, 1=today, ...)
     int		archMonths = 1;     // -am			Number of months back to get Archived MonthData (0=disabled, 1=this month, ...)
     int		archEventMonths = 1;    // -ae			Number of months back to get Archived Events (0=disabled, 1=this month, ...)
-    int		forceInq = 0;       // -finq		Inquire inverter also during the night
+    bool    forceInq = false;   // -finq		Inquire inverter also during the night
     int		wsl = 0;            // -wsl			WebSolarLog support (http://www.websolarlog.com/index.php/tag/sma-spot/)
     int		quiet = 0;          // -q			Silent operation (No output except for -wsl)
     int		nospot = 0;         // -sp0			Disables Spot CSV export

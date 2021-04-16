@@ -38,8 +38,8 @@ DISCLAIMER:
 #include <QNetworkInterface>
 
 // TODO: remove SMA specific types out of here
-#include "Logging.h"
-#include "sma/SmaManager.h"
+#include <Logger.h>
+#include <sma/SmaManager.h>
 
 Ethernet_qt::Ethernet_qt(sma::SmaManager& processor)
     : m_processor(processor)

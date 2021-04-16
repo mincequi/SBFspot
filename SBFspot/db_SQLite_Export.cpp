@@ -36,12 +36,13 @@ DISCLAIMER:
 
 #include "db_SQLite_Export.h"
 
-#include "Config.h"
-#include "LiveData.h"
-#include "Logging.h"
-#include "TagDefs.h"
+#include <Config.h>
+#include <LiveData.h>
+#include <Logger.h>
+#include <TagDefs.h>
+#include <sql/SqlQueries.h>
 
-db_SQL_Export::db_SQL_Export(const Config& config) :
+db_SQL_Export::db_SQL_Export(const SqlConfig& config) :
     db_SQL_Base(config),
     m_config(config)
 {
@@ -49,8 +50,8 @@ db_SQL_Export::db_SQL_Export(const Config& config) :
 
 bool db_SQL_Export::open()
 {
-    auto rc = db_SQL_Base::open(m_config.sqlDatabase);
-    LOG_IF_F(ERROR, rc, "Error opening the database %s", m_config.sqlDatabase.c_str());
+    auto rc = db_SQL_Base::open(m_config.databaseName);
+    LOG_IF_F(ERROR, rc, "Error opening the database %s", m_config.databaseName.c_str());
     return rc;
 }
 
@@ -63,38 +64,13 @@ void db_SQL_Export::exportLiveData(const LiveData& liveData)
 {
     LOG_IF_F(WARNING, !isopen(), "Database is not open");
     LOG_IF_F(WARNING, !liveData.isValid(), "LiveData is invalid");
-    if (!isopen() || !liveData.isValid()) return;
+    if (!isopen() || !liveData.isValid())
+        return;
 
-    std::stringstream sql;
-    sql << "INSERT INTO SpotData VALUES(" <<
-           liveData.timestamp << ',' <<
-           liveData.serial << ',' <<
-           liveData.dc.at(0).power << ',' <<
-           liveData.dc.at(1).power << ',' <<
-           liveData.dc.at(0).current << ',' <<
-           liveData.dc.at(1).current << ',' <<
-           liveData.dc.at(0).voltage << ',' <<
-           liveData.dc.at(1).voltage << ',' <<
-           liveData.ac.at(0).power << ',' <<
-           liveData.ac.at(1).power << ',' <<
-           liveData.ac.at(2).power << ',' <<
-           liveData.ac.at(0).current << ',' <<
-           liveData.ac.at(1).current << ',' <<
-           liveData.ac.at(2).current << ',' <<
-           liveData.ac.at(0).voltage << ',' <<
-           liveData.ac.at(1).voltage << ',' <<
-           liveData.ac.at(2).voltage << ',' <<
-           liveData.energyExportToday << ',' <<
-           liveData.energyExportTotal << ',' <<
-           0.0f << "," << //(float)liveData.GridFreq/100 << ',' <<
-           0.0 << "," << //(double)liveData.OperationTime/3600 << ',' <<
-           0.0 << "," << //(double)liveData.FeedInTime/3600 << ',' <<
-           0.0f << "," << //(float)liveData.BT_Signal << ',' <<
-           "''" << "," << //s_quoted(status_text(liveData.DeviceStatus)) << ',' <<
-           "''" << "," << //s_quoted(status_text(liveData.GridRelayStatus)) << ',' <<
-           0.0f << ")"; //(float)liveData.Temperature/100 << ")";
-
-    LOG_IF_F(ERROR, exec_query(sql.str()), "exec_query() returned %s", sql.str().c_str());
+    auto queries = sql::SqlQueries::exportLiveData(liveData);
+    for (const auto& query : queries) {
+        LOG_IF_F(ERROR, exec_query(query), "exec_query() returned %s", query.c_str());
+    }
 }
 
 void db_SQL_Export::exportDayData(const std::vector<InverterData>& inverters)
@@ -155,7 +131,7 @@ void db_SQL_Export::exportDayData(const std::vector<InverterData>& inverters)
                         rc = sqlite3_step(pStmt);
                         if ((rc != SQLITE_DONE) && (rc != SQLITE_CONSTRAINT))
                         {
-                            print_error("[day_data]sqlite3_step() returned");
+                            LOG_F(ERROR, "[day_data]sqlite3_step() returned");
                             break;
                         }
 
@@ -173,7 +149,7 @@ void db_SQL_Export::exportDayData(const std::vector<InverterData>& inverters)
             exec_query("COMMIT");
         else
         {
-            print_error("[day_data]Transaction failed. Rolling back now...");
+            LOG_F(ERROR, "[day_data]Transaction failed. Rolling back now...");
             exec_query("ROLLBACK");
         }
     }
@@ -205,7 +181,7 @@ void db_SQL_Export::exportMonthData(const std::vector<InverterData>& inverters)
             rc = exec_query(rmvsql.str().c_str());
             if (rc != SQLITE_OK)
             {
-                print_error("[month_data]sqlite3_exec() returned");
+                LOG_F(ERROR, "[month_data]sqlite3_exec() returned");
                 break;
             }
 
@@ -224,7 +200,7 @@ void db_SQL_Export::exportMonthData(const std::vector<InverterData>& inverters)
                     rc = sqlite3_step(pStmt);
                     if ((rc != SQLITE_DONE) && (rc != SQLITE_CONSTRAINT))
                     {
-                        print_error("[month_data]sqlite3_step() returned");
+                        LOG_F(ERROR, "[month_data]sqlite3_step() returned");
                         break;
                     }
 
@@ -241,7 +217,7 @@ void db_SQL_Export::exportMonthData(const std::vector<InverterData>& inverters)
             exec_query("COMMIT");
         else
         {
-            print_error("[month_data]Transaction failed. Rolling back now...");
+            LOG_F(ERROR, "[month_data]Transaction failed. Rolling back now...");
             exec_query("ROLLBACK");
         }
     }
@@ -249,6 +225,7 @@ void db_SQL_Export::exportMonthData(const std::vector<InverterData>& inverters)
 
 void db_SQL_Export::exportSpotData(std::time_t timestamp, const std::vector<InverterData>& data)
 {
+    LOG_IF_F(WARNING, !isopen(), "Database is not open");
     if (!isopen()) return;
 
     type_label(data);
@@ -257,36 +234,8 @@ void db_SQL_Export::exportSpotData(std::time_t timestamp, const std::vector<Inve
     std::stringstream sql;
     for (const auto& inv : data)
     {
-        sql.str("");
-        sql << "INSERT INTO SpotData VALUES(" <<
-               timestamp << ',' <<
-               inv.Serial << ',' <<
-               inv.Pdc1 << ',' <<
-               inv.Pdc2 << ',' <<
-               (float)inv.Idc1/1000 << ',' <<
-               (float)inv.Idc2/1000 << ',' <<
-               (float)inv.Udc1/100 << ',' <<
-               (float)inv.Udc2/100 << ',' <<
-               inv.Pac1 << ',' <<
-               inv.Pac2 << ',' <<
-               inv.Pac3 << ',' <<
-               (float)inv.Iac1/1000 << ',' <<
-               (float)inv.Iac2/1000 << ',' <<
-               (float)inv.Iac3/1000 << ',' <<
-               (float)inv.Uac1/100 << ',' <<
-               (float)inv.Uac2/100 << ',' <<
-               (float)inv.Uac3/100 << ',' <<
-               inv.EToday << ',' <<
-               inv.ETotal << ',' <<
-               (float)inv.GridFreq/100 << ',' <<
-               (double)inv.OperationTime/3600 << ',' <<
-               (double)inv.FeedInTime/3600 << ',' <<
-               (float)inv.BT_Signal << ',' <<
-               s_quoted(status_text(inv.DeviceStatus)) << ',' <<
-               s_quoted(status_text(inv.GridRelayStatus)) << ',' <<
-               (float)inv.Temperature/100 << ")";
-
-        if ((exec_query(sql.str())) != SQLITE_OK)
+        auto str = sql::SqlQueries::exportSpotData(timestamp, inv);
+        if ((exec_query(str)) != SQLITE_OK)
         {
             LOG_F(ERROR, "exec_query() returned %s", sql.str().c_str());
             break;
@@ -360,7 +309,7 @@ void db_SQL_Export::exportEventData(const std::vector<InverterData>& inverters, 
                 rc = sqlite3_step(pStmt);
                 if ((rc != SQLITE_DONE) && (rc != SQLITE_CONSTRAINT))
                 {
-                    print_error("[event_data]sqlite3_step() returned");
+                    LOG_F(ERROR, "[event_data]sqlite3_step() returned");
                     break;
                 }
 
@@ -376,7 +325,7 @@ void db_SQL_Export::exportEventData(const std::vector<InverterData>& inverters, 
             rc = exec_query("COMMIT");
         else
         {
-            print_error("[event_data]Transaction failed. Rolling back now...");
+            LOG_F(ERROR, "[event_data]Transaction failed. Rolling back now...");
             rc = exec_query("ROLLBACK");
         }
     }
@@ -416,7 +365,7 @@ void db_SQL_Export::exportBatteryData(std::time_t timestamp, const std::vector<I
             exec_query("COMMIT");
         else
         {
-            print_error("[battery_data]Transaction failed. Rolling back now...");
+            LOG_F(ERROR, "[battery_data]Transaction failed. Rolling back now...");
             exec_query("ROLLBACK");
         }
     }
@@ -434,7 +383,7 @@ int db_SQL_Export::insert_battery_data(sqlite3_stmt* pStmt, int32_t tm, int32_t 
     rc = sqlite3_step(pStmt);
 
     if (rc != SQLITE_DONE)
-        print_error("[battery_data]sqlite3_step() returned");
+        LOG_F(ERROR, "[battery_data]sqlite3_step() returned");
     else
         rc = SQLITE_OK;
 

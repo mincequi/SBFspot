@@ -37,13 +37,11 @@ DISCLAIMER:
 #include "Cache.h"
 #include "Config.h"
 #include "ExporterManager.h"
-#include "Logging.h"
+#include "Logger.h"
 #include "sma/SmaManager.h"
 
 int main(int argc, char *argv[])
 {
-    Logging::init(argc, argv);
-
     // Read config file and store settings in config struct.
     Config config;
     config.parseAppPath(argv[0]);
@@ -64,6 +62,9 @@ int main(int argc, char *argv[])
     // Create application instance
     QCoreApplication app(argc, argv);
 
+    // Setup logger
+    Logger::init(argc, argv);
+
     // The cache is the central object to hold all the data that is coming in
     // and going out. It is be fed by importers (SmaManager/SmaInverter) and
     // feeds exporters (like ExporterManager or MqttExport).
@@ -71,6 +72,7 @@ int main(int argc, char *argv[])
     // The exporterManager is the central object to hold all the exporters like
     // MqttExporter, CsvExporter, SqlExporter.
     ExporterManager exporterManager(config, cache);
+    exporterManager.init();
     // The deviceManager serves as an abstraction for all interactions with the
     // actual inverters, energy meters and other devices. For our case all SMA
     // specific stuff is abstracted with it.

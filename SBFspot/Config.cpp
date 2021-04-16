@@ -34,7 +34,7 @@ DISCLAIMER:
 
 #include "Config.h"
 
-#include "Logging.h"
+#include "Logger.h"
 #include "SBFspot.h"
 #include "version.h"
 #include "misc.h"
@@ -199,7 +199,7 @@ int Config::parseCmdline(int argc, char **argv)
 
         //Set inquiryDark flag
         else if (stricmp(argv[i], "-finq") == 0)
-            this->forceInq = 1;
+            this->forceInq = true;
 
         //Set WebSolarLog flag (Undocumented - For WSL usage only)
         else if (stricmp(argv[i], "-wsl") == 0)
@@ -347,7 +347,7 @@ int Config::parseCmdline(int argc, char **argv)
         if (this->verbose < 2)
             this->verbose = 2;
 
-        this->forceInq = 1;
+        this->forceInq = true;
     }
 
     //Disable verbose/debug modes when silent
@@ -387,8 +387,6 @@ int Config::readConfig()
 #else
     this->mqtt_publish_exe = "/usr/local/bin/mosquitto_pub";
 #endif
-
-    this->sqlPort = 3306;
 
     const char *CFG_Boolean = "(0-1)";
     const char *CFG_InvalidValue = "Invalid value for '%s' %s\n";
@@ -698,18 +696,17 @@ int Config::readConfig()
                 }
 
                 else if(stricmp(variable, "SQL_Database") == 0)
-                    this->sqlDatabase = value;
-#if defined(USE_MYSQL)
+                    this->sql.databaseName = value;
                 else if(stricmp(variable, "SQL_Hostname") == 0)
-                    this->sqlHostname = value;
+                    this->sql.hostName = value;
                 else if(stricmp(variable, "SQL_Username") == 0)
-                    this->sqlUsername = value;
+                    this->sql.userName = value;
                 else if(stricmp(variable, "SQL_Password") == 0)
-                    this->sqlUserPassword = value;
+                    this->sql.password = value;
                 else if (stricmp(variable, "SQL_Port") == 0)
                     try
                         {
-                        this->sqlPort = boost::lexical_cast<unsigned int>(value);
+                        this->sql.port = boost::lexical_cast<uint16_t>(value);
                         }
                         catch (...)
                         {
@@ -717,7 +714,6 @@ int Config::readConfig()
                             rc = -2;
                             break;
                         }
-#endif
                 else if (stricmp(variable, "MQTT_Host") == 0)
                     this->mqtt_host = value;
                 else if (stricmp(variable, "MQTT_Port") == 0)
@@ -872,12 +868,12 @@ void Config::showConfig()
         "\nBTConnectRetries=" << this->BT_ConnectRetries << std::endl;
 
 #if defined(USE_MYSQL) || defined(USE_SQLITE)
-    std::cout << "SQL_Database=" << this->sqlDatabase << std::endl;
+    std::cout << "SQL_Database=" << this->sql.databaseName << std::endl;
 #endif
 
 #if defined(USE_MYSQL)
-    std::cout << "SQL_Hostname=" << this->sqlHostname << \
-        "\nSQL_Username=" << this->sqlUsername << \
+    std::cout << "SQL_Hostname=" << this->sqlConfig.hostName << \
+        "\nSQL_Username=" << this->sqlConfig.userName << \
         "\nSQL_Password=<undisclosed>" << std::endl;
 #endif
 

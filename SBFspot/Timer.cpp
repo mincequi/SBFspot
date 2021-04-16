@@ -70,7 +70,7 @@ std::time_t Timer::nextTimePoint(bool* isStartOfDay)
         timePoint = std::time(nullptr);
 
     // If dark, compute next time point after sunrise
-    else if (!isBright())
+    else if (!isBright() && !m_config.forceInq)
     {
         auto now = boost::posix_time::second_clock::local_time();
         int sunriseSeconds = (int)(m_config.sunrise * 60 * 60) - m_config.SunRSOffset;

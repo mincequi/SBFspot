@@ -84,7 +84,7 @@ int main(int argc, char **argv)
     if (VERBOSE_NORMAL) print_error(stdout, PROC_INFO, "Starting...\n");
 
     Timer timer(config);
-    if (!timer.isBright() && (config.forceInq == 0) && (!config.daemon))
+    if (!timer.isBright() && (!config.forceInq) && (!config.daemon))
     {
         if (quiet == 0) puts("Nothing to do... it's dark. Use -finq to force inquiry.");
         return 0;

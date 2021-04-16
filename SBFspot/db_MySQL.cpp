@@ -45,26 +45,6 @@ db_SQL_Base::db_SQL_Base(const Config& config) :
 {
 }
 
-string db_SQL_Base::status_text(int status)
-{
-	switch (status)
-	{
-		//Grid Relay Status
-		case 311: return "Open";
-		case 51: return "Closed";
-
-		//Device Status
-		case 307: return "OK";
-		case 455: return "Warning";
-		case 35: return "Fault";
-
-		//NaNStt=Information not available
-		case 0xFFFFFD: return "N/A";
-
-		default: return "?";
-	}
-}
-
 int db_SQL_Base::open(const string server, const string user, const string pass, const string database, const unsigned int port)
 {
 	int result = SQL_OK;
