@@ -86,7 +86,9 @@ void SmaManager::onEnergyMeterDatagram(const QNetworkDatagram& buffer)
 {
     auto liveData = m_energyMeter.parsePacket(buffer.data().data(), buffer.data().size());
     if (liveData.serial != 0) {
+        m_exporter.open();
         m_exporter.exportLiveData(liveData);
+        m_exporter.close();
     }
 }
 

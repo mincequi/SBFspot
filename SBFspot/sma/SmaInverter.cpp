@@ -78,7 +78,7 @@ void SmaInverter::startPoll(std::time_t timestamp)
 
 void SmaInverter::stopPoll()
 {
-    LOG_IF_S(WARNING, !m_pendingLris.empty()) << "Poll timed out. Discarding " << m_pendingLris.size() << " requests";
+    LOG_IF_S(WARNING, !m_pendingLris.empty()) << "Polling timed out. Discarding " << m_pendingLris.size() << " requests";
 
     exportData();
     logout();
@@ -88,7 +88,7 @@ void SmaInverter::resetPendingData()
 {
     m_pendingLris.clear();
     m_pendingData = LiveData(m_serial);
-    m_pendingData.ac.resize(3);
+    //m_pendingData.ac.resize(3);
     m_pendingDataMap.clear();
 }
 

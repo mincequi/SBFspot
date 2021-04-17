@@ -53,6 +53,8 @@ public:
     void exportLiveData(const LiveData& liveData) override;
 
 private:
+    bool createTables();
+
     const SqlConfig& m_config;
 
     QSqlDatabase m_db;

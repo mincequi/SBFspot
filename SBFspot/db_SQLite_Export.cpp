@@ -63,8 +63,7 @@ void db_SQL_Export::close()
 void db_SQL_Export::exportLiveData(const LiveData& liveData)
 {
     LOG_IF_F(WARNING, !isopen(), "Database is not open");
-    LOG_IF_F(WARNING, !liveData.isValid(), "LiveData is invalid");
-    if (!isopen() || !liveData.isValid())
+    if (!isopen())
         return;
 
     auto queries = sql::SqlQueries::exportLiveData(liveData);

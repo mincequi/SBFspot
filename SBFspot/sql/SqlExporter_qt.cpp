@@ -67,23 +67,7 @@ SqlExporter_qt::SqlExporter_qt(const SqlConfig& config) :
 }
 
 bool SqlExporter_qt::init() {
-    if (!m_db.open()) {
-        LOG_F(ERROR, "Opening database failed");
-        return false;
-    }
-    auto tables = m_db.tables();
-    LOG_S(1) << "Database: " << m_config.databaseName << ", tables: " << tables.join(", ").toStdString();
-
-    if (!tables.contains("DcLiveData")) {
-        m_db.exec(QString::fromStdString(SqlQueries::createDcDataTable()));
-        if (m_db.lastError().type() != QSqlError::NoError) {
-            LOG_S(ERROR) << "Error creating table: " << m_db.lastError().text().toStdString();
-            m_db.close();
-            return false;
-        }
-    }
-    m_db.close();
-    return true;
+    return createTables();
 }
 
 bool SqlExporter_qt::open() {
@@ -94,20 +78,49 @@ void SqlExporter_qt::close() {
     return m_db.close();
 }
 
-void SqlExporter_qt::exportLiveData(const LiveData& liveData)
-{
+void SqlExporter_qt::exportLiveData(const LiveData& liveData) {
     LOG_IF_F(WARNING, !m_db.isOpen(), "Database is not open");
-    LOG_IF_F(WARNING, !liveData.isValid(), "LiveData is invalid");
-    if (!m_db.isOpen() || !liveData.isValid())
+    if (!m_db.isOpen())
         return;
 
     auto queries = sql::SqlQueries::exportLiveData(liveData);
     for (const auto& query : queries) {
         m_db.exec(QString::fromStdString(query));
         if (m_db.lastError().type() != QSqlError::NoError) {
-            LOG_S(ERROR) << "Error inserting data: " << m_db.lastError().text().toStdString();
+            LOG_S(WARNING) << "Error inserting data: " << m_db.lastError().text().toStdString();
         }
     }
+}
+
+bool SqlExporter_qt::createTables() {
+    if (!m_db.open()) {
+        LOG_F(ERROR, "Opening database failed");
+        return false;
+    }
+
+    auto tables = m_db.tables();
+    LOG_S(1) << "Database: " << m_config.databaseName << ", tables: " << tables.join(", ").toStdString();
+
+    if (!tables.contains("LiveDataDc")) {
+        m_db.exec(QString::fromStdString(SqlQueries::createTableLiveDataDc()));
+        if (m_db.lastError().type() != QSqlError::NoError) {
+            LOG_S(ERROR) << "Error creating table: " << m_db.lastError().text().toStdString();
+            m_db.close();
+            return false;
+        }
+    }
+
+    if (!tables.contains("LiveDataAc")) {
+        m_db.exec(QString::fromStdString(SqlQueries::createTableLiveDataAc()));
+        if (m_db.lastError().type() != QSqlError::NoError) {
+            LOG_S(ERROR) << "Error creating table: " << m_db.lastError().text().toStdString();
+            m_db.close();
+            return false;
+        }
+    }
+
+    m_db.close();
+    return true;
 }
 
 } // namespace sql

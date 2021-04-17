@@ -34,6 +34,7 @@ DISCLAIMER:
 
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <ctime>
 #include <vector>
@@ -47,16 +48,6 @@ struct ElectricParameters {
 struct LiveData {
     LiveData(uint32_t _serial);
 
-    /**
-     * @brief Verifies that we have valid data.
-     *
-     * Currently, this is more ore les for backward compatibility. If data is
-     * considered valid, all necessary fields for a proper SQL export are set.
-     *
-     * @return True if data is valid for export.
-     */
-    bool isValid() const;
-
     void fixup();
 
     // Static device specific members
@@ -68,7 +59,7 @@ struct LiveData {
     int32_t acPowerTotal = 0;   // [W]
     int32_t dcPowerTotal = 0;   // [W]
 
-    std::vector<ElectricParameters> ac;
+    std::array<ElectricParameters, 3> ac;
     std::vector<ElectricParameters> dc;
 
     int64_t energyExportToday = 0;    // [Wh]

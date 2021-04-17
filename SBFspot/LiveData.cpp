@@ -38,10 +38,6 @@ LiveData::LiveData(uint32_t _serial) :
     serial(_serial) {
 }
 
-bool LiveData::isValid() const {
-    return (ac.size() == 3) && (dc.size() == 2);
-}
-
 void LiveData::fixup() {
     if (acPowerTotal == 0) {
         for (const auto& a : ac) {

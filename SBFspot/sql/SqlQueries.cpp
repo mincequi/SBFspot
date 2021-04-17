@@ -40,13 +40,25 @@ DISCLAIMER:
 
 namespace sql {
 
-std::string SqlQueries::createDcDataTable() {
-    return "CREATE TABLE DcLiveData( "
-           "TimeStamp datetime NOT NULL,"
+std::string SqlQueries::createTableLiveDataAc() {
+    return "CREATE Table LiveDataAc ("
+           "TimeStamp int(4) NOT NULL,"
            "Serial int(4) NOT NULL,"
-           "Cls int,"
-           "P int, I float, U float,"
+           "P1 int, I1 float, U1 float,"
+           "P2 int, I2 float, U2 float,"
+           "P3 int, I3 float, U3 float,"
+           "ETodayExport int(8), ETotalExport int(8), ETotalImport int(8),"
            "PRIMARY KEY (TimeStamp, Serial)"
+           ")";
+}
+
+std::string SqlQueries::createTableLiveDataDc() {
+    return "CREATE TABLE LiveDataDc ("
+           "TimeStamp int(4) NOT NULL,"
+           "Serial int(4) NOT NULL,"
+           "Cls int NOT NULL,"
+           "P int, I float, U float,"
+           "PRIMARY KEY (TimeStamp, Serial, Cls)"
            ")";
 }
 
@@ -72,49 +84,72 @@ std::string SqlQueries::createInvertersTable() {
 std::list<std::string> SqlQueries::exportLiveData(const LiveData& liveData) {
     std::list<std::string> out;
 
-    std::stringstream sql;
-    sql << "INSERT INTO SpotData VALUES(" <<
-           liveData.timestamp << ',' <<
-           liveData.serial << ',' <<
-           liveData.dc.at(0).power << ',' <<
-           liveData.dc.at(1).power << ',' <<
-           liveData.dc.at(0).current << ',' <<
-           liveData.dc.at(1).current << ',' <<
-           liveData.dc.at(0).voltage << ',' <<
-           liveData.dc.at(1).voltage << ',' <<
-           liveData.ac.at(0).power << ',' <<
-           liveData.ac.at(1).power << ',' <<
-           liveData.ac.at(2).power << ',' <<
-           liveData.ac.at(0).current << ',' <<
-           liveData.ac.at(1).current << ',' <<
-           liveData.ac.at(2).current << ',' <<
-           liveData.ac.at(0).voltage << ',' <<
-           liveData.ac.at(1).voltage << ',' <<
-           liveData.ac.at(2).voltage << ',' <<
-           liveData.energyExportToday << ',' <<
-           liveData.energyExportTotal << ',' <<
-           // TODO: fix these values
-           0.0f << "," << //(float)liveData.GridFreq/100 << ',' <<
-           0.0 << "," << //(double)liveData.OperationTime/3600 << ',' <<
-           0.0 << "," << //(double)liveData.FeedInTime/3600 << ',' <<
-           0.0f << "," << //(float)liveData.BT_Signal << ',' <<
-           "''" << "," << //s_quoted(status_text(liveData.DeviceStatus)) << ',' <<
-           "''" << "," << //s_quoted(status_text(liveData.GridRelayStatus)) << ',' <<
-           0.0f << ")"; //(float)liveData.Temperature/100 << ")";
+    /*
+    {
+        std::stringstream sql;
+        sql << "INSERT INTO SpotData VALUES (" <<
+            liveData.timestamp << ',' <<
+            liveData.serial << ',' <<
+            liveData.dc.at(0).power << ',' <<
+            liveData.dc.at(1).power << ',' <<
+            liveData.dc.at(0).current << ',' <<
+            liveData.dc.at(1).current << ',' <<
+            liveData.dc.at(0).voltage << ',' <<
+            liveData.dc.at(1).voltage << ',' <<
+            liveData.ac.at(0).power << ',' <<
+            liveData.ac.at(1).power << ',' <<
+            liveData.ac.at(2).power << ',' <<
+            liveData.ac.at(0).current << ',' <<
+            liveData.ac.at(1).current << ',' <<
+            liveData.ac.at(2).current << ',' <<
+            liveData.ac.at(0).voltage << ',' <<
+            liveData.ac.at(1).voltage << ',' <<
+            liveData.ac.at(2).voltage << ',' <<
+            liveData.energyExportToday << ',' <<
+            liveData.energyExportTotal << ',' <<
+            // TODO: fix these values
+            0.0f << "," << //(float)liveData.GridFreq/100 << ',' <<
+            0.0 << "," << //(double)liveData.OperationTime/3600 << ',' <<
+            0.0 << "," << //(double)liveData.FeedInTime/3600 << ',' <<
+            0.0f << "," << //(float)liveData.BT_Signal << ',' <<
+            "''" << "," << //s_quoted(status_text(liveData.DeviceStatus)) << ',' <<
+            "''" << "," << //s_quoted(status_text(liveData.GridRelayStatus)) << ',' <<
+            0.0f << ")"; //(float)liveData.Temperature/100 << ")";
 
-    out.push_back(sql.str());
+        out.push_back(sql.str());
+    }
+*/
 
-    uint16_t cls = 1;
-    for (const auto& dc : liveData.dc) {
-        std::stringstream sql2;
-        sql2 << "INSERT INTO DcLiveData VALUES(" <<
+    {
+        uint16_t cls = 1;
+        for (const auto& dc : liveData.dc) {
+            std::stringstream sql;
+            sql << "INSERT INTO LiveDataDc VALUES (" <<
                 liveData.timestamp << ',' <<
                 liveData.serial << ',' <<
                 cls++ << ',' <<
                 dc.power << ',' <<
                 dc.current << ',' <<
                 dc.voltage << ")";
-        out.push_back(sql2.str());
+            out.push_back(sql.str());
+        }
+    }
+
+    {
+        std::stringstream sql;
+        sql << "INSERT INTO LiveDataAc VALUES ("
+            << liveData.timestamp
+            << ',' << liveData.serial;
+        for (const auto& ac : liveData.ac) {
+            sql << ',' << ac.power
+                << ',' << ac.current
+                << ',' << ac.voltage;
+        }
+        sql << "," << liveData.energyExportToday
+            << "," << liveData.energyExportTotal
+            << "," << liveData.energyImportTotal;
+        sql << ")";
+        out.push_back(sql.str());
     }
 
     return out;

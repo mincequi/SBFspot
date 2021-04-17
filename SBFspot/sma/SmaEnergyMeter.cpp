@@ -55,26 +55,6 @@ LiveData SmaEnergyMeter::parsePacket(const char* data, uint16_t size)
 {
     // define measurement filters for sma emeter packet filtering
     ObisFilter filter;
-    //filter.addFilter(ObisData::PositiveActivePowerTotal);
-    //filter.addFilter(ObisData::PositiveActivePowerL1);
-    //filter.addFilter(ObisData::PositiveActivePowerL2);
-    //filter.addFilter(ObisData::PositiveActivePowerL3);
-    //filter.addFilter(ObisData::PositiveActiveEnergyTotal);
-    //filter.addFilter(ObisData::PositiveActiveEnergyL1);
-    //filter.addFilter(ObisData::PositiveActiveEnergyL2);
-    //filter.addFilter(ObisData::PositiveActiveEnergyL3);
-    //filter.addFilter(ObisData::NegativeActivePowerTotal);
-    //filter.addFilter(ObisData::NegativeActivePowerL1);
-    //filter.addFilter(ObisData::NegativeActivePowerL2);
-    //filter.addFilter(ObisData::NegativeActivePowerL3);
-    //filter.addFilter(ObisData::NegativeActiveEnergyTotal);
-    //filter.addFilter(ObisData::NegativeActiveEnergyL1);
-    //filter.addFilter(ObisData::NegativeActiveEnergyL2);
-    //filter.addFilter(ObisData::NegativeActiveEnergyL3);
-    //filter.addFilter(ObisData::PowerFactorTotal);
-    //filter.addFilter(ObisData::PowerFactorL1);
-    //filter.addFilter(ObisData::PowerFactorL2);
-    //filter.addFilter(ObisData::PowerFactorL3);
     filter.addFilter(ObisData::CurrentL1);
     filter.addFilter(ObisData::CurrentL2);
     filter.addFilter(ObisData::CurrentL3);
@@ -102,7 +82,7 @@ LiveData SmaEnergyMeter::parsePacket(const char* data, uint16_t size)
             // extract obis data from the emeter packet and pass each obis data element to the obis filter
             int32_t signed_power_total = 0, signed_power_l1 = 0, signed_power_l2 = 0, signed_power_l3 = 0;
             LiveData liveData(serial);
-            liveData.ac.resize(3);
+            //liveData.ac.resize(3);
             void* obis = emeter.getFirstObisElement();
             while (obis != nullptr) {
                 auto channel = SpeedwireEmeterProtocol::getObisChannel(obis);

@@ -50,7 +50,7 @@ ExporterManager::ExporterManager(const Config& config, Cache& cache) :
         m_exporters.push_back(new CsvExporter(config));
     }
     if (config.exporters.count(ExporterType::Sql)) {
-        m_exporters.push_back(new db_SQL_Export(config.sql));
+        //m_exporters.push_back(new db_SQL_Export(config.sql));
         m_exporters.push_back(new sql::SqlExporter_qt(config.sql));
     }
     if (config.exporters.count(ExporterType::Mqtt)) {
