@@ -42,7 +42,7 @@ DISCLAIMER:
 #include "CSVexport.h"
 #include "Defines.h"
 #include "Ethernet.h"
-#include "Importer.h"
+#include "Socket.h"
 #include "SBFNet.h"
 #include "SBFspot.h"
 #include "TagDefs.h"
@@ -52,12 +52,12 @@ DISCLAIMER:
 
 using namespace boost;
 
-Inverter::Inverter(const Config& config, Ethernet& ethernet, Importer& import, SbfSpot& sbfSpot)
+Inverter::Inverter(const Config& config, Ethernet& ethernet, Socket& import, SbfSpot& sbfSpot)
     : m_config(config),
       m_ethernet(ethernet),
       m_import(import),
       m_sbfSpot(sbfSpot),
-      m_archData(m_import),
+      m_archData(m_import, m_sbfSpot),
       m_exporterManager(config, m_cache)
 {
 }
@@ -290,7 +290,7 @@ E_SBFSPOT Inverter::logoffMultigateDevices(const std::vector<InverterData>& inve
                     do
                     {
                         pcktID++;
-                        m_buffer.writePacketHeader(0, NULL);
+                        m_buffer.writePacketHeader(0, BluetoothAddress());
                         m_buffer.writePacket(0x08, 0xE0, 0x0300, psb.SUSyID, psb.Serial);
                         m_buffer.writeLong(0xFFFD010E);
                         m_buffer.writeLong(0xFFFFFFFF);
@@ -319,7 +319,7 @@ E_SBFSPOT Inverter::getDeviceList(std::vector<InverterData>& inverters, int mult
     do
     {
         pcktID++;
-        m_buffer.writePacketHeader(0x01, NULL);
+        m_buffer.writePacketHeader(0x01, BluetoothAddress());
         m_buffer.writePacket(0x09, 0xE0, 0, inverters[multigateIndex].SUSyID, inverters[multigateIndex].Serial);
         m_buffer.writeShort(0x0200);
         m_buffer.writeShort(0xFFF5);
@@ -1358,10 +1358,10 @@ void Inverter::importDayData()
 
     for (int count=0; count<m_config.archDays; count++)
     {
-        if ((rc = m_archData.ArchiveDayData(m_inverters, arch_time)) != E_OK)
+        if ((rc = m_archData.importDayData(m_inverters, arch_time)) != E_OK)
         {
             if (rc != E_ARCHNODATA)
-                std::cerr << "ArchiveDayData returned an error: " << rc << std::endl;
+                std::cerr << "importDayData returned an error: " << rc << std::endl;
         }
         else
         {
@@ -1402,7 +1402,7 @@ void Inverter::importMonthData()
 
         for (int count=0; count<m_config.archMonths; count++)
         {
-            m_archData.ArchiveMonthData(m_inverters, &arch_tm);
+            m_archData.importMonthData(m_inverters, &arch_tm);
 
             if (VERBOSE_HIGH)
             {

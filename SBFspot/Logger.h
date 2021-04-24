@@ -39,6 +39,9 @@ DISCLAIMER:
 class QByteArray;
 class QHostAddress;
 
+class ByteBuffer;
+struct DayData;
+
 class Logger
 {
 public:
@@ -49,3 +52,5 @@ private:
 };
 
 std::ostream& operator<< (std::ostream& out, QByteArray const& c);
+std::ostream& operator<< (std::ostream& out, std::vector<uint8_t> const& c);
+std::ostream& operator<< (std::ostream& out, DayData const& c);

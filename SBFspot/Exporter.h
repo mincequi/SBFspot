@@ -128,8 +128,8 @@ public:
     virtual void exportConfig(const InverterData& inverterData);
     virtual void exportDayStats(const DayStats& dayStats);
     virtual void exportLiveData(const LiveData& liveData);
-    virtual void exportDayData(std::time_t timestamp,
-                               const DataPerInverter& inverterData);
+    virtual void exportDayData(const std::vector<DayData>& dayData);
+    //virtual void exportDayData(const DataPerInverter& inverterData);
 
     // TODO: remove these obsolete functions
     virtual void exportSpotData(std::time_t timestamp, const std::vector<InverterData>& inverters);

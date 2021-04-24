@@ -36,7 +36,6 @@ DISCLAIMER:
 
 #include "Config.h"
 #include "LiveData.h"
-#include "SBFspot.h"
 #include "misc.h"
 
 #include <chrono>
@@ -185,7 +184,8 @@ void MqttMsgPackExport::exportLiveData(const LiveData& liveData)
     publish(topic, sbuf, 0);
 }
 
-void MqttMsgPackExport::exportDayData(std::time_t timestamp, const DataPerInverter& inverterData)
+/*
+void MqttMsgPackExport::exportDayData(const DataPerInverter& inverterData)
 {
     connectToHost();
 
@@ -239,6 +239,7 @@ void MqttMsgPackExport::exportDayData(std::time_t timestamp, const DataPerInvert
         publish(topic, sbuf, 0);
     }
 }
+*/
 
 void MqttMsgPackExport::connectToHost()
 {

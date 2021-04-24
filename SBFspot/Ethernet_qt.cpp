@@ -80,8 +80,8 @@ void Ethernet_qt::onReadyRead()
             LOG_F(2, "Discard datagram from localhost");
         } else {
             LOG_F(2, "Received datagram from: %s, size: %i bytes", datagram.senderAddress().toString().toStdString().c_str(), datagram.data().size());
-            auto buffer = datagram.data();
-            ethPacket *pckt = (ethPacket *)(datagram.data().data() + sizeof(ethPacketHeaderL1) - 1);
+            //auto buffer = datagram.data();
+            //ethPacket *pckt = (ethPacket *)(datagram.data().data() + sizeof(ethPacketHeaderL1) - 1);
             m_processor.onUnknownDatagram(datagram);
         }
     }

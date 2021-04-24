@@ -34,8 +34,11 @@ DISCLAIMER:
 
 #include "ArchData.h"
 
+#include <iomanip>
+
 #include "Defines.h"
-#include "Importer.h"
+#include "Logger.h"
+#include "Socket.h"
 #include "SBFspot.h"
 #include "misc.h"
 #include "SBFNet.h"
@@ -51,25 +54,24 @@ using namespace boost::date_time;
 using namespace boost::posix_time;
 using namespace boost::gregorian;
 
-ArchData::ArchData(Importer& import) :
-    m_import(import)
+ArchData::ArchData(Socket& import, SbfSpot& sbfSpot) :
+    m_socket(import),
+    m_sbfSpot(sbfSpot)
 {
 }
 
-E_SBFSPOT ArchData::ArchiveDayData(std::vector<InverterData>& inverters, time_t startTime)
+E_SBFSPOT ArchData::importDayData(std::vector<InverterData>& inverters, time_t startTime)
 {
     if (VERBOSE_NORMAL)
     {
         puts("********************");
-        puts("* ArchiveDayData() *");
+        puts("* importDayData()  *");
         puts("********************");
     }
 
 	bool hasMultigate = false;
 
 	startTime -= 86400;		// fix Issue CP23: to overcome problem with DST transition - RB@20140330
-
-    E_SBFSPOT rc = E_OK;
     struct tm start_tm;
     memcpy(&start_tm, localtime(&startTime), sizeof(start_tm));
 
@@ -80,45 +82,29 @@ E_SBFSPOT ArchData::ArchiveDayData(std::vector<InverterData>& inverters, time_t 
 	startTime = mktime(&start_tm);
 
     if (VERBOSE_NORMAL)
-        printf("startTime = %08lX -> %s\n", startTime, strftime_t("%d/%m/%Y %H:%M:%S", startTime));
+        printf("startTime = %lu -> %s\n", startTime, strftime_t("%d/%m/%Y %H:%M:%S", startTime));
 
     for (auto& inverter : inverters)
 	{
         if (inverter.SUSyID == SID_MULTIGATE)
             hasMultigate = true;
 
-        inverter.hasDayData = false;
-        for(unsigned int i=0; i<sizeof(inverter.dayData)/sizeof(DayData); i++)
-		{
-            DayData *pdayData = &inverter.dayData[i];
-            pdayData->datetime = 0;
-			pdayData->totalWh = 0;
-			pdayData->watt = 0;
-		}
+        // Reset day data
+        inverter.dayData.fill(DayData());
 	}
 
     int packetcount = 0;
     int validPcktID = 0;
 
+    E_SBFSPOT rc = E_OK;
     E_SBFSPOT hasData = E_ARCHNODATA;
 
     for (auto& inverter : inverters)
     {
         if ((inverter.DevClass != CommunicationProduct) && (inverter.SUSyID != SID_MULTIGATE))
 		{
-			do
-			{
-				pcktID++;
-                m_buffer.writePacketHeader(0x01, inverter.BTAddress);
-                m_buffer.writePacket(0x09, 0xE0, 0, inverter.SUSyID, inverter.Serial);
-                m_buffer.writeLong(0x70000200);
-                m_buffer.writeLong(startTime - 300);
-                m_buffer.writeLong(startTime + 86100);
-                m_buffer.writePacketTrailer();
-                m_buffer.writePacketLength();
-			}
-            while (!m_buffer.isCrcValid());
-            m_import.send(m_buffer.data(), inverter.IPAddress);
+            auto buffer = m_sbfSpot.encodeHistoricDayDataRequest(inverter.SUSyID, inverter.Serial, startTime - 300, startTime + 86100, inverter.BTAddress);
+            m_socket.send(buffer, inverter.IPAddress);
 
 			do
 			{
@@ -133,10 +119,10 @@ E_SBFSPOT ArchData::ArchiveDayData(std::vector<InverterData>& inverters, time_t 
 
 				do
 				{
-                    rc = m_import.getPacket(m_buffer, inverter.BTAddress, 1);
+                    rc = m_socket.getPacket(m_buffer, inverter.BTAddress, 1);
                     if (rc != E_OK) return E_NODATA;
 
-					packetcount = pcktBuf[25];
+                    packetcount = m_buffer.data()[25];
 
                     //TODO: Move checksum validation to bthGetPacket
                     // DO NOT validateChecksum of send buffer, but response
@@ -144,13 +130,13 @@ E_SBFSPOT ArchData::ArchiveDayData(std::vector<InverterData>& inverters, time_t 
 						return E_CHKSUM;
 					else
 					{
-						unsigned short rcvpcktID = get_short(pcktBuf+27) & 0x7FFF;
+                        unsigned short rcvpcktID = get_short(m_buffer.data().data()+27) & 0x7FFF;
 						if ((validPcktID == 1) || (pcktID == rcvpcktID))
 						{
 							validPcktID = 1;
 							for(int x = 41; x < (packetposition - 3); x += recordsize)
 							{
-								datetime_next = (time_t)get_long(pcktBuf + x);
+                                datetime_next = (time_t)get_long(m_buffer.data().data() + x);
 								if (0 != (datetime_next - datetime)) // Fix Issue 108: sbfspot v307 crashes for daily export (-adnn)
 								{
 									totalWh_prev = totalWh;
@@ -161,7 +147,7 @@ E_SBFSPOT ArchData::ArchiveDayData(std::vector<InverterData>& inverters, time_t 
 								else
 									dblrecord = true;
 
-								totalWh = (unsigned long long)get_longlong(pcktBuf + x + 4);
+                                totalWh = (unsigned long long)get_longlong(m_buffer.data().data() + x + 4);
 								if (totalWh != NaN_U64) // Fix Issue 109: Bad request 400: Power value too high for system size
 								{
 									if (totalWh > 0) hasData = E_OK;
@@ -172,8 +158,8 @@ E_SBFSPOT ArchData::ArchiveDayData(std::vector<InverterData>& inverters, time_t 
 										if (start_tm.tm_mday == timeinfo.tm_mday)
 										{
 											unsigned int idx = (timeinfo.tm_hour * 12) + (timeinfo.tm_min / 5);
-                                            if (idx < sizeof(inverter.dayData)/sizeof(DayData))
-											{
+                                            if (idx < inverter.dayData.size())
+                                            {
 												if (VERBOSE_HIGHEST && dblrecord)
 												{
 													std::cout << "Overwriting existing record: " << strftime_t("%d/%m/%Y %H:%M:%S", datetime);
@@ -186,12 +172,13 @@ E_SBFSPOT ArchData::ArchiveDayData(std::vector<InverterData>& inverters, time_t 
 													std::cout << " -> " << strftime_t("%H:%M:%S", datetime) << std::endl;
 												}
                                                 inverter.dayData[idx].datetime = datetime;
+                                                inverter.dayData[idx].serial = inverter.Serial;
                                                 inverter.dayData[idx].totalWh = totalWh;
                                                 //inverter.dayData[idx].watt = (totalWh - totalWh_prev) * 12;	// 60:5
 												// Fix Issue 105 - Don't assume each interval is 5 mins
 												// This is also a bug in SMA's Sunny Explorer V1.07.17 and before
                                                 inverter.dayData[idx].watt = (totalWh - totalWh_prev) * 3600 / (datetime - datetime_prev);
-                                                inverter.hasDayData = true;
+                                                LOG_S(INFO) << "index: " << idx << ", " << inverter.dayData[idx];
 											}
 										}
 									}
@@ -227,15 +214,15 @@ E_SBFSPOT ArchData::ArchiveDayData(std::vector<InverterData>& inverters, time_t 
             InverterData& pmg = inverters[mg];
             if (pmg.SUSyID == SID_MULTIGATE)
 			{
-                pmg.hasDayData = true;
                 for (uint32_t sb240=0; mg < inverters.size(); sb240++)
 				{
                     const InverterData& psb = inverters[sb240];
                     if ((psb.SUSyID == SID_SB240) && (psb.multigateIndex == mg))
 					{
-                        for (unsigned int dd=0; dd < ARRAYSIZE(inverters[0].dayData); dd++)
+                        for (unsigned int dd=0; dd < inverters[0].dayData.size(); dd++)
 						{
                             pmg.dayData[dd].datetime = psb.dayData[dd].datetime;
+                            pmg.dayData[dd].serial = psb.dayData[dd].serial;
                             pmg.dayData[dd].totalWh += psb.dayData[dd].totalWh;
                             pmg.dayData[dd].watt += psb.dayData[dd].watt;
 						}
@@ -248,12 +235,12 @@ E_SBFSPOT ArchData::ArchiveDayData(std::vector<InverterData>& inverters, time_t 
     return hasData;
 }
 
-E_SBFSPOT ArchData::ArchiveMonthData(std::vector<InverterData>& inverters, tm *start_tm)
+E_SBFSPOT ArchData::importMonthData(std::vector<InverterData>& inverters, tm *start_tm)
 {
     if (VERBOSE_NORMAL)
     {
         puts("**********************");
-        puts("* ArchiveMonthData() *");
+        puts("* importMonthData() *");
         puts("**********************");
     }
 
@@ -269,7 +256,7 @@ E_SBFSPOT ArchData::ArchiveMonthData(std::vector<InverterData>& inverters, tm *s
     time_t startTime = mktime(start_tm);
 
     if (VERBOSE_NORMAL)
-        printf("startTime = %08lX -> %s\n", startTime, strftime_t("%d/%m/%Y %H:%M:%S", startTime));
+        printf("startTime = %lu -> %s\n", startTime, strftime_t("%d/%m/%Y %H:%M:%S", startTime));
 
     for (auto& inverter : inverters)
 	{
@@ -302,7 +289,7 @@ E_SBFSPOT ArchData::ArchiveMonthData(std::vector<InverterData>& inverters, tm *s
                 m_buffer.writePacketLength();
 			}
             while (!m_buffer.isCrcValid());
-            m_import.send(m_buffer.data(), inverter.IPAddress);
+            m_socket.send(m_buffer.data(), inverter.IPAddress);
 
 			do
 			{
@@ -314,7 +301,7 @@ E_SBFSPOT ArchData::ArchiveMonthData(std::vector<InverterData>& inverters, tm *s
 				unsigned int idx = 0;
 				do
 				{
-                    rc = m_import.getPacket(m_buffer, inverter.BTAddress, 1);
+                    rc = m_socket.getPacket(m_buffer, inverter.BTAddress, 1);
                     if (rc != E_OK) return E_NODATA;
 
                     //TODO: Move checksum validation to bthGetPacket
@@ -322,18 +309,18 @@ E_SBFSPOT ArchData::ArchiveMonthData(std::vector<InverterData>& inverters, tm *s
 						return E_CHKSUM;
 					else
 					{
-						packetcount = pcktBuf[25];
-						unsigned short rcvpcktID = get_short(pcktBuf+27) & 0x7FFF;
+                        packetcount = m_buffer.data()[25];
+                        unsigned short rcvpcktID = get_short(m_buffer.data().data()+27) & 0x7FFF;
 						if ((validPcktID == 1) || (pcktID == rcvpcktID))
 						{
 							validPcktID = 1;
 
 							for(int x = 41; x < (packetposition - 3); x += recordsize)
 							{
-								datetime = (time_t)get_long(pcktBuf + x);
+                                datetime = (time_t)get_long(m_buffer.data().data() + x);
 								//datetime -= (datetime % 86400) + 43200; // 3.0 - Round to UTC 12:00 - Removed 3.0.1 see issue C54
                                 datetime += inverter.monthDataOffset; // Issues 115/130
-								totalWh = get_longlong(pcktBuf + x + 4);
+                                totalWh = get_longlong(m_buffer.data().data() + x + 4);
 								if (totalWh != MAXULONGLONG)
 								{
 									if (totalWh_prev != 0)
@@ -430,14 +417,14 @@ E_SBFSPOT ArchData::ArchiveEventData(std::vector<InverterData>& inverters, boost
             m_buffer.writePacketLength();
         }
         while (!m_buffer.isCrcValid());
-        m_import.send(m_buffer.data(), inverter.IPAddress);
+        m_socket.send(m_buffer.data(), inverter.IPAddress);
 
 		bool FIRST_EVENT_FOUND = false;
         do
         {
             do
             {
-                rc = m_import.getPacket(m_buffer, inverter.BTAddress, 1);
+                rc = m_socket.getPacket(m_buffer, inverter.BTAddress, 1);
                 if (rc != E_OK) return rc;
 
                 //TODO: Move checksum validation to bthGetPacket
@@ -452,7 +439,7 @@ E_SBFSPOT ArchData::ArchiveEventData(std::vector<InverterData>& inverters, boost
                         validPcktID = 1;
                         for (int x = 41; x < (packetposition - 3); x += sizeof(SMA_EVENTDATA))
                         {
-							SMA_EVENTDATA *pEventData = (SMA_EVENTDATA *)(pcktBuf + x);
+                            SMA_EVENTDATA *pEventData = (SMA_EVENTDATA *)(m_buffer.data().data() + x);
 							if (pEventData->DateTime > 0)	// Fix Issue 89
 							{
                                 inverter.eventData.push_back(EventData(UserGroup, pEventData));
@@ -493,38 +480,36 @@ E_SBFSPOT ArchData::getMonthDataOffset(std::vector<InverterData>& inverters)
 	// Temporarily disable verbose logging
 	int currentVerboseLevel = verbose;
 	verbose = 0;
-	rc = ArchiveMonthData(inverters, &now_tm);
-	verbose = currentVerboseLevel;
+    rc = importMonthData(inverters, &now_tm);
+    verbose = currentVerboseLevel;
+    if (rc != E_OK) return rc;
 
-	if (rc == E_OK)
-	{
-        for (auto& inverter : inverters)
-		{
-            inverter.monthDataOffset = 0;
-            if (inverter.hasMonthData)
-			{
-				// Get last record of monthdata
-				for(int i = 30; i > 0; i--)
-				{
-                    if (inverter.monthData[i].datetime != 0)
-					{
-						now = time(NULL);
-						memcpy(&now_tm, gmtime(&now), sizeof(now_tm));
+    for (auto& inverter : inverters)
+    {
+        inverter.monthDataOffset = 0;
+        if (inverter.hasMonthData)
+        {
+            // Get last record of monthdata
+            for(int i = 30; i > 0; i--)
+            {
+                if (inverter.monthData[i].datetime != 0)
+                {
+                    now = time(NULL);
+                    memcpy(&now_tm, gmtime(&now), sizeof(now_tm));
 
-						struct tm inv_tm;
-                        memcpy(&inv_tm, gmtime(&inverter.monthData[i].datetime), sizeof(inv_tm));
+                    struct tm inv_tm;
+                    memcpy(&inv_tm, gmtime(&inverter.monthData[i].datetime), sizeof(inv_tm));
 
-						if (now_tm.tm_yday == inv_tm.tm_yday)
-                            inverter.monthDataOffset = -86400;
+                    if (now_tm.tm_yday == inv_tm.tm_yday)
+                        inverter.monthDataOffset = -86400;
 
-						break;
-					}
-				}
-			}
-			if ((DEBUG_HIGHEST) && (!quiet))
-                std::cout << inverter.SUSyID << ":" << inverter.Serial << " monthDataOffset=" << inverter.monthDataOffset << std::endl;
-		}
-	}
+                    break;
+                }
+            }
+        }
+        if ((DEBUG_HIGHEST) && (!quiet))
+            std::cout << inverter.SUSyID << ":" << inverter.Serial << " monthDataOffset=" << inverter.monthDataOffset << std::endl;
+    }
 
 	return rc;
 }

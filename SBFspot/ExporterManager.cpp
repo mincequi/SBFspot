@@ -36,6 +36,7 @@ DISCLAIMER:
 
 #include <Config.h>
 #include <CSVexport.h>
+#include <Defines.h>
 #include <LiveData.h>
 #include <SQLselect.h>
 #include <mqtt.h>
@@ -150,6 +151,12 @@ void ExporterManager::exportLiveData(const LiveData& liveData) {
                     (liveData.timestamp % m_config.archiveInterval == 0))) {
             exporter->exportLiveData(liveData);
         }
+    }
+}
+
+void ExporterManager::exportDayData(const std::vector<DayData>& dayData) {
+    for (const auto& exporter : m_exporters) {
+        exporter->exportDayData(dayData);
     }
 }
 

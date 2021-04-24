@@ -35,3 +35,59 @@ DISCLAIMER:
 #include "Types.h"
 
 #include "Defines.h"
+
+void ByteBuffer::reset() {
+    m_currentPosition = 0;
+}
+
+uint8_t ByteBuffer::readUint8() {
+    if ((m_currentPosition + 1) > size()) {
+        return 0;
+    }
+
+    uint8_t value = *(data()+m_currentPosition);
+    ++m_currentPosition;
+
+    return value;
+}
+
+std::vector<uint8_t> ByteBuffer::readByteArray(uint16_t _size) {
+    std::vector<uint8_t> value;
+
+    if (_size == std::numeric_limits<uint16_t>::max()) {
+        value.resize(size()-m_currentPosition);
+        std::memcpy(value.data(), data()+m_currentPosition, size()-m_currentPosition);
+        m_currentPosition = size();
+    } else if ((m_currentPosition + _size) > size()) {
+    } else {
+        value.resize(_size);
+        std::memcpy(value.data(), data()+m_currentPosition, _size);
+        m_currentPosition += _size;
+    }
+
+    return value;
+}
+
+uint16_t ByteBuffer::readUint16(bool doByteSwap) {
+    if ((m_currentPosition + 2) > size()) {
+        return 0;
+    }
+
+    uint16_t value;
+    std::memcpy(&value, data()+m_currentPosition, 2);
+    m_currentPosition += 2;
+
+    return doByteSwap ? ntohs(value) : value;
+}
+
+uint32_t ByteBuffer::readUint32(bool doByteSwap) {
+    if ((m_currentPosition + 4) > size()) {
+        return 0;
+    }
+
+    uint32_t value;
+    std::memcpy(&value, data()+m_currentPosition, 4);
+    m_currentPosition += 4;
+
+    return doByteSwap ? ntohl(value) : value;
+}

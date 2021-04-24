@@ -35,7 +35,6 @@ DISCLAIMER:
 #include "Config.h"
 
 #include "Logger.h"
-#include "SBFspot.h"
 #include "version.h"
 #include "misc.h"
 

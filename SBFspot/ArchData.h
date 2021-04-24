@@ -39,19 +39,21 @@ DISCLAIMER:
 #include "SBFNet.h"
 #include "Types.h"
 
-class Importer;
+class SbfSpot;
+class Socket;
 struct InverterData;
 
 class ArchData {
 public:
-    ArchData(Importer& import);
+    ArchData(Socket& import, SbfSpot& sbfSpot);
 
-    E_SBFSPOT ArchiveDayData(std::vector<InverterData>& inverters, std::time_t startTime);
+    E_SBFSPOT importDayData(std::vector<InverterData>& inverters, std::time_t startTime);
     E_SBFSPOT ArchiveEventData(std::vector<InverterData>& inverters, boost::gregorian::date startDate, unsigned long UserGroup);
-    E_SBFSPOT ArchiveMonthData(std::vector<InverterData>& inverters, tm *start_tm);
+    E_SBFSPOT importMonthData(std::vector<InverterData>& inverters, tm *start_tm);
     E_SBFSPOT getMonthDataOffset(std::vector<InverterData>& inverters);
 
 private:
-    Importer& m_import;
+    Socket& m_socket;
+    SbfSpot& m_sbfSpot;
     Buffer  m_buffer;
 };

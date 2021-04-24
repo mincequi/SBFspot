@@ -40,12 +40,13 @@ set(COMMON_SOURCES
     EventData.cpp
     Exporter.cpp
     ExporterManager.cpp
-    Importer.cpp
     Inverter.cpp
     LiveData.cpp
+    Logger.cpp
     SBFNet.cpp
     SBFspot.cpp
     Serializer.cpp
+    Socket.cpp
     TagDefs.cpp
     Timer.cpp
     Types.cpp
@@ -57,6 +58,7 @@ set(COMMON_SOURCES
     mqtt/MqttExporter_qt.cpp
     msgpack/MsgPackSerializer.cpp
     sma/SmaInverterRequests.cpp
+    sma/SmaTypes.cpp
     sql/SqlExporter_qt.cpp
     sql/SqlQueries.cpp
     thirdparty/loguru/loguru.cpp
@@ -177,6 +179,7 @@ add_executable(${PROJECT_NAME}_qt
     Serializer.cpp
     TagDefs.cpp
     Timer.cpp
+    Types.cpp
     db_SQLite.cpp
     db_SQLite_Export.cpp
     main_qt.cpp
@@ -190,6 +193,7 @@ add_executable(${PROJECT_NAME}_qt
     sma/SmaInverter.cpp
     sma/SmaInverterRequests.cpp
     sma/SmaManager.cpp
+    sma/SmaTypes.cpp
     sql/SqlExporter_qt.cpp
     sql/SqlQueries.cpp
     thirdparty/loguru/loguru.cpp

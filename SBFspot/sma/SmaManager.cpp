@@ -39,6 +39,9 @@ DISCLAIMER:
 #include <QTimer>
 #include <QtConcurrent>
 
+#include <SpeedwireHeader.hpp>
+#include <SpeedwireInverterProtocol.hpp>
+
 #include "Config.h"
 #include "Exporter.h"
 #include "LiveData.h"
@@ -97,7 +100,7 @@ void SmaManager::onDiscoveryResponseDatagram(const QNetworkDatagram& datagram)
     auto ip = datagram.senderAddress().toIPv4Address();
     if (!m_inverters.count(ip)) {
         LOG_S(INFO) << "Found inverter at: " << datagram.senderAddress().toString().toStdString();
-        m_inverters.emplace(ip, new SmaInverter(this, m_config, m_ethernet, m_exporter, ip));
+        m_inverters.emplace(ip, new SmaInverter(this, m_config, m_ethernet, ip));
         m_inverters.at(ip)->m_lastSeen = std::time(nullptr);
     } else {
         m_inverters.at(ip)->m_lastSeen = std::time(nullptr);
@@ -106,6 +109,14 @@ void SmaManager::onDiscoveryResponseDatagram(const QNetworkDatagram& datagram)
 
 void SmaManager::onUnknownDatagram(const QNetworkDatagram& datagram)
 {
+    auto ba = datagram.data();
+    ByteBuffer buffer(ba.begin(), ba.end());
+    auto packet = SmaPacket::fromBuffer(buffer);
+    //LOG_S(INFO) << packet;
+    //LOG_S(INFO) << buffer;
+
+    //const ethPacket* pckt = (ethPacket*)datagram.data().data();
+
     auto ip = datagram.senderAddress().toIPv4Address();
     if (m_inverters.count(ip)) {
         m_inverters.at(ip)->onDatagram(datagram);
@@ -131,7 +142,7 @@ void SmaManager::onLiveTimeout()
             continue;
 
         pollStarted = true;
-        kv.second->startPoll(m_currentTimePoint);
+        kv.second->requestLiveData(m_currentTimePoint);
     }
 
     if (pollStarted) m_pollTimer.start();
@@ -141,14 +152,23 @@ void SmaManager::onLiveTimeout()
 
 void SmaManager::onPollTimeout()
 {
-    m_exporter.open();
+    LOG_IF_F(ERROR, !m_exporter.open(), "Error opening database");
 
     LOG_S(1) << "Polling inverters finished";
     for (auto& kv : m_inverters) {
         if (kv.second->m_state != SmaInverter::State::LoggedIn)
             continue;
 
-        kv.second->stopPoll();
+        auto results = kv.second->result();
+        for (const auto& result : results) {
+            std::visit([this](auto&& arg) {
+                using T = std::decay_t<decltype(arg)>;
+                if constexpr (std::is_same_v<T, LiveData>)
+                    m_exporter.exportLiveData(arg);
+                else if constexpr (std::is_same_v<T, std::vector<DayData>>)
+                    m_exporter.exportDayData(arg);
+            }, result);
+        }
     }
 
     m_exporter.close();

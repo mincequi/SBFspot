@@ -44,14 +44,14 @@ DISCLAIMER:
 
 struct Config;
 class Ethernet;
-class Importer;
+class Socket;
 struct InverterData;
 class SbfSpot;
 
 class Inverter
 {
 public:
-    Inverter(const Config& config, Ethernet& ethernet, Importer& import, SbfSpot& sbfSpot);
+    Inverter(const Config& config, Ethernet& ethernet, Socket& import, SbfSpot& sbfSpot);
     ~Inverter();
 
     E_SBFSPOT ethInitConnection();
@@ -80,7 +80,7 @@ private:
 
     const Config& m_config;
     Ethernet& m_ethernet;
-    Importer& m_import;
+    Socket& m_import;
     SbfSpot& m_sbfSpot;
     Buffer  m_buffer;
 

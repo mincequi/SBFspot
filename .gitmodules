@@ -1,6 +1,6 @@
 [submodule "SBFspot/thirdparty/libspeedwire"]
 	path = SBFspot/thirdparty/libspeedwire
-	url = https://github.com/RalfOGit/libspeedwire.git
+	url = https://github.com/mincequi/libspeedwire.git
 [submodule "SBFspot/thirdparty/qmqtt"]
 	path = SBFspot/thirdparty/qmqtt
 	url = https://github.com/emqx/qmqtt.git

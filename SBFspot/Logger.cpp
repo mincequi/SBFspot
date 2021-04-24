@@ -34,7 +34,12 @@ DISCLAIMER:
 
 #include "Logger.h"
 
+#include <iomanip>
+#include <ctime>
+
 #include <QByteArray>
+
+#include <Types.h>
 
 void Logger::init(int& argc, char* argv[]) {
     /* Everything with a verbosity equal or greater than g_stderr_verbosity will be
@@ -70,4 +75,32 @@ Logger::Logger()
 std::ostream& operator<< (std::ostream& out, QByteArray const& array)
 {
     return out << array.toHex().toStdString();
+}
+
+std::ostream& operator<< (std::ostream& out, std::vector<uint8_t> const& buffer)
+{
+    uint i = 0;
+    out << "buffer> size: " << buffer.size() << ", data:" << std::endl;
+    for (const uint8_t& c : buffer) {
+        if (i == 0) {
+            out << std::endl;
+        } else if ((i % 16) == 0) {
+            out << std::endl;
+        } else if ((i % 8) == 0) {
+            out << " ";
+        }
+
+        out << std::uppercase << std::setfill('0') << std::setw(2) << std::hex << (uint32_t)c << " ";
+        ++i;
+    }
+
+    return out;
+}
+
+std::ostream& operator<< (std::ostream& out, DayData const& dayData)
+{
+    return out << "timestamp: " << std::put_time(std::localtime(&dayData.datetime), "%c")
+               << ", serial: " << dayData.serial
+               << ", totalWh: " << dayData.totalWh
+               << ", watt: " << dayData.watt;
 }

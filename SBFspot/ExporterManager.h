@@ -53,6 +53,7 @@ public:
     // New functions
     void exportConfig(const InverterData& inverterData) override;
     void exportLiveData(const LiveData& liveData) override;
+    void exportDayData(const std::vector<DayData>& dayData) override;
     void exportDayStats(const DayStats& dayStats) override;
 
     // TODO: these functions shall be removed/replaced.

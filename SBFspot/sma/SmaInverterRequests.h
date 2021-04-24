@@ -50,9 +50,7 @@ struct SmaInverterRequest {
 
 class SmaInverterRequests {
 public:
-    static const std::vector<SmaInverterRequest>& all();
     static SmaInverterRequest create(SmaInverterDataSet dataSet);
-    static SmaInverterRequest create(LriDef lri);
 
 private:
     static const std::vector<SmaInverterRequest> m_requests;

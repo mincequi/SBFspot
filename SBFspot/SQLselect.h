@@ -35,7 +35,6 @@ DISCLAIMER:
 #pragma once
 
 #include "osselect.h"
-#include "SBFspot.h"
 
 #if defined(USE_SQLITE)
 #include "db_SQLite.h"

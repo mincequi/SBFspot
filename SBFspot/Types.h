@@ -34,13 +34,13 @@ DISCLAIMER:
 
 #pragma once
 
+#include <array>
 #include <ctime>
 #include <list>
 #include <map>
 #include <string>
 #include <vector>
 
-#include "Defines.h"
 #include "EventData.h"
 
 enum class ExporterType : uint16_t {
@@ -52,6 +52,12 @@ enum class ExporterType : uint16_t {
     LoRaWan = 0x40
 };
 
+enum CONNECTIONTYPE {
+    CT_NONE = 0,
+    CT_BLUETOOTH = 1,
+    CT_ETHERNET  = 2
+};
+
 typedef enum
 {
     S123_NOP = 0,	// Nop
@@ -61,26 +67,28 @@ typedef enum
     S123_STATE = 4	// Send inverter state data
 } S123_COMMAND;
 
-typedef struct
+struct MonthData
 {
-    time_t datetime;
-    long long totalWh;	// changed to signed - issue 58
-    long long dayWh;	// changed to signed - issue 58
-} MonthData;
+    std::time_t datetime = 0;
+    uint32_t serial = 0;
+    long long totalWh = 0;  // changed to signed - issue 58
+    long long dayWh = 0;    // changed to signed - issue 58
+};
 
-typedef struct
+struct DayData
 {
-    time_t datetime;
-    long long totalWh;	// changed to signed - issue 58
-    long long watt;		// changed to signed - issue 58
-} DayData;
+    std::time_t datetime = 0;
+    uint32_t serial = 0;
+    long long totalWh = 0;  // changed to signed - issue 58
+    long long watt = 0;     // changed to signed - issue 58
+};
 
 // Holds statistics for a day
 struct DayStats
 {
-    uint32_t    serial;
     std::time_t timestamp = 0;  // [sec]
-    float       powerMax;
+    uint32_t    serial = 0;
+    float       powerMax = 0;
     std::vector<float> stringPowerMax;    // Maximum power per string
 };
 
@@ -112,6 +120,10 @@ enum SmaInverterDataSet : uint32_t
     BatteryInfo         = 1 << 15,
     InverterTemperature	= 1 << 16,
     MeteringGridMsTotW	= 1 << 17,
+    HistoricDayDataRequest  = 0x70000200,
+    HistoricDayDataResponse = 0x70000201,
+    HistoricMonthDataRequest    = 0x70200200,
+    HistoricMonthDataResponse   = 0x70200201,
 
     sbftest             = 1 << 30
 };
@@ -142,10 +154,15 @@ typedef enum
     DT_SLONG = 64
 } SMA_DATATYPE;
 
+class BluetoothAddress : public std::array<uint8_t, 6> {
+    //using std::array<uint8_t, 6>::array;
+};
+
 struct InverterData
 {
     std::string DeviceName;    //32 bytes + terminating zero
-    unsigned char BTAddress[6];
+    //unsigned char BTAddress[6];
+    BluetoothAddress BTAddress;
     std::string IPAddress;
     unsigned short SUSyID = 0;
     unsigned long Serial = 0;
@@ -186,8 +203,7 @@ struct InverterData
     int DeviceStatus = 0;
     int GridRelayStatus = 0;
     int flags = 0;
-    DayData dayData[288];
-    bool hasDayData = false;
+    std::array<DayData, 288> dayData;   // 24 * 60 * 20 (5 minute interval)
     MonthData monthData[31];
     bool hasMonthData = false;
     time_t monthDataOffset = 0;	// Issue 115
@@ -206,7 +222,7 @@ struct InverterData
     int32_t	MeteringGridMsTotWOut = 0;  // Power grid feed-in (Out)
     int32_t MeteringGridMsTotWIn = 0;   // Power grid reference (In)
     bool hasBattery = false;            // Smart Energy device
-    uint32_t multigateIndex = NaN_U32;
+    uint32_t multigateIndex = std::numeric_limits<uint32_t>::max();
 };
 
 //SMA Structs must be aligned on byte boundaries
@@ -355,5 +371,17 @@ using DataPerInverter = std::map<uint32_t, std::list<InverterData>>;
 using InverterDataMap = std::map<LriDef, float>;
 
 class ByteBuffer : public std::vector<uint8_t> {
+public:
     using std::vector<uint8_t>::vector;
+    using std::vector<uint8_t>::operator=;
+
+    // These functions are stateful reader functions. Always call reset() when reading from the beginning.
+    void reset();
+    uint8_t readUint8();
+    std::vector<uint8_t> readByteArray(uint16_t size);
+    uint16_t readUint16(bool doByteSwap = true);
+    uint32_t readUint32(bool doByteSwap = true);
+
+private:
+    size_t m_currentPosition = 0;
 };

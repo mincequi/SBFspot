@@ -35,7 +35,6 @@ DISCLAIMER:
 #include "osselect.h"
 #include "misc.h"
 #include "Defines.h"
-#include "SBFspot.h"
 #include <time.h>
 #include <sstream>
 #include <string.h>

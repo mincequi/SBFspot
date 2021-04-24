@@ -65,11 +65,13 @@ void Exporter::exportConfig(const InverterData& /*inverterData*/) {
 void Exporter::exportDayStats(const DayStats& /*dayStats*/) {
 }
 
-void Exporter::exportDayData(std::time_t /*timestamp*/,
-                             const DataPerInverter& /*inverterData*/) {
-}
+//void Exporter::exportDayData(const DataPerInverter& /*inverterData*/) {
+//}
 
 void Exporter::exportLiveData(const LiveData& /*liveData*/) {
+}
+
+void Exporter::exportDayData(const std::vector<DayData>& /*dayData*/) {
 }
 
 void Exporter::exportDayData(const std::vector<InverterData>&) {

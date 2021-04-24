@@ -49,6 +49,10 @@ public:
     static std::string createTableLiveDataAc();
     static std::string createTableLiveDataDc();
     static std::string createTableLiveDataAux();
+
+    static std::string createTableDayData();
+    static std::string createTableMonthData();
+
     static std::list<std::string> exportLiveData(const LiveData& liveData);
 
     // TODO: these are obsolete and should be replaced by other function above

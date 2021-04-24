@@ -55,7 +55,7 @@ public:
     //void writePacket(const uint8_t size, const uint8_t ctrl, const unsigned short dstSUSyID, const unsigned long dstSerial, const unsigned short packetcount, const uint8_t a, const uint8_t b, const uint8_t c);
     void writePacket(uint8_t longwords, uint8_t ctrl, unsigned short ctrl2, unsigned short dstSUSyID, unsigned long dstSerial);
     void writePacketTrailer();
-    void writePacketHeader(const unsigned int control, const uint8_t *destaddress);
+    void writePacketHeader(const unsigned int control, const BluetoothAddress& bluetoothAddress);
     void writePacketLength();
     bool validateChecksum();
     bool isCrcValid();

@@ -39,6 +39,7 @@ DISCLAIMER:
 
 #include <SBFNet.h>
 #include <Types.h>
+#include <sma/SmaTypes.h>
 
 //Wellknown SUSyID's
 #define SID_MULTIGATE	175
@@ -57,7 +58,7 @@ DISCLAIMER:
 #define toTemp(value32) (float)value32/100
 
 class Ethernet;
-class Importer;
+class Socket;
 class LiveData;
 
 class SbfSpot {
@@ -73,8 +74,8 @@ public:
     const ByteBuffer& encodeLoginRequest(SmaUserGroup userGroup, const std::string& password);
     const ByteBuffer& encodeLogoutRequest();
     const ByteBuffer& encodeDataRequest(uint16_t susyId, uint32_t serial, SmaInverterDataSet dataSet);
-
-    static void decodeResponse(const ByteBuffer& buffer, InverterDataMap& inverterDataMap, LiveData& data, std::set<LriDef>& lris);
+    const ByteBuffer& encodeHistoricDayDataRequest(uint16_t susyId, uint32_t serial, std::time_t from, std::time_t to, const BluetoothAddress& bluetoothAddress);
+    const ByteBuffer& encodeHistoricMonthDataRequest(uint16_t susyId, uint32_t serial, std::time_t startTime, const BluetoothAddress& bluetoothAddress);
 
 private:
     Buffer  m_buffer;

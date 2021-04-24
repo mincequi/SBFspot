@@ -37,7 +37,7 @@ DISCLAIMER:
 #if defined(USE_SQLITE)
 
 #include "osselect.h"
-#include "SBFspot.h"
+#include "Types.h"
 #include <ctime>
 #include <iostream>
 #include <sqlite3.h>

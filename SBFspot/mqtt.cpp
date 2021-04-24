@@ -35,7 +35,6 @@ DISCLAIMER:
 #include "mqtt.h"
 
 #include "Config.h"
-#include "SBFspot.h"
 #include "Serializer.h"
 #include "TagDefs.h"
 #include "misc.h"

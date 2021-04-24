@@ -36,6 +36,8 @@ DISCLAIMER:
 
 #include "osselect.h"
 
+#include "Types.h"
+
 // Constants
 #define COMMBUFSIZE 2048 // Size of Communications Buffer (Bluetooth/Ethernet)
 #define ETH_L2SIGNATURE 0x65601000
@@ -46,7 +48,7 @@ DISCLAIMER:
 #define NaN_U64	(uint64_t)0xFFFFFFFFFFFFFFFF	// "Not a Number" representation for ULONGLONG (converted to 0 by SBFspot)
 
 static const uint32_t MAX_INVERTERS = 20;
-static const uint8_t addr_unknown[6] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+static const BluetoothAddress addr_unknown = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
 static const uint8_t addr_broadcast[6] = { 0, 0, 0, 0, 0, 0 };
 static const uint16_t anySUSyID = 0xFFFF;
 static const uint32_t anySerial = 0xFFFFFFFF;
@@ -62,12 +64,7 @@ extern char DateTimeFormat[32];
 extern char DateFormat[32];
 extern bool hasBatteryDevice;
 
-// TODO: remove CONNECTIONTYPE and global ConnType
-enum CONNECTIONTYPE {
-    CT_NONE = 0,
-    CT_BLUETOOTH = 1,
-    CT_ETHERNET  = 2
-};
+// TODO: remove global ConnType
 extern CONNECTIONTYPE ConnType;
 
 extern int MAX_CommBuf;

@@ -37,6 +37,7 @@ DISCLAIMER:
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QStringList>
+#include <QVariant>
 
 #include <Config.h>
 #include <LiveData.h>
@@ -44,6 +45,18 @@ DISCLAIMER:
 #include <sql/SqlQueries.h>
 
 namespace sql {
+
+/*
+enum class SqlTables {
+    LiveDataAc,
+    LiveDataDc,
+    LiveDataAux,
+
+    HistoricDayData,
+    HistoricMonthData
+};
+Q_ENUM_NS(SqlTables)
+*/
 
 SqlExporter_qt::SqlExporter_qt(const SqlConfig& config) :
     m_config(config) {
@@ -78,6 +91,22 @@ void SqlExporter_qt::close() {
     return m_db.close();
 }
 
+std::time_t SqlExporter_qt::latestMissingDay() {
+    auto t = time(nullptr)/86400;
+    t *= 86400;
+
+    m_db.open();
+    QString sql("SELECT MAX(TimeStamp) FROM DayData");
+    auto query = m_db.exec(sql);
+    while (query.next()) {
+        t = query.value(0).toUInt();
+        t /= 86400;
+        t *= 86400;
+    }
+
+    return t;
+}
+
 void SqlExporter_qt::exportLiveData(const LiveData& liveData) {
     LOG_IF_F(WARNING, !m_db.isOpen(), "Database is not open");
     if (!m_db.isOpen())
@@ -89,6 +118,39 @@ void SqlExporter_qt::exportLiveData(const LiveData& liveData) {
         if (m_db.lastError().type() != QSqlError::NoError) {
             LOG_S(WARNING) << "Error inserting data: " << m_db.lastError().text().toStdString();
         }
+    }
+}
+
+void SqlExporter_qt::exportDayData(const std::vector<DayData>& dayData) {
+    LOG_IF_F(WARNING, !m_db.isOpen(), "Database is not open");
+    if (!m_db.isOpen())
+        return;
+
+    QSqlQuery q("insert into DayData (TimeStamp, Serial, TotalYield) "
+                "VALUES (?, ?, ?)", m_db);
+
+    QVariantList timestamps;
+    QVariantList serials;
+    QVariantList yields;
+    //QVariantList powers;
+    //QVariantList pvOutputs;
+
+    for (const auto& dd : dayData) {
+        timestamps << static_cast<uint32_t>(dd.datetime);
+        serials << dd.serial;
+        yields << dd.totalWh;
+        //powers << QVariant();
+        //pvOutputs << QVariant();
+    }
+
+    q.addBindValue(timestamps);
+    q.addBindValue(serials);
+    q.addBindValue(yields);
+    //q.addBindValue(powers);
+    //q.addBindValue(pvOutputs);
+
+    if (!q.execBatch()) {
+        LOG_S(ERROR) << q.lastError().text().toStdString();
     }
 }
 
@@ -112,6 +174,33 @@ bool SqlExporter_qt::createTables() {
 
     if (!tables.contains("LiveDataAc")) {
         m_db.exec(QString::fromStdString(SqlQueries::createTableLiveDataAc()));
+        if (m_db.lastError().type() != QSqlError::NoError) {
+            LOG_S(ERROR) << "Error creating table: " << m_db.lastError().text().toStdString();
+            m_db.close();
+            return false;
+        }
+    }
+
+    if (!tables.contains("LiveDataAux")) {
+        m_db.exec(QString::fromStdString(SqlQueries::createTableLiveDataAux()));
+        if (m_db.lastError().type() != QSqlError::NoError) {
+            LOG_S(ERROR) << "Error creating table: " << m_db.lastError().text().toStdString();
+            m_db.close();
+            return false;
+        }
+    }
+
+    if (!tables.contains("DayData")) {
+        m_db.exec(QString::fromStdString(SqlQueries::createTableDayData()));
+        if (m_db.lastError().type() != QSqlError::NoError) {
+            LOG_S(ERROR) << "Error creating table: " << m_db.lastError().text().toStdString();
+            m_db.close();
+            return false;
+        }
+    }
+
+    if (!tables.contains("MonthData")) {
+        m_db.exec(QString::fromStdString(SqlQueries::createTableMonthData()));
         if (m_db.lastError().type() != QSqlError::NoError) {
             LOG_S(ERROR) << "Error creating table: " << m_db.lastError().text().toStdString();
             m_db.close();

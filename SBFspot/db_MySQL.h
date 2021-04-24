@@ -37,7 +37,6 @@ DISCLAIMER:
 #if defined(USE_MYSQL)
 
 #include "osselect.h"
-#include "SBFspot.h"
 #include <mysql/mysql.h>
 
 extern int quiet;

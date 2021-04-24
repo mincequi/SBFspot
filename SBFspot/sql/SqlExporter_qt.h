@@ -34,6 +34,7 @@ DISCLAIMER:
 
 #pragma once
 
+#include <QObject>
 #include <QSqlDatabase>
 
 #include <Exporter.h>
@@ -50,7 +51,9 @@ public:
     bool open() override;
     void close() override;
 
+    std::time_t latestMissingDay();
     void exportLiveData(const LiveData& liveData) override;
+    void exportDayData(const std::vector<DayData>& dayData) override;
 
 private:
     bool createTables();

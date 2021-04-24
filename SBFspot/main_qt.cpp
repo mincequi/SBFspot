@@ -36,6 +36,7 @@ DISCLAIMER:
 
 #include "Cache.h"
 #include "Config.h"
+#include "Defines.h"
 #include "ExporterManager.h"
 #include "Logger.h"
 #include "sma/SmaManager.h"

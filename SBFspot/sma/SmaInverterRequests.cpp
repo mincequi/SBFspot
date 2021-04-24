@@ -36,27 +36,11 @@ DISCLAIMER,
 
 namespace sma {
 
-const std::vector<SmaInverterRequest>& SmaInverterRequests::all()
-{
-    return m_requests;
-}
-
 SmaInverterRequest SmaInverterRequests::create(SmaInverterDataSet dataSet)
 {
     for (const auto& request : m_requests) {
         if (request.dataSet == dataSet)
             return request;
-    }
-
-    return {};
-}
-
-SmaInverterRequest SmaInverterRequests::create(LriDef lri)
-{
-    for (const auto& request : m_requests) {
-        if (request.first <= lri && request.last >= lri) {
-            return request;
-        }
     }
 
     return {};
@@ -192,4 +176,4 @@ const std::vector<SmaInverterRequest> SmaInverterRequests::m_requests = {
     }
 };
 
-}
+} // namespace sma

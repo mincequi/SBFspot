@@ -32,65 +32,34 @@ DISCLAIMER:
 
 ************************************************************************************************/
 
-#include "Importer.h"
+#pragma once
 
-#ifdef BLUETOOTH_FOUND
+#include "osselect.h"
+
 #include "bluetooth.h"
-#endif
+#include "Types.h"
 
-#include "Config.h"
-#include "Ethernet.h"
-#include "SBFspot.h"
+struct Config;
+class Buffer;
+class Ethernet;
 
-Importer::Importer(const Config& config, Ethernet& ethernet) :
-    m_config(config),
-    m_ethernet(ethernet)
+/*
+ * This class serves as an abstraction of Bluetooth and Ethernet to avoid all
+ * those #ifdefs in business logic.
+ */
+class Socket
 {
-}
+public:
+    Socket(const Config& config, Ethernet& ethernet);
+    ~Socket();
 
-Importer::~Importer()
-{
-}
+    int close();
+    E_SBFSPOT getPacket(Buffer& buffer, const BluetoothAddress& bluetoothAddress, int wait4Command);
+    int send(const ByteBuffer& buffer, const std::string& toIP);
 
-int Importer::close()
-{
-#ifdef BLUETOOTH_FOUND
-    return bthClose();
-#else
-    return 0;
-#endif
-}
+private:
+    const Config& m_config;
+    Ethernet& m_ethernet;
+    Bluetooth m_bluetooth;
+};
 
-E_SBFSPOT Importer::getPacket(Buffer& buffer, const unsigned char senderaddr[6], int wait4Command)
-{
-    if (m_config.ConnectionType == CT_BLUETOOTH)
-    {
-#ifdef BLUETOOTH_FOUND
-        return bthGetPacket(buffer, senderaddr, wait4Command);
-#else
-        std::cout << "Bluetooth not supported on this platform" << std::endl;
-        return {};
-#endif
-    }
-    else
-    {
-        return m_ethernet.ethGetPacket(buffer);
-    }
-}
-
-int Importer::send(const ByteBuffer& buffer, const std::string& toIP)
-{
-    if (m_config.ConnectionType == CT_BLUETOOTH)
-    {
-#ifdef BLUETOOTH_FOUND
-        return bthSend(buffer);
-#else
-        std::cout << "Bluetooth not supported on this platform" << std::endl;
-        return 0;
-#endif
-    }
-    else
-    {
-        return m_ethernet.ethSend(buffer, toIP);
-    }
-}

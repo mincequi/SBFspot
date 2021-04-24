@@ -62,6 +62,36 @@ std::string SqlQueries::createTableLiveDataDc() {
            ")";
 }
 
+std::string SqlQueries::createTableLiveDataAux() {
+    return "CREATE TABLE LiveDataAux ("
+           "TimeStamp int(4) NOT NULL,"
+           "Serial int(4) NOT NULL,"
+           "Key int(4) NOT NULL,"
+           "Value int(4),"
+           "PRIMARY KEY (TimeStamp, Serial, Key)"
+           ")";
+}
+
+std::string SqlQueries::createTableDayData() {
+    return "CREATE TABLE DayData ("
+           "TimeStamp int(4) NOT NULL,"
+           "Serial int(4) NOT NULL,"
+           "TotalYield int(8),"
+           "Power int(8),"
+           "PRIMARY KEY (TimeStamp, Serial)"
+           ")";
+}
+
+std::string SqlQueries::createTableMonthData() {
+    return "CREATE TABLE MonthData ("
+           "TimeStamp int(4) NOT NULL,"
+           "Serial int(4) NOT NULL,"
+           "TotalYield int(8),"
+           "DayYield int(8),"
+           "PRIMARY KEY (TimeStamp, Serial)"
+           ")";
+}
+
 std::string SqlQueries::createInvertersTable() {
     return "CREATE Table Inverters ("
             "Serial int(4) NOT NULL,"

@@ -36,7 +36,6 @@ DISCLAIMER:
 
 #include "misc.h"
 #include "Defines.h"
-#include "SBFspot.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -154,7 +153,7 @@ void Buffer::writePacketTrailer()
         writeLong(0);
 }
 
-void Buffer::writePacketHeader(const unsigned int control, const uint8_t *destaddress)
+void Buffer::writePacketHeader(const unsigned int control, const BluetoothAddress& bluetoothAddress)
 {
     m_data.resize(2048);
 	packetposition = 0;
@@ -173,7 +172,7 @@ void Buffer::writePacketHeader(const unsigned int control, const uint8_t *destad
             m_data[packetposition++] = LocalBTAddress[i];
 
         for(i = 0; i < 6; i++)
-            m_data[packetposition++] = destaddress[i];
+            m_data[packetposition++] = bluetoothAddress[i];
 
         m_data[packetposition++] = (uint8_t)(control & 0xFF);
         m_data[packetposition++] = (uint8_t)(control >> 8);
