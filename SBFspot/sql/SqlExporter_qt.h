@@ -38,12 +38,13 @@ DISCLAIMER:
 #include <QSqlDatabase>
 
 #include <Exporter.h>
+#include <Storage.h>
 
 struct SqlConfig;
 
 namespace sql {
 
-class SqlExporter_qt : public Exporter {
+class SqlExporter_qt : public Exporter, public Storage {
 public:
     SqlExporter_qt(const SqlConfig& config);
 
@@ -51,9 +52,14 @@ public:
     bool open() override;
     void close() override;
 
-    std::time_t latestMissingDay();
     void exportLiveData(const LiveData& liveData) override;
     void exportDayData(const std::vector<DayData>& dayData) override;
+    void exportMonthData(const std::vector<MonthData>& monthData) override;
+
+    Storage::MissingSequence nextMissingDayData(std::time_t now, uint32_t serial) override;
+    Storage::MissingSequence nextMissingMonthData(std::time_t now, uint32_t serial) override;
+    void setEndOfDayData(std::time_t timestamp, uint32_t serial) override;
+    void setEndOfMonthData(std::time_t timestamp, uint32_t serial) override;
 
 private:
     bool createTables();
@@ -61,6 +67,8 @@ private:
     const SqlConfig& m_config;
 
     QSqlDatabase m_db;
+    std::map<uint32_t, std::time_t> m_endOfDayData;
+    std::map<uint32_t, std::time_t> m_endOfMonthData;
 };
 
 } // namespace sql

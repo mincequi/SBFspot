@@ -91,22 +91,6 @@ void SqlExporter_qt::close() {
     return m_db.close();
 }
 
-std::time_t SqlExporter_qt::latestMissingDay() {
-    auto t = time(nullptr)/86400;
-    t *= 86400;
-
-    m_db.open();
-    QString sql("SELECT MAX(TimeStamp) FROM DayData");
-    auto query = m_db.exec(sql);
-    while (query.next()) {
-        t = query.value(0).toUInt();
-        t /= 86400;
-        t *= 86400;
-    }
-
-    return t;
-}
-
 void SqlExporter_qt::exportLiveData(const LiveData& liveData) {
     LOG_IF_F(WARNING, !m_db.isOpen(), "Database is not open");
     if (!m_db.isOpen())
@@ -149,6 +133,35 @@ void SqlExporter_qt::exportDayData(const std::vector<DayData>& dayData) {
     //q.addBindValue(powers);
     //q.addBindValue(pvOutputs);
 
+    LOG_S(INFO) << "Inserting day data for: " << dayData.back().serial << ", from: " << dayData.front().datetime << ", to: " << dayData.back().datetime;
+    if (!q.execBatch()) {
+        LOG_S(ERROR) << q.lastError().text().toStdString();
+    }
+}
+
+void SqlExporter_qt::exportMonthData(const std::vector<MonthData>& monthData) {
+    LOG_IF_F(WARNING, !m_db.isOpen(), "Database is not open");
+    if (!m_db.isOpen())
+        return;
+
+    QSqlQuery q("insert into MonthData (TimeStamp, Serial, TotalYield) "
+                "VALUES (?, ?, ?)", m_db);
+
+    QVariantList timestamps;
+    QVariantList serials;
+    QVariantList yields;
+
+    for (const auto& dd : monthData) {
+        timestamps << static_cast<uint32_t>(dd.datetime);
+        serials << dd.serial;
+        yields << dd.totalWh;
+    }
+
+    q.addBindValue(timestamps);
+    q.addBindValue(serials);
+    q.addBindValue(yields);
+
+    LOG_S(INFO) << "Inserting month data for: " << monthData.back().serial << ", from: " << monthData.front().datetime << ", to: " << monthData.back().datetime;
     if (!q.execBatch()) {
         LOG_S(ERROR) << q.lastError().text().toStdString();
     }
@@ -210,6 +223,100 @@ bool SqlExporter_qt::createTables() {
 
     m_db.close();
     return true;
+}
+
+Storage::MissingSequence SqlExporter_qt::nextMissingDayData(std::time_t now, uint32_t serial) {
+    m_db.open();
+
+    QString sql("SELECT TimeStamp FROM DayData WHERE Serial=");
+    sql.append(QString::number(serial));
+    sql.append(" ORDER BY TimeStamp DESC");
+    auto query = m_db.exec(sql);
+
+    int64_t to = now;
+    int64_t from = 0;
+    bool gapFound = false;
+    while (query.next()) {
+        from = query.value(0).toUInt();
+
+        // Found a gap, break.
+        if (to - from > 300) {  // SMA inverters has day data in 5 minute intervals.
+            gapFound = true;
+            break;
+        }
+        to = from;
+
+        // If our range is out of available data range, return.
+        if (to <= m_endOfDayData[serial]) {
+            return {};
+        }
+    }
+
+    // 2. If we have no data or there are no gaps, then request last 6 hours
+    if (gapFound) {
+        from = std::max(from, static_cast<int64_t>(m_endOfDayData[serial]));
+    } else {
+        from = std::max(static_cast<int64_t>(m_endOfDayData[serial]), to - (6 * 60 * 60) - 1);
+    }
+    if (to - from > 300) {
+        return { from + 1, to - 1, serial };
+    }
+
+    return {};
+}
+
+Storage::MissingSequence SqlExporter_qt::nextMissingMonthData(std::time_t now, uint32_t serial) {
+    m_db.open();
+
+    QString sql("SELECT TimeStamp FROM MonthData WHERE Serial=");
+    sql.append(QString::number(serial));
+    sql.append(" ORDER BY TimeStamp DESC");
+    auto query = m_db.exec(sql);
+
+    int64_t to = now;
+    int64_t from = 0;
+    bool gapFound = false;
+    while (query.next()) {
+        from = query.value(0).toUInt();
+
+        // Found a gap, break.
+        if (to - from > 90000) {
+            gapFound = true;
+            break;
+        }
+        to = from;
+
+        // If our range is out of available data range, return.
+        if (to <= m_endOfMonthData[serial]) {
+            return {};
+        }
+    }
+
+    // 2. If we have no data or there are no gaps, then request last 62 days
+    if (gapFound) {
+        from = std::max(from, static_cast<int64_t>(m_endOfMonthData[serial]));
+    } else {
+        from = std::max(static_cast<int64_t>(m_endOfMonthData[serial]), to - (62 * 24 * 60 * 60) - 1);
+    }
+    if (to - from > 90000) {
+        return { from + 1, to - 1, serial };
+    }
+
+    return {};
+}
+
+void SqlExporter_qt::setEndOfDayData(std::time_t timestamp, uint32_t serial) {
+    if (m_endOfDayData[serial] < timestamp) {
+        LOG_S(INFO) << "New end of day data for: " << serial << ", timestamp: " << timestamp;
+        m_endOfDayData[serial] = timestamp;
+    }
+}
+
+void SqlExporter_qt::setEndOfMonthData(std::time_t timestamp, uint32_t serial) {
+    if (m_endOfMonthData[serial] < timestamp) {
+        LOG_S(INFO) << "New end of month data for: " << serial << ", timestamp: " << timestamp;
+        m_endOfMonthData[serial] = timestamp;
+    }
 }
 
 } // namespace sql

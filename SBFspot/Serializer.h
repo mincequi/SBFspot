@@ -34,8 +34,8 @@ DISCLAIMER:
 
 #pragma once
 
-#include "Types.h"
-
+class ByteBuffer;
+struct InverterData;
 struct LiveData;
 
 class Serializer {

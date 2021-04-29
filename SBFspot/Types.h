@@ -203,7 +203,7 @@ struct InverterData
     int DeviceStatus = 0;
     int GridRelayStatus = 0;
     int flags = 0;
-    std::array<DayData, 288> dayData;   // 24 * 60 * 20 (5 minute interval)
+    std::array<DayData, 288> dayData;   // 24 * 60 / 5 (5 minute interval)
     MonthData monthData[31];
     bool hasMonthData = false;
     time_t monthDataOffset = 0;	// Issue 115

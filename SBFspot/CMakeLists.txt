@@ -47,6 +47,7 @@ set(COMMON_SOURCES
     SBFspot.cpp
     Serializer.cpp
     Socket.cpp
+    Storage.cpp
     TagDefs.cpp
     Timer.cpp
     Types.cpp
@@ -177,6 +178,7 @@ add_executable(${PROJECT_NAME}_qt
     SBFNet.cpp
     SBFspot.cpp
     Serializer.cpp
+    Storage.cpp
     TagDefs.cpp
     Timer.cpp
     Types.cpp

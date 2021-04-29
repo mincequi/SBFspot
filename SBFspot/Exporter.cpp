@@ -74,6 +74,9 @@ void Exporter::exportLiveData(const LiveData& /*liveData*/) {
 void Exporter::exportDayData(const std::vector<DayData>& /*dayData*/) {
 }
 
+void Exporter::exportMonthData(const std::vector<MonthData>& /*monthData*/) {
+}
+
 void Exporter::exportDayData(const std::vector<InverterData>&) {
 }
 

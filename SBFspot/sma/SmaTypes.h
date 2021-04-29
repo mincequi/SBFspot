@@ -42,7 +42,7 @@ DISCLAIMER:
 class SpeedwireHeader;
 class SpeedwireInverterProtocol;
 
-using SmaResponse = std::variant<LiveData,std::vector<DayData>>;
+using SmaResponse = std::variant<LiveData, std::vector<DayData>, std::vector<MonthData>>;
 
 enum class SmaPacketType : uint16_t {
     Invalid = 0x0000,

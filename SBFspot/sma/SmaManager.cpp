@@ -50,12 +50,13 @@ DISCLAIMER:
 
 namespace sma {
 
-SmaManager::SmaManager(Config& config, Exporter& exporter)
-    : m_config(config),
-      m_exporter(exporter),
-      m_ethernet(*this),
-      m_discoverTimer(startTimer(1*60*1000)),   // discover every 60 seconds
-      m_timeComputation(config)
+SmaManager::SmaManager(Config& config, Exporter& exporter, Storage* storage) :
+    m_config(config),
+    m_exporter(exporter),
+    m_storage(storage),
+    m_ethernet(*this),
+    m_discoverTimer(startTimer(1*60*1000)),   // discover every 60 seconds
+    m_timeComputation(config)
 {
     srand(time(nullptr));
     AppSerial = 900000000 + ((rand() << 16) + rand()) % 100000000;
@@ -100,7 +101,7 @@ void SmaManager::onDiscoveryResponseDatagram(const QNetworkDatagram& datagram)
     auto ip = datagram.senderAddress().toIPv4Address();
     if (!m_inverters.count(ip)) {
         LOG_S(INFO) << "Found inverter at: " << datagram.senderAddress().toString().toStdString();
-        m_inverters.emplace(ip, new SmaInverter(this, m_config, m_ethernet, ip));
+        m_inverters.emplace(ip, new SmaInverter(this, m_config, m_ethernet, ip, m_storage));
         m_inverters.at(ip)->m_lastSeen = std::time(nullptr);
     } else {
         m_inverters.at(ip)->m_lastSeen = std::time(nullptr);
@@ -138,8 +139,10 @@ void SmaManager::onLiveTimeout()
 
     LOG_S(INFO) << "Polling inverters, timestamp: " << m_currentTimePoint;
     for (auto& kv : m_inverters) {
-        if (kv.second->m_state == SmaInverter::State::Invalid)
+        if (kv.second->m_state == SmaInverter::State::Invalid) {
+            kv.second->init();
             continue;
+        }
 
         pollStarted = true;
         kv.second->requestLiveData(m_currentTimePoint);
@@ -165,8 +168,11 @@ void SmaManager::onPollTimeout()
                 using T = std::decay_t<decltype(arg)>;
                 if constexpr (std::is_same_v<T, LiveData>)
                     m_exporter.exportLiveData(arg);
-                else if constexpr (std::is_same_v<T, std::vector<DayData>>)
+                else if constexpr (std::is_same_v<T, std::vector<DayData>>) {
                     m_exporter.exportDayData(arg);
+                }
+                else if constexpr (std::is_same_v<T, std::vector<MonthData>>)
+                    m_exporter.exportMonthData(arg);
             }, result);
         }
     }

@@ -32,33 +32,18 @@ DISCLAIMER:
 
 ************************************************************************************************/
 
-#pragma once
+#include "Storage.h"
 
-#include "osselect.h"
+Storage::MissingSequence Storage::nextMissingDayData(std::time_t /*now*/, uint32_t /*serial*/) {
+    return {};
+}
 
-#include <ctime>
-#include <map>
+Storage::MissingSequence Storage::nextMissingMonthData(std::time_t /*now*/, uint32_t /*serial*/) {
+    return {};
+}
 
-#include "EventData.h"
+void Storage::setEndOfDayData(std::time_t /*timestamp*/, uint32_t /*serial*/) {
+}
 
-class Exporter;
-struct InverterData;
-
-class Cache
-{
-public:
-    Cache(/*Exporter& exporter*/);
-
-    // Add InverterData set for given time
-    void addInverterData(std::time_t time, const std::vector<InverterData>& inverterData);
-
-    // Obtain InverterData set for given time span
-    std::vector<InverterData> getInverterData(std::time_t startTime, std::time_t endTime);
-
-    void clear();
-
-private:
-    //Exporter& m_exporter;
-    std::map<std::time_t, std::vector<InverterData>> m_inverterData;
-};
-
+void Storage::setEndOfMonthData(std::time_t /*timestamp*/, uint32_t /*serial*/) {
+}

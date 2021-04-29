@@ -46,6 +46,7 @@ DISCLAIMER:
 #include <Exporter.h>
 #include <Logger.h>
 #include <SBFspot.h>
+#include <Storage.h>
 #include <misc.h>
 #include <sma/SmaInverterRequests.h>
 
@@ -65,10 +66,11 @@ void setClsData(std::vector<ElectricParameters>& data, uint8_t cls, T value, T E
     data.at(cls-1).*field = value;
 }
 
-SmaInverter::SmaInverter(QObject* parent, const Config& config, Ethernet_qt& ioDevice, uint32_t address) :
+SmaInverter::SmaInverter(QObject* parent, const Config& config, Ethernet_qt& ioDevice, uint32_t address, Storage* storage) :
     QObject(parent),
     m_config(config),
     m_ioDevice(ioDevice),
+    m_storage(storage),
     m_address(address),
     m_pendingLiveData(0)
 {
@@ -109,6 +111,8 @@ std::list<SmaResponse> SmaInverter::result()
     result.push_back(m_pendingLiveData);
     if (!m_pendingDayData.empty())
         result.push_back(m_pendingDayData);
+    if (!m_pendingMonthData.empty())
+        result.push_back(m_pendingMonthData);
     resetPendingData();
 
     logout();
@@ -121,6 +125,7 @@ void SmaInverter::resetPendingData()
     m_pendingLris.clear();
     m_pendingLiveData = LiveData(m_serial);
     m_pendingDayData.clear();
+    m_pendingMonthData.clear();
     //m_pendingData.ac.resize(3);
     m_pendingDataMap.clear();
 }
@@ -171,10 +176,32 @@ void SmaInverter::requestData()
     requestDataSet(SpotACTotalPower);
     requestDataSet(SpotGridFrequency);
     //requestDataSet(MeteringGridMsTotW);
-    if (m_pendingLiveData.timestamp % 300 == m_config.liveInterval) {
-        requestDayData(m_pendingLiveData.timestamp - 300, m_pendingLiveData.timestamp);
+
+    if (!m_storage) {
+        return;
     }
-    requestMonthData();
+
+    if (m_pendingLiveData.timestamp % m_config.archiveInterval == m_config.liveInterval) {
+        auto missingSequence = m_storage->nextMissingDayData(m_pendingLiveData.timestamp, m_serial);
+        if (missingSequence.to != 0) {
+            requestDayData(missingSequence.from, missingSequence.to);
+        }
+
+        missingSequence = m_storage->nextMissingMonthData(m_pendingLiveData.timestamp, m_serial);
+        if (missingSequence.to != 0) {
+            requestMonthData(missingSequence.from, missingSequence.to);
+        }
+    }
+    /*
+    auto localTime = localtime(&m_pendingLiveData.timestamp);
+    if (localTime->tm_hour == 1 && localTime->tm_min == m_config.liveInterval/60 && localTime->tm_sec == m_config.liveInterval%60) {
+        auto missingSequences = m_storage->missingMonthData(m_pendingLiveData.timestamp, m_serial);
+        uint32_t itemCount = 0;
+        for (auto it = missingSequences.begin(); it != missingSequences.end() && itemCount <= 31; ++it) {
+            requestMonthData(seq.from, seq.to);
+        }
+    }
+    */
 }
 
 void SmaInverter::requestDataSet(SmaInverterDataSet dataSet)
@@ -192,12 +219,16 @@ void SmaInverter::requestDataSet(SmaInverterDataSet dataSet)
 
 void SmaInverter::requestDayData(std::time_t from, std::time_t to)
 {
+    LOG_S(INFO) << "(" << m_serial << ") Requesting day data from: " << from << ", to: " << to;
     auto buffer = m_sbfSpot.encodeHistoricDayDataRequest(m_susyId, m_serial, from, to, BluetoothAddress());
     m_ioDevice.send(buffer, m_address, 9522);
 }
 
-void SmaInverter::requestMonthData()
+void SmaInverter::requestMonthData(std::time_t from, std::time_t to)
 {
+    LOG_S(INFO) << "(" << m_serial << ") Requesting month data from: " << from << ", to: " << to;
+    auto buffer = m_sbfSpot.encodeHistoricMonthDataRequest(m_susyId, m_serial, from, to, BluetoothAddress());
+    m_ioDevice.send(buffer, m_address, 9522);
 }
 
 void SmaInverter::exportData()
@@ -235,9 +266,17 @@ void SmaInverter::onDatagram(const QNetworkDatagram& datagram)
 void SmaInverter::decodeResponse(ByteBuffer& buffer, InverterDataMap& inverterDataMap, std::set<LriDef>& lris)
 {
     auto packet = SmaPacket::fromBuffer(buffer);
+    if (packet.payload.size() < 12) {
+        LOG_F(WARNING, "(%u) Invalid payload size: %lu, for packet type: %X", m_serial, packet.payload.size(), packet.dataSet);
+        return;
+    }
+
     switch (packet.dataSet) {
     case HistoricDayDataResponse:
         return decodeDayData(packet.payload);
+        break;
+    case HistoricMonthDataResponse:
+        return decodeMonthData(packet.payload);
         break;
     default:
         break;
@@ -585,20 +624,57 @@ void SmaInverter::decodeResponse(ByteBuffer& buffer, InverterDataMap& inverterDa
 
 void SmaInverter::decodeDayData(const ByteBuffer& buffer)
 {
-    const int recordsize = 12;
+    const uint recordsize = 12;
     m_pendingDayData.reserve(buffer.size()/recordsize);
-    for (int x = 0; x < (buffer.size() - recordsize); x += recordsize)
+
+    std::time_t endOfDayData = 0;
+    for (uint x = 0; x < (buffer.size() - recordsize); x += recordsize)
     {
+        auto datetime = (time_t)get_long(buffer.data() + x);
         auto totalWh = (unsigned long long)get_longlong(buffer.data() + x + 4);
-        if (totalWh == NaN_U64) continue; // Fix Issue 109: Bad request 400: Power value too high for system size
+        if (totalWh == NaN_U64) {
+            endOfDayData = std::max(endOfDayData, datetime);
+            continue;   // Fix Issue 109: Bad request 400: Power value too high for system size
+        }
 
         DayData dayData;
-        dayData.datetime = (time_t)get_long(buffer.data() + x);
+        dayData.datetime = datetime;
         dayData.totalWh = totalWh;
         dayData.serial = m_serial;
         LOG_S(1) << dayData;
         m_pendingDayData.push_back(dayData);
     }
+
+    if (m_storage && endOfDayData) {
+        m_storage->setEndOfDayData(endOfDayData, m_serial);
+    }
 }
 
+void SmaInverter::decodeMonthData(const ByteBuffer& buffer)
+{
+    const uint recordsize = 12;
+    m_pendingMonthData.reserve(buffer.size()/recordsize);
+
+    std::time_t endOfMonthData = 0;
+    for (uint x = 0; x < (buffer.size() - recordsize); x += recordsize) {
+        auto datetime = (time_t)get_long(buffer.data() + x);
+        auto totalWh = (unsigned long long)get_longlong(buffer.data() + x + 4);
+        if (totalWh == NaN_U64) {
+            endOfMonthData = std::max(endOfMonthData, datetime);
+            continue;   // Fix Issue 109: Bad request 400: Power value too high for system size
+        }
+
+        MonthData monthData;
+        monthData.datetime = datetime;
+        monthData.totalWh = totalWh;
+        monthData.serial = m_serial;
+        //LOG_S(1) << monthData;
+        m_pendingMonthData.push_back(monthData);
+    }
+
+    if (m_storage && endOfMonthData) {
+        m_storage->setEndOfMonthData(endOfMonthData, m_serial);
+    }
 }
+
+} // namespace sma

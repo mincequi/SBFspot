@@ -129,6 +129,7 @@ public:
     virtual void exportDayStats(const DayStats& dayStats);
     virtual void exportLiveData(const LiveData& liveData);
     virtual void exportDayData(const std::vector<DayData>& dayData);
+    virtual void exportMonthData(const std::vector<MonthData>& monthData);
     //virtual void exportDayData(const DataPerInverter& inverterData);
 
     // TODO: remove these obsolete functions

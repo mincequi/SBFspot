@@ -34,31 +34,24 @@ DISCLAIMER:
 
 #pragma once
 
-#include "osselect.h"
-
+#include <cstdint>
 #include <ctime>
-#include <map>
+#include <list>
 
-#include "EventData.h"
-
-class Exporter;
-struct InverterData;
-
-class Cache
-{
+class Storage {
 public:
-    Cache(/*Exporter& exporter*/);
+    virtual ~Storage() = default;
 
-    // Add InverterData set for given time
-    void addInverterData(std::time_t time, const std::vector<InverterData>& inverterData);
+    struct MissingSequence {
+        std::time_t from = 0;
+        std::time_t to = 0;
+        uint32_t serial = 0;
+        uint32_t count = 0;
+    };
 
-    // Obtain InverterData set for given time span
-    std::vector<InverterData> getInverterData(std::time_t startTime, std::time_t endTime);
+    virtual MissingSequence nextMissingDayData(std::time_t now, uint32_t serial);
+    virtual MissingSequence nextMissingMonthData(std::time_t now, uint32_t serial);
 
-    void clear();
-
-private:
-    //Exporter& m_exporter;
-    std::map<std::time_t, std::vector<InverterData>> m_inverterData;
+    virtual void setEndOfDayData(std::time_t timestamp, uint32_t serial);
+    virtual void setEndOfMonthData(std::time_t timestamp, uint32_t serial);
 };
-

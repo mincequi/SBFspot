@@ -34,6 +34,7 @@ DISCLAIMER:
 
 #include "Serializer.h"
 
+#include "Types.h"
 
 ByteBuffer Serializer::serialize(const LiveData&) const {
     return {};

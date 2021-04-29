@@ -52,7 +52,9 @@ ExporterManager::ExporterManager(const Config& config, Cache& cache) :
     }
     if (config.exporters.count(ExporterType::Sql)) {
         //m_exporters.push_back(new db_SQL_Export(config.sql));
-        m_exporters.push_back(new sql::SqlExporter_qt(config.sql));
+        auto sqlExporter = new sql::SqlExporter_qt(config.sql);
+        m_exporters.push_back(sqlExporter);
+        m_storage = sqlExporter;
     }
     if (config.exporters.count(ExporterType::Mqtt)) {
         if (config.mqtt_item_format == "MSGPACK") {
@@ -160,6 +162,12 @@ void ExporterManager::exportDayData(const std::vector<DayData>& dayData) {
     }
 }
 
+void ExporterManager::exportMonthData(const std::vector<MonthData>& monthData) {
+    for (const auto& exporter : m_exporters) {
+        exporter->exportMonthData(monthData);
+    }
+}
+
 void ExporterManager::exportDayStats(const DayStats& dayStats) {
     for (auto& exporter : m_exporters) {
         exporter->exportDayStats(dayStats);
@@ -182,6 +190,10 @@ void ExporterManager::exportEventData(const std::vector<InverterData>& inverters
     for (auto& exporter : m_exporters) {
         exporter->exportEventData(inverters, dt_range_csv);
     }
+}
+
+Storage* ExporterManager::storage() {
+    return m_storage;
 }
 
 /*

@@ -34,6 +34,8 @@ DISCLAIMER:
 
 #include "Cache.h"
 
+#include "Types.h"
+
 Cache::Cache(/*Exporter& exporter*/)
     //: m_exporter(exporter)
 {

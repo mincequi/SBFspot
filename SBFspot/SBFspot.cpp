@@ -299,7 +299,7 @@ const ByteBuffer& SbfSpot::encodeHistoricDayDataRequest(uint16_t susyId, uint32_
     return m_buffer.data();
 }
 
-const ByteBuffer& SbfSpot::encodeHistoricMonthDataRequest(uint16_t susyId, uint32_t serial, std::time_t startTime, const BluetoothAddress& bluetoothAddress)
+const ByteBuffer& SbfSpot::encodeHistoricMonthDataRequest(uint16_t susyId, uint32_t serial, std::time_t from, std::time_t to, const BluetoothAddress& bluetoothAddress)
 {
     do
     {
@@ -307,8 +307,8 @@ const ByteBuffer& SbfSpot::encodeHistoricMonthDataRequest(uint16_t susyId, uint3
         m_buffer.writePacketHeader(0x01, bluetoothAddress);
         m_buffer.writePacket(0x09, 0xE0, 0, susyId, serial);
         m_buffer.writeLong(0x70200200);
-        m_buffer.writeLong(startTime - 86400 - 86400);
-        m_buffer.writeLong(startTime + 86400 * (31 + 1));
+        m_buffer.writeLong(from);
+        m_buffer.writeLong(to);
         m_buffer.writePacketTrailer();
         m_buffer.writePacketLength();
     }

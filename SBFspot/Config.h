@@ -48,7 +48,7 @@ struct StringConfig
     float powerPeak = 10000.0f;
 };
 
-enum class SqlType : int8_t
+enum class SqlType
 {
     SqLite = 0,
     MySql = 1
@@ -88,8 +88,6 @@ struct Config
     std::vector<StringConfig> pvArrays;    // Module array configurations
     uint16_t liveInterval = 60;
     uint16_t archiveInterval = 300;
-    time_t	archdata_from = 0;
-    time_t	archdata_to = 0;
     char	delimiter = ';';    // CSV field delimiter
     int		precision = 3;      // CSV value precision
     char	decimalpoint = ','; // CSV decimal point

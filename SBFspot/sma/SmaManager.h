@@ -54,7 +54,7 @@ class SmaManager : public QObject
     Q_OBJECT
 
 public:
-    SmaManager(Config& config, Exporter& exporter);
+    SmaManager(Config& config, Exporter& exporter, Storage* storage);
 
     void discoverDevices();
 
@@ -72,6 +72,7 @@ private:
 
     const Config&   m_config;
     Exporter&       m_exporter;
+    Storage*        m_storage = nullptr;
 
     Ethernet_qt m_ethernet;
     sma::SmaEnergyMeter     m_energyMeter;

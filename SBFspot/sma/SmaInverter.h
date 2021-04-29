@@ -46,6 +46,7 @@ DISCLAIMER:
 
 class Config;
 class Ethernet_qt;
+class Storage;
 class QNetworkDatagram;
 
 namespace sma {
@@ -55,7 +56,7 @@ class SmaInverter : public QObject
     Q_OBJECT
 
 public:
-    SmaInverter(QObject* parent, const Config& config, Ethernet_qt& ioDevice, uint32_t address);
+    SmaInverter(QObject* parent, const Config& config, Ethernet_qt& ioDevice, uint32_t address, Storage* storage);
 
     void requestLiveData(std::time_t timestamp = 0);
     std::list<SmaResponse> result();
@@ -68,16 +69,18 @@ private:
     void requestData();
     void requestDataSet(SmaInverterDataSet dataSet);
     void requestDayData(std::time_t from, std::time_t to);
-    void requestMonthData();
+    void requestMonthData(std::time_t from, std::time_t to);
     void exportData();
 
     void onDatagram(const QNetworkDatagram& datagram);
 
     void decodeResponse(ByteBuffer& buffer, InverterDataMap& inverterDataMap, std::set<LriDef>& lris);
     void decodeDayData(const ByteBuffer& buffer);
+    void decodeMonthData(const ByteBuffer& buffer);
 
     const Config&   m_config;
     Ethernet_qt&    m_ioDevice;
+    Storage*        m_storage = nullptr;
     SbfSpot         m_sbfSpot;
 
     uint32_t m_address = 0;
@@ -94,6 +97,7 @@ private:
     std::set<LriDef>    m_pendingLris;
     LiveData            m_pendingLiveData;
     std::vector<DayData>  m_pendingDayData;
+    std::vector<MonthData> m_pendingMonthData;
     // TODO: just an experiment.
     InverterDataMap     m_pendingDataMap;
 

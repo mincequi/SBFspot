@@ -40,6 +40,7 @@ DISCLAIMER:
 
 class Cache;
 struct Config;
+class Storage;
 
 class ExporterManager : public Exporter {
 public:
@@ -54,6 +55,7 @@ public:
     void exportConfig(const InverterData& inverterData) override;
     void exportLiveData(const LiveData& liveData) override;
     void exportDayData(const std::vector<DayData>& dayData) override;
+    void exportMonthData(const std::vector<MonthData>& monthData) override;
     void exportDayStats(const DayStats& dayStats) override;
 
     // TODO: these functions shall be removed/replaced.
@@ -62,9 +64,12 @@ public:
     void exportMonthData(const std::vector<InverterData>& inverters) override;
     void exportEventData(const std::vector<InverterData>& inverters, const std::string& dt_range_csv) override;
 
+    Storage* storage();
+
 private:
     const Config&   m_config;
     Cache&          m_cache;
+    Storage*        m_storage = nullptr;
 
     json::JsonSerializer m_jsonSerializer;
     msgpack::MsgPackSerializer m_msgPackSerializer;

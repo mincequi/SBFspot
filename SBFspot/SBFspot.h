@@ -75,7 +75,7 @@ public:
     const ByteBuffer& encodeLogoutRequest();
     const ByteBuffer& encodeDataRequest(uint16_t susyId, uint32_t serial, SmaInverterDataSet dataSet);
     const ByteBuffer& encodeHistoricDayDataRequest(uint16_t susyId, uint32_t serial, std::time_t from, std::time_t to, const BluetoothAddress& bluetoothAddress);
-    const ByteBuffer& encodeHistoricMonthDataRequest(uint16_t susyId, uint32_t serial, std::time_t startTime, const BluetoothAddress& bluetoothAddress);
+    const ByteBuffer& encodeHistoricMonthDataRequest(uint16_t susyId, uint32_t serial, std::time_t from, std::time_t to, const BluetoothAddress& bluetoothAddress);
 
 private:
     Buffer  m_buffer;

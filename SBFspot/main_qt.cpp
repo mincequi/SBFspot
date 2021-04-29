@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
     // The deviceManager serves as an abstraction for all interactions with the
     // actual inverters, energy meters and other devices. For our case all SMA
     // specific stuff is abstracted with it.
-    sma::SmaManager deviceManager(config, exporterManager);
+    sma::SmaManager deviceManager(config, exporterManager, exporterManager.storage());
     // This call will discover all inverters within the network and starts
     // polling them. User configuration (like intervals, password) is respected
     // for this. No further interaction is needed.
