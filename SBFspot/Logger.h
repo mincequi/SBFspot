@@ -34,13 +34,13 @@ DISCLAIMER:
 
 #pragma once
 
+#include <ostream>
+
 #include <loguru.hpp>
 
-class QByteArray;
-class QHostAddress;
+#include <Types.h>
 
-class ByteBuffer;
-struct DayData;
+class QByteArray;
 
 class Logger
 {
@@ -51,6 +51,7 @@ private:
     Logger();
 };
 
+std::ostream& operator<< (std::ostream& out, Serial const& serial);
 std::ostream& operator<< (std::ostream& out, QByteArray const& c);
 std::ostream& operator<< (std::ostream& out, std::vector<uint8_t> const& c);
 std::ostream& operator<< (std::ostream& out, DayData const& c);

@@ -85,7 +85,7 @@ private:
 
     uint32_t m_address = 0;
     uint16_t m_susyId = 0x0078;
-    uint32_t m_serial = 0x3803E8C8;
+    Serial m_serial = 0x3803E8C8;
     std::time_t m_lastSeen = 0;
 
     enum class State {

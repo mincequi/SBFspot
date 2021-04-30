@@ -148,7 +148,7 @@ void CsvExporter::exportMonthData(const std::vector<InverterData>& inverters)
                         fprintf(csv, "%c%s%c%s", m_config.delimiter, inverter.DeviceType.c_str(), m_config.delimiter, inverter.DeviceType.c_str());
 					fputs("\n", csv);
                     for (const auto& inverter : inverters)
-                        fprintf(csv, "%c%lu%c%lu", m_config.delimiter, inverter.Serial, m_config.delimiter, inverter.Serial);
+                        fprintf(csv, "%c%lu%c%lu", m_config.delimiter, inverter.serial, m_config.delimiter, inverter.serial);
 					fputs("\n", csv);
                     for (const auto& inverter : inverters)
                         fprintf(csv, "%cTotal yield%cDay yield", m_config.delimiter, m_config.delimiter);
@@ -241,7 +241,7 @@ void CsvExporter::exportDayData(const std::vector<InverterData>& inverters)
                 fprintf(csv, "%c%s%c%s", m_config.delimiter, inverter.DeviceType.c_str(), m_config.delimiter, inverter.DeviceType.c_str());
 			fputs("\n", csv);
             for (const auto& inverter : inverters)
-                fprintf(csv, "%c%lu%c%lu", m_config.delimiter, inverter.Serial, m_config.delimiter, inverter.Serial);
+                fprintf(csv, "%c%lu%c%lu", m_config.delimiter, inverter.serial, m_config.delimiter, inverter.serial);
 			fputs("\n", csv);
             for (const auto& inverter : inverters)
                 fprintf(csv, "%cTotal yield%cPower", m_config.delimiter, m_config.delimiter);
@@ -386,7 +386,7 @@ int CsvExporter::WriteWebboxHeader(FILE *csv, const std::vector<InverterData>& i
 
         for (const auto& inverter : inverters)
 			for (int i = 0; i < colcnt; i++)
-                fprintf(csv, "%c%lu", m_config.delimiter, inverter.Serial);
+                fprintf(csv, "%c%lu", m_config.delimiter, inverter.serial);
 		fputs("\n", csv);
 	}
 
@@ -480,7 +480,7 @@ void CsvExporter::exportSpotData(std::time_t timestamp, const std::vector<Invert
                 fputs(strftime_t(m_config.DateTimeFormat, spottime), csv);
                 fprintf(csv, strout, m_config.delimiter, inverter.DeviceName.c_str());
                 fprintf(csv, strout, m_config.delimiter, inverter.DeviceType.c_str());
-                fprintf(csv, "%c%lu", m_config.delimiter, inverter.Serial);
+                fprintf(csv, "%c%lu", m_config.delimiter, inverter.serial);
 			}
 
             fprintf(csv, strout, m_config.delimiter, FormatFloat(FormattedFloat, (float)inverter.Pdc1, 0, m_config.precision, m_config.decimalpoint));
@@ -689,7 +689,7 @@ void CsvExporter::exportBatteryData(std::time_t timestamp, const std::vector<Inv
                 fputs(strftime_t(m_config.DateTimeFormat, timestamp), csv);
                 fprintf(csv, strout, m_config.delimiter, inverter.DeviceName.c_str());
                 fprintf(csv, strout, m_config.delimiter, inverter.DeviceType.c_str());
-                fprintf(csv, "%c%lu", m_config.delimiter, inverter.Serial);
+                fprintf(csv, "%c%lu", m_config.delimiter, inverter.serial);
 			}
 
             fprintf(csv, strout, m_config.delimiter, FormatFloat(FormattedFloat, ((float)inverter.Pac1), 0, m_config.precision, m_config.decimalpoint));
@@ -902,7 +902,7 @@ void CsvExporter::ExportInformationDataTo123s(const std::vector<InverterData>& i
 	// Inverter device type
     printf("Device Type: %s%c", invdata.DeviceType.c_str(), *s123_delimiter);
 	// Inverter serial number
-    printf("Serial Number: %lu%c", invdata.Serial, *s123_delimiter);
+    printf("serial Number: %lu%c", invdata.serial, *s123_delimiter);
 	// Inverter firmware version
     printf("Firmware: %s%c", invdata.SWVersion.c_str(), *s123_delimiter);
 	// Inverter phase maximum Pac

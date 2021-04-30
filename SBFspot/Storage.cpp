@@ -34,16 +34,16 @@ DISCLAIMER:
 
 #include "Storage.h"
 
-Storage::MissingSequence Storage::nextMissingDayData(std::time_t /*now*/, uint32_t /*serial*/) {
+Storage::MissingSequence Storage::nextMissingDayData(std::time_t /*now*/, const Serial& /*serial*/) {
     return {};
 }
 
-Storage::MissingSequence Storage::nextMissingMonthData(std::time_t /*now*/, uint32_t /*serial*/) {
+Storage::MissingSequence Storage::nextMissingMonthData(std::time_t /*now*/, const Serial& /*serial*/) {
     return {};
 }
 
-void Storage::setEndOfDayData(std::time_t /*timestamp*/, uint32_t /*serial*/) {
+void Storage::setEndOfDayData(std::time_t /*timestamp*/, const Serial& /*serial*/) {
 }
 
-void Storage::setEndOfMonthData(std::time_t /*timestamp*/, uint32_t /*serial*/) {
+void Storage::setEndOfMonthData(std::time_t /*timestamp*/, const Serial& /*serial*/) {
 }

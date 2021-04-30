@@ -38,6 +38,8 @@ DISCLAIMER:
 #include <ctime>
 #include <list>
 
+class Serial;
+
 class Storage {
 public:
     virtual ~Storage() = default;
@@ -49,9 +51,9 @@ public:
         uint32_t count = 0;
     };
 
-    virtual MissingSequence nextMissingDayData(std::time_t now, uint32_t serial);
-    virtual MissingSequence nextMissingMonthData(std::time_t now, uint32_t serial);
+    virtual MissingSequence nextMissingDayData(std::time_t now, const Serial& serial);
+    virtual MissingSequence nextMissingMonthData(std::time_t now, const Serial& serial);
 
-    virtual void setEndOfDayData(std::time_t timestamp, uint32_t serial);
-    virtual void setEndOfMonthData(std::time_t timestamp, uint32_t serial);
+    virtual void setEndOfDayData(std::time_t timestamp, const Serial& serial);
+    virtual void setEndOfMonthData(std::time_t timestamp, const Serial& serial);
 };

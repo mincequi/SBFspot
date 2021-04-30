@@ -93,7 +93,7 @@ struct Config
     char	decimalpoint = ','; // CSV decimal point
     std::string outputPath;
     std::string outputPath_Events;
-    std::string	plantname;
+    std::string	plantname = "MyPlant";
     SqlConfig   sql;            // SQL specific config
     int		synchTime;				// 1=Synch inverter time with computer time (default=0)
     float	sunrise;

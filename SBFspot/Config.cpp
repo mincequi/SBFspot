@@ -696,9 +696,10 @@ int Config::readConfig()
 
                 else if(stricmp(variable, "SQL_Database") == 0)
                     this->sql.databaseName = value;
-                else if(stricmp(variable, "SQL_Hostname") == 0)
+                else if(stricmp(variable, "SQL_Hostname") == 0) {
                     this->sql.hostName = value;
-                else if(stricmp(variable, "SQL_Username") == 0)
+                    if (!sql.hostName.empty()) this->sql.type = SqlType::MySql;
+                } else if(stricmp(variable, "SQL_Username") == 0)
                     this->sql.userName = value;
                 else if(stricmp(variable, "SQL_Password") == 0)
                     this->sql.password = value;
@@ -778,17 +779,11 @@ int Config::readConfig()
     if (this->outputPath.empty())
     {
         fprintf(stderr, "Missing OutputPath.\n");
-        rc = -2;
     }
 
     //If OutputPathEvents is omitted, use OutputPath
     if (this->outputPath_Events.empty())
         this->outputPath_Events = this->outputPath;
-
-    if (plantname.empty())
-    {
-        plantname = "MyPlant";
-    }
 
     if (this->timezone.empty())
     {

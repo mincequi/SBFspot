@@ -88,21 +88,21 @@ int SbfSpot::getInverterIndexByAddress(const std::vector<InverterData>& inverter
 }
 
 
-int SbfSpot::getInverterIndexBySerial(const std::vector<InverterData>& inverters, unsigned short SUSyID, uint32_t Serial)
+int SbfSpot::getInverterIndexBySerial(const std::vector<InverterData>& inverters, unsigned short SUSyID, uint32_t serial)
 {
 	if (DEBUG_HIGHEST)
 	{
 		printf("getInverterIndexBySerial()\n");
-		printf("Looking up %d:%lu\n", SUSyID, (unsigned long)Serial);
+        printf("Looking up %d:%lu\n", SUSyID, (unsigned long)serial);
 	}
 
     int inv = 0;
     for (const auto& inverter : inverters)
     {
 		if (DEBUG_HIGHEST)
-            printf("Inverter[%d] %d:%lu\n", inv, inverter.SUSyID, inverter.Serial);
+            printf("Inverter[%d] %d:%lu\n", inv, inverter.SUSyID, inverter.serial);
 
-        if ((inverter.SUSyID == SUSyID) && inverter.Serial == Serial)
+        if ((inverter.SUSyID == SUSyID) && inverter.serial == serial)
             return inv;
 
         ++inv;

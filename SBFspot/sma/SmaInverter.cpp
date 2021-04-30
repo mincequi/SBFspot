@@ -244,7 +244,7 @@ void SmaInverter::onDatagram(const QNetworkDatagram& datagram)
     switch (m_state) {
     case State::Invalid:
         m_susyId = pckt->Source.SUSyID;	// Fix Issue 98
-        m_serial = pckt->Source.Serial;	// Fix Issue 98
+        m_serial = pckt->Source.serial;	// Fix Issue 98
         LOG_S(INFO) << "Inverter " << datagram.senderAddress().toString().toStdString() << ", serial: " << m_serial;
         resetPendingData();
         m_state = State::Initialized;

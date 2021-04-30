@@ -122,7 +122,7 @@ void db_SQL_Export::exportDayData(const std::vector<InverterData>& inverters)
                         // Fix #269
                         // To store unsigned int32 serial numbers, we're using sqlite3_bind_int64
                         // SQLite will store these uint32 in 4 bytes
-                        sqlite3_bind_int64(pStmt, 2, inverter.Serial);
+                        sqlite3_bind_int64(pStmt, 2, inverter.serial);
                         sqlite3_bind_int64(pStmt, 3, inverter.dayData[idx].totalWh);
                         sqlite3_bind_int64(pStmt, 4, inverter.dayData[idx].watt);
                         sqlite3_bind_null(pStmt, 5);
@@ -175,7 +175,7 @@ void db_SQL_Export::exportMonthData(const std::vector<InverterData>& inverters)
 
             std::stringstream rmvsql;
             rmvsql.str("");
-            rmvsql << "DELETE FROM MonthData WHERE Serial=" << inverter.Serial << " AND strftime('%Y-%m',datetime(TimeStamp, 'unixepoch'))='" << dt << "';";
+            rmvsql << "DELETE FROM MonthData WHERE Serial=" << inverter.serial << " AND strftime('%Y-%m',datetime(TimeStamp, 'unixepoch'))='" << dt << "';";
 
             rc = exec_query(rmvsql.str().c_str());
             if (rc != SQLITE_OK)
@@ -192,7 +192,7 @@ void db_SQL_Export::exportMonthData(const std::vector<InverterData>& inverters)
                     // Fix #269
                     // To store unsigned int32 serial numbers, we're using sqlite3_bind_int64
                     // SQLite will store these uint32 in 4 bytes
-                    sqlite3_bind_int64(pStmt, 2, inverter.Serial);
+                    sqlite3_bind_int64(pStmt, 2, inverter.serial);
                     sqlite3_bind_int64(pStmt, 3, inverter.monthData[idx].totalWh);
                     sqlite3_bind_int64(pStmt, 4, inverter.monthData[idx].dayWh);
 
@@ -346,15 +346,15 @@ void db_SQL_Export::exportBatteryData(std::time_t timestamp, const std::vector<I
         {
             if ((inverter.DevClass == BatteryInverter) || (inverter.hasBattery))
             {
-                if ((rc = insert_battery_data(pStmt, timestamp, inverter.Serial, BatChaStt >> 8, inverter.BatChaStt)) != SQLITE_OK) break;
-                if ((rc = insert_battery_data(pStmt, timestamp, inverter.Serial, BatTmpVal >> 8, inverter.BatTmpVal)) != SQLITE_OK) break;
-                if ((rc = insert_battery_data(pStmt, timestamp, inverter.Serial, BatVol >> 8, inverter.BatVol)) != SQLITE_OK) break;
-                if ((rc = insert_battery_data(pStmt, timestamp, inverter.Serial, BatAmp >> 8, inverter.BatAmp)) != SQLITE_OK) break;
-                //if ((rc = insert_battery_data(pStmt, timestamp, inverter.Serial, BatDiagCapacThrpCnt >> 8, inverter.BatDiagCapacThrpCnt)) != SQLITE_OK) break;
-                //if ((rc = insert_battery_data(pStmt, timestamp, inverter.Serial, BatDiagTotAhIn >> 8, inverter.BatDiagTotAhIn)) != SQLITE_OK) break;
-                //if ((rc = insert_battery_data(pStmt, timestamp, inverter.Serial, BatDiagTotAhOut >> 8, inverter.BatDiagTotAhOut)) != SQLITE_OK) break;
-                if ((rc = insert_battery_data(pStmt, timestamp, inverter.Serial, MeteringGridMsTotWIn >> 8, inverter.MeteringGridMsTotWIn)) != SQLITE_OK) break;
-                if ((rc = insert_battery_data(pStmt, timestamp, inverter.Serial, MeteringGridMsTotWOut >> 8, inverter.MeteringGridMsTotWOut)) != SQLITE_OK) break;
+                if ((rc = insert_battery_data(pStmt, timestamp, inverter.serial, BatChaStt >> 8, inverter.BatChaStt)) != SQLITE_OK) break;
+                if ((rc = insert_battery_data(pStmt, timestamp, inverter.serial, BatTmpVal >> 8, inverter.BatTmpVal)) != SQLITE_OK) break;
+                if ((rc = insert_battery_data(pStmt, timestamp, inverter.serial, BatVol >> 8, inverter.BatVol)) != SQLITE_OK) break;
+                if ((rc = insert_battery_data(pStmt, timestamp, inverter.serial, BatAmp >> 8, inverter.BatAmp)) != SQLITE_OK) break;
+                //if ((rc = insert_battery_data(pStmt, timestamp, inverter.serial, BatDiagCapacThrpCnt >> 8, inverter.BatDiagCapacThrpCnt)) != SQLITE_OK) break;
+                //if ((rc = insert_battery_data(pStmt, timestamp, inverter.serial, BatDiagTotAhIn >> 8, inverter.BatDiagTotAhIn)) != SQLITE_OK) break;
+                //if ((rc = insert_battery_data(pStmt, timestamp, inverter.serial, BatDiagTotAhOut >> 8, inverter.BatDiagTotAhOut)) != SQLITE_OK) break;
+                if ((rc = insert_battery_data(pStmt, timestamp, inverter.serial, MeteringGridMsTotWIn >> 8, inverter.MeteringGridMsTotWIn)) != SQLITE_OK) break;
+                if ((rc = insert_battery_data(pStmt, timestamp, inverter.serial, MeteringGridMsTotWOut >> 8, inverter.MeteringGridMsTotWOut)) != SQLITE_OK) break;
             }
         }
 

@@ -103,7 +103,7 @@ E_SBFSPOT ArchData::importDayData(std::vector<InverterData>& inverters, time_t s
     {
         if ((inverter.DevClass != CommunicationProduct) && (inverter.SUSyID != SID_MULTIGATE))
 		{
-            auto buffer = m_sbfSpot.encodeHistoricDayDataRequest(inverter.SUSyID, inverter.Serial, startTime - 300, startTime + 86100, inverter.BTAddress);
+            auto buffer = m_sbfSpot.encodeHistoricDayDataRequest(inverter.SUSyID, inverter.serial, startTime - 300, startTime + 86100, inverter.BTAddress);
             m_socket.send(buffer, inverter.IPAddress);
 
 			do
@@ -172,7 +172,7 @@ E_SBFSPOT ArchData::importDayData(std::vector<InverterData>& inverters, time_t s
 													std::cout << " -> " << strftime_t("%H:%M:%S", datetime) << std::endl;
 												}
                                                 inverter.dayData[idx].datetime = datetime;
-                                                inverter.dayData[idx].serial = inverter.Serial;
+                                                inverter.dayData[idx].serial = inverter.serial;
                                                 inverter.dayData[idx].totalWh = totalWh;
                                                 //inverter.dayData[idx].watt = (totalWh - totalWh_prev) * 12;	// 60:5
 												// Fix Issue 105 - Don't assume each interval is 5 mins
@@ -281,7 +281,7 @@ E_SBFSPOT ArchData::importMonthData(std::vector<InverterData>& inverters, tm *st
 			{
 				pcktID++;
                 m_buffer.writePacketHeader(0x01, inverter.BTAddress);
-                m_buffer.writePacket(0x09, 0xE0, 0, inverter.SUSyID, inverter.Serial);
+                m_buffer.writePacket(0x09, 0xE0, 0, inverter.SUSyID, inverter.serial);
                 m_buffer.writeLong(0x70200200);
                 m_buffer.writeLong(startTime - 86400 - 86400);
                 m_buffer.writeLong(startTime + 86400 * (sizeof(inverter.monthData)/sizeof(MonthData) +1));
@@ -409,7 +409,7 @@ E_SBFSPOT ArchData::ArchiveEventData(std::vector<InverterData>& inverters, boost
         {
             pcktID++;
             m_buffer.writePacketHeader(0x01, inverter.BTAddress);
-            m_buffer.writePacket(0x09, 0xE0, 0, inverter.SUSyID, inverter.Serial);
+            m_buffer.writePacket(0x09, 0xE0, 0, inverter.SUSyID, inverter.serial);
             m_buffer.writeLong(UserGroup == UG_USER ? 0x70100200 : 0x70120200);
             m_buffer.writeLong(startTime);
             m_buffer.writeLong(endTime);
@@ -508,7 +508,7 @@ E_SBFSPOT ArchData::getMonthDataOffset(std::vector<InverterData>& inverters)
             }
         }
         if ((DEBUG_HIGHEST) && (!quiet))
-            std::cout << inverter.SUSyID << ":" << inverter.Serial << " monthDataOffset=" << inverter.monthDataOffset << std::endl;
+            std::cout << inverter.SUSyID << ":" << inverter.serial << " monthDataOffset=" << inverter.monthDataOffset << std::endl;
     }
 
 	return rc;

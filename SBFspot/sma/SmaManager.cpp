@@ -187,7 +187,7 @@ void SmaManager::timerEvent(QTimerEvent* event)
         auto it = m_inverters.begin();
         while (it != m_inverters.end()) {
             if (now - it->second->m_lastSeen > 3600) {
-                LOG_S(INFO) << "Inverter at ip" << asIp(it->first) << "not seen for an hour. Removing.";
+                LOG_S(INFO) << "Inverter with ip: " << asIp(it->first) << " not seen for an hour. Removing.";
                 delete it->second;
                 it = m_inverters.erase(it);
             } else {

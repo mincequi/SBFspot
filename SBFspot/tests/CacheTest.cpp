@@ -44,10 +44,10 @@ int main()
     data11.Pdc1 = 10000;
     data12.Pdc1 = 30000;
     data21.Pdc1 = 30000;
-    data21.Serial = 12;
+    data21.serial = 12;
     data22.Pdc1 = 50000;
     data31.Pdc1 = 20000;
-    data31.Serial = 34;
+    data31.serial = 34;
     data32.Pdc1 = 10000;
     data41.Pdc1 = 40000;
     data42.Pdc1 = 30000;
@@ -59,12 +59,12 @@ int main()
 
     auto result = storage.getInverterData(20, 30);
     assert(result.at(0).Pdc1 == 25000);
-    assert(result.at(0).Serial == 34);
+    assert(result.at(0).serial == 34);
     assert(result.at(1).Pdc1 == 30000);
 
     result = storage.getInverterData(11, 25); // -> 20
     assert(result.at(0).Pdc1 == 30000);
-    assert(result.at(0).Serial == 12);
+    assert(result.at(0).serial == 12);
     assert(result.at(1).Pdc1 == 50000);
 
     return 0;

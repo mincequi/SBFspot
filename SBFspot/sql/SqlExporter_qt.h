@@ -56,10 +56,10 @@ public:
     void exportDayData(const std::vector<DayData>& dayData) override;
     void exportMonthData(const std::vector<MonthData>& monthData) override;
 
-    Storage::MissingSequence nextMissingDayData(std::time_t now, uint32_t serial) override;
-    Storage::MissingSequence nextMissingMonthData(std::time_t now, uint32_t serial) override;
-    void setEndOfDayData(std::time_t timestamp, uint32_t serial) override;
-    void setEndOfMonthData(std::time_t timestamp, uint32_t serial) override;
+    Storage::MissingSequence nextMissingDayData(std::time_t now, const Serial& serial) override;
+    Storage::MissingSequence nextMissingMonthData(std::time_t now, const Serial& serial) override;
+    void setEndOfDayData(std::time_t timestamp, const Serial& serial) override;
+    void setEndOfMonthData(std::time_t timestamp, const Serial& serial) override;
 
 private:
     bool createTables();

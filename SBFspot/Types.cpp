@@ -36,6 +36,24 @@ DISCLAIMER:
 
 #include "Defines.h"
 
+Serial::Serial(u_int32_t serial) :
+    m_serial(serial) {
+}
+/*
+Serial& Serial::operator=(uint32_t serial) {
+    m_serial = serial;
+    return *this;
+}
+*/
+
+Serial::operator uint32_t() const {
+    return m_serial;
+}
+
+uint32_t Serial::serial() const {
+    return m_serial;
+}
+
 void ByteBuffer::reset() {
     m_currentPosition = 0;
 }

@@ -23,6 +23,7 @@ add_executable(cachetest
     CacheTest.cpp
     ../EventData.cpp
     ../Cache.cpp
+    ../Types.cpp
 )
 
 #if (Bluetooth_FOUND)

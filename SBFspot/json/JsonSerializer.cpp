@@ -71,7 +71,7 @@ ByteBuffer JsonSerializer::serialize(const InverterData& inverterData) const {
         if (key == "timestamp")				snprintf(value, sizeof(value) - 1, "\"%s\"", strftime_t(m_config.DateTimeFormat, timestamp));
         else if (key == "sunrise")			snprintf(value, sizeof(value) - 1, "\"%s %02d:%02d:00\"", strftime_t(m_config.DateFormat, timestamp), (int)m_config.sunrise, (int)((m_config.sunrise - (int)m_config.sunrise) * 60));
         else if (key == "sunset")			snprintf(value, sizeof(value) - 1, "\"%s %02d:%02d:00\"", strftime_t(m_config.DateFormat, timestamp), (int)m_config.sunset, (int)((m_config.sunset - (int)m_config.sunset) * 60));
-        else if (key == "invserial")		snprintf(value, sizeof(value) - 1, "%lu", inverterData.Serial);
+        else if (key == "invserial")		snprintf(value, sizeof(value) - 1, "%lu", inverterData.serial);
         else if (key == "invname")			snprintf(value, sizeof(value) - 1, "\"%s\"", inverterData.DeviceName.c_str());
         else if (key == "invclass")			snprintf(value, sizeof(value) - 1, "\"%s\"", inverterData.DeviceClass.c_str());
         else if (key == "invtype")			snprintf(value, sizeof(value) - 1, "\"%s\"", inverterData.DeviceType.c_str());

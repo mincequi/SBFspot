@@ -102,7 +102,7 @@ std::vector<InverterData> Cache::getInverterData(std::time_t startTime, std::tim
         inverterData.at(i).BT_Signal /= dataCount;
         inverterData.at(i).Temperature /= dataCount;
 
-        inverterData.at(i).Serial = upper->second.at(i).Serial;
+        inverterData.at(i).serial = upper->second.at(i).serial;
         inverterData.at(i).EToday = upper->second.at(i).EToday;
         inverterData.at(i).ETotal = upper->second.at(i).ETotal;
         inverterData.at(i).OperationTime = upper->second.at(i).OperationTime;

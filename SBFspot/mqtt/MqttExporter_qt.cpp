@@ -103,7 +103,7 @@ void MqttExporter_qt::exportSpotData(std::time_t /*timestamp*/, const std::vecto
 
         std::string topic = m_config.mqtt_topic;
         boost::replace_first(topic, "{plantname}", m_config.plantname);
-        boost::replace_first(topic, "{serial}", std::to_string(inverterData.Serial));
+        boost::replace_first(topic, "{serial}", std::to_string(inverterData.serial));
 
         QMQTT::Message message(++msgId,
                                QString::fromStdString(topic),

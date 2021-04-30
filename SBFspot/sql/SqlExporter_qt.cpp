@@ -34,6 +34,7 @@ DISCLAIMER:
 
 #include "SqlExporter_qt.h"
 
+#include <QDir>
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QStringList>
@@ -72,11 +73,16 @@ SqlExporter_qt::SqlExporter_qt(const SqlConfig& config) :
         return;
     }
 
-    m_db.setDatabaseName(QString::fromStdString(m_config.databaseName));
+    auto dbName = QString::fromStdString(m_config.databaseName);
+    if (dbName.startsWith("~/")) dbName.replace(0, 1, QDir::homePath());
+    m_db.setDatabaseName(dbName);
     m_db.setHostName(QString::fromStdString(m_config.hostName));
     m_db.setPort(m_config.port);
     m_db.setUserName(QString::fromStdString(m_config.userName));
     m_db.setPassword(QString::fromStdString(m_config.password));
+
+    LOG_IF_S(FATAL, !m_db.open()) << m_db.lastError().text().toStdString() << ": " << m_db.databaseName().toStdString();
+    m_db.close();
 }
 
 bool SqlExporter_qt::init() {
@@ -121,7 +127,7 @@ void SqlExporter_qt::exportDayData(const std::vector<DayData>& dayData) {
 
     for (const auto& dd : dayData) {
         timestamps << static_cast<uint32_t>(dd.datetime);
-        serials << dd.serial;
+        serials << dd.serial.serial();
         yields << dd.totalWh;
         //powers << QVariant();
         //pvOutputs << QVariant();
@@ -153,7 +159,7 @@ void SqlExporter_qt::exportMonthData(const std::vector<MonthData>& monthData) {
 
     for (const auto& dd : monthData) {
         timestamps << static_cast<uint32_t>(dd.datetime);
-        serials << dd.serial;
+        serials << dd.serial.serial();
         yields << dd.totalWh;
     }
 
@@ -169,7 +175,7 @@ void SqlExporter_qt::exportMonthData(const std::vector<MonthData>& monthData) {
 
 bool SqlExporter_qt::createTables() {
     if (!m_db.open()) {
-        LOG_F(ERROR, "Opening database failed");
+        LOG_S(WARNING) << m_db.lastError().text().toStdString();
         return false;
     }
 
@@ -225,7 +231,7 @@ bool SqlExporter_qt::createTables() {
     return true;
 }
 
-Storage::MissingSequence SqlExporter_qt::nextMissingDayData(std::time_t now, uint32_t serial) {
+Storage::MissingSequence SqlExporter_qt::nextMissingDayData(std::time_t now, const Serial& serial) {
     m_db.open();
 
     QString sql("SELECT TimeStamp FROM DayData WHERE Serial=");
@@ -265,7 +271,7 @@ Storage::MissingSequence SqlExporter_qt::nextMissingDayData(std::time_t now, uin
     return {};
 }
 
-Storage::MissingSequence SqlExporter_qt::nextMissingMonthData(std::time_t now, uint32_t serial) {
+Storage::MissingSequence SqlExporter_qt::nextMissingMonthData(std::time_t now, const Serial& serial) {
     m_db.open();
 
     QString sql("SELECT TimeStamp FROM MonthData WHERE Serial=");
@@ -305,14 +311,14 @@ Storage::MissingSequence SqlExporter_qt::nextMissingMonthData(std::time_t now, u
     return {};
 }
 
-void SqlExporter_qt::setEndOfDayData(std::time_t timestamp, uint32_t serial) {
+void SqlExporter_qt::setEndOfDayData(std::time_t timestamp, const Serial& serial) {
     if (m_endOfDayData[serial] < timestamp) {
         LOG_S(INFO) << "New end of day data for: " << serial << ", timestamp: " << timestamp;
         m_endOfDayData[serial] = timestamp;
     }
 }
 
-void SqlExporter_qt::setEndOfMonthData(std::time_t timestamp, uint32_t serial) {
+void SqlExporter_qt::setEndOfMonthData(std::time_t timestamp, const Serial& serial) {
     if (m_endOfMonthData[serial] < timestamp) {
         LOG_S(INFO) << "New end of month data for: " << serial << ", timestamp: " << timestamp;
         m_endOfMonthData[serial] = timestamp;

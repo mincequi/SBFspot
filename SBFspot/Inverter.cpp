@@ -77,7 +77,7 @@ E_SBFSPOT Inverter::ethInitConnection()
         m_inverters.push_back(data);
     }
 
-    //Generate a Serial Number for application
+    //Generate a serial Number for application
     srand(time(NULL));
     AppSerial = 900000000 + ((rand() << 16) + rand()) % 100000000;
     // Fix Issue 103: Eleminate confusion: apply name: session-id iso SN
@@ -97,7 +97,7 @@ E_SBFSPOT Inverter::ethInitConnection()
         {
             const ethPacket* pckt = (ethPacket*)response.data().data();
             inverter.SUSyID = btohs(pckt->Source.SUSyID);	// Fix Issue 98
-            inverter.Serial = btohl(pckt->Source.Serial);	// Fix Issue 98
+            inverter.serial = btohl(pckt->Source.serial);	// Fix Issue 98
 
             logoffSMAInverter(inverter);
         }
@@ -173,7 +173,7 @@ E_SBFSPOT Inverter::logonSMAInverter(std::vector<InverterData>& inverters, long 
                         if (ii >= 0 )
                         {
                             inverters[ii].SUSyID = get_short(pcktBuf + 15);
-                            inverters[ii].Serial = get_long(pcktBuf + 17);
+                            inverters[ii].serial = get_long(pcktBuf + 17);
                             validPcktID = 1;
                             unsigned short retcode = get_short(pcktBuf + 23);
                             switch (retcode)
@@ -209,9 +209,9 @@ E_SBFSPOT Inverter::logonSMAInverter(std::vector<InverterData>& inverters, long 
                 now = time(NULL);
                 m_buffer.writePacketHeader(0x01, addr_unknown);
                 if (inverter.SUSyID != SID_SB240)
-                    m_buffer.writePacket(0x0E, 0xA0, 0x0100, inverter.SUSyID, inverter.Serial);
+                    m_buffer.writePacket(0x0E, 0xA0, 0x0100, inverter.SUSyID, inverter.serial);
                 else
-                    m_buffer.writePacket(0x0E, 0xE0, 0x0100, inverter.SUSyID, inverter.Serial);
+                    m_buffer.writePacket(0x0E, 0xE0, 0x0100, inverter.SUSyID, inverter.serial);
 
                 m_buffer.writeLong(0xFFFD040C);
                 m_buffer.writeLong(userGroup);	// User / Installer
@@ -291,7 +291,7 @@ E_SBFSPOT Inverter::logoffMultigateDevices(const std::vector<InverterData>& inve
                     {
                         pcktID++;
                         m_buffer.writePacketHeader(0, BluetoothAddress());
-                        m_buffer.writePacket(0x08, 0xE0, 0x0300, psb.SUSyID, psb.Serial);
+                        m_buffer.writePacket(0x08, 0xE0, 0x0300, psb.SUSyID, psb.serial);
                         m_buffer.writeLong(0xFFFD010E);
                         m_buffer.writeLong(0xFFFFFFFF);
                         m_buffer.writePacketTrailer();
@@ -301,7 +301,7 @@ E_SBFSPOT Inverter::logoffMultigateDevices(const std::vector<InverterData>& inve
 
                     m_ethernet.ethSend(m_buffer.data(), psb.IPAddress);
                     if (VERBOSE_NORMAL)
-                        std::cout << "Logoff " << psb.SUSyID << ":" << psb.Serial << std::endl;
+                        std::cout << "Logoff " << psb.SUSyID << ":" << psb.serial << std::endl;
                 }
             }
         }
@@ -320,7 +320,7 @@ E_SBFSPOT Inverter::getDeviceList(std::vector<InverterData>& inverters, int mult
     {
         pcktID++;
         m_buffer.writePacketHeader(0x01, BluetoothAddress());
-        m_buffer.writePacket(0x09, 0xE0, 0, inverters[multigateIndex].SUSyID, inverters[multigateIndex].Serial);
+        m_buffer.writePacket(0x09, 0xE0, 0, inverters[multigateIndex].SUSyID, inverters[multigateIndex].serial);
         m_buffer.writeShort(0x0200);
         m_buffer.writeShort(0xFFF5);
         m_buffer.writeLong(0);
@@ -351,7 +351,7 @@ E_SBFSPOT Inverter::getDeviceList(std::vector<InverterData>& inverters, int mult
         if (pcktID == rcvpcktID)
         {
             uint32_t serial = get_long(response.data().data() + 17);
-            if (serial == inverters[multigateIndex].Serial)
+            if (serial == inverters[multigateIndex].serial)
             {
                 rc = E_NODATA;
                 validPcktID = 1;
@@ -362,7 +362,7 @@ E_SBFSPOT Inverter::getDeviceList(std::vector<InverterData>& inverters, int mult
                     {
                         InverterData inverter;
                         inverter.SUSyID = get_short(response.data().data() + i + 6);
-                        inverter.Serial = get_long(response.data().data() + i + 8);
+                        inverter.serial = get_long(response.data().data() + i + 8);
                         inverter.IPAddress = inverters[multigateIndex].IPAddress;
                         inverter.multigateIndex = multigateIndex;
                         inverters.push_back(inverter);
@@ -370,7 +370,7 @@ E_SBFSPOT Inverter::getDeviceList(std::vector<InverterData>& inverters, int mult
                     }
                 }
             }
-            else if (DEBUG_HIGHEST) printf("Serial Nr mismatch. Expected %lu, received %d\n", inverters[multigateIndex].Serial, serial);
+            else if (DEBUG_HIGHEST) printf("serial Nr mismatch. Expected %lu, received %d\n", inverters[multigateIndex].serial, serial);
         }
         else if (DEBUG_HIGHEST) printf("Packet ID mismatch. Expected %d, received %d\n", pcktID, rcvpcktID);
     }
@@ -395,7 +395,7 @@ int Inverter::getInverterData(std::vector<InverterData>& inverters, SmaInverterD
 
     for (auto& inverter : inverters)
     {
-        auto buffer = m_sbfSpot.encodeDataRequest(inverter.SUSyID, inverter.Serial, type);
+        auto buffer = m_sbfSpot.encodeDataRequest(inverter.SUSyID, inverter.serial, type);
         m_import.send(buffer, inverter.IPAddress);
 
         validPcktID = 0;
@@ -880,7 +880,7 @@ void Inverter::reset()
     m_dayStats.resize(m_inverters.size());
     auto now = std::time(nullptr);
     for (size_t i = 0; i < m_inverters.size(); ++i) {
-        m_dayStats[i].serial = m_inverters[i].Serial;
+        m_dayStats[i].serial = m_inverters[i].serial;
         m_dayStats[i].timestamp = now;
         m_exporterManager.exportDayStats(m_dayStats[i]);
     }
@@ -1035,12 +1035,12 @@ int Inverter::importSpotData(std::time_t timestamp)
 
             if (VERBOSE_NORMAL)
             {
-                printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.Serial);
+                printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.serial);
                 printf("Device Name:      %s\n", inverter.DeviceName.c_str());
                 printf("Device Class:     %s%s\n", inverter.DeviceClass.c_str(), (inverter.SUSyID == 292) ? " (with battery)":"");
                 printf("Device Type:      %s\n", inverter.DeviceType.c_str());
                 printf("Software Version: %s\n", inverter.SWVersion.c_str());
-                printf("Serial number:    %lu\n", inverter.Serial);
+                printf("serial number:    %lu\n", inverter.serial);
             }
         }
     }
@@ -1067,7 +1067,7 @@ int Inverter::importSpotData(std::time_t timestamp)
                     uint32_t id = 0;
                     for (auto& inverter : m_inverters)
                     {
-                        std::cout << "ID:" << id << " S/N:" << inverter.SUSyID << "-" << inverter.Serial << " IP:" << inverter.IPAddress << std::endl;
+                        std::cout << "ID:" << id << " S/N:" << inverter.SUSyID << "-" << inverter.serial << " IP:" << inverter.IPAddress << std::endl;
                         ++id;
                     }
                 }
@@ -1092,12 +1092,12 @@ int Inverter::importSpotData(std::time_t timestamp)
                     if (VERBOSE_NORMAL)
                     {
                         for (const auto& inverter : m_inverters) {
-                            printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.Serial);
+                            printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.serial);
                             printf("Device Name:      %s\n", inverter.DeviceName.c_str());
                             printf("Device Class:     %s\n", inverter.DeviceClass.c_str());
                             printf("Device Type:      %s\n", inverter.DeviceType.c_str());
                             printf("Software Version: %s\n", inverter.SWVersion.c_str());
-                            printf("Serial number:    %lu\n", inverter.Serial);
+                            printf("serial number:    %lu\n", inverter.serial);
                         }
                     }
                 }
@@ -1118,7 +1118,7 @@ int Inverter::importSpotData(std::time_t timestamp)
                 {
                     if (VERBOSE_NORMAL)
                     {
-                        printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.Serial);
+                        printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.serial);
                         printf("Batt. Charging Status: %lu%%\n", inverter.BatChaStt);
                     }
                 }
@@ -1135,7 +1135,7 @@ int Inverter::importSpotData(std::time_t timestamp)
                 {
                     if (VERBOSE_NORMAL)
                     {
-                        printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.Serial);
+                        printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.serial);
                         printf("Batt. Temperature: %3.1f%s\n", (float)(inverter.BatTmpVal / 10), tagdefs.getDesc(tagdefs.DEG_C).c_str());
                         printf("Batt. Voltage    : %3.2fV\n", toVolt(inverter.BatVol));
                         printf("Batt. Current    : %2.3fA\n", toAmp(inverter.BatAmp));
@@ -1154,7 +1154,7 @@ int Inverter::importSpotData(std::time_t timestamp)
                 {
                     if (VERBOSE_NORMAL)
                     {
-                        printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.Serial);
+                        printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.serial);
                         printf("Grid Power Out : %dW\n", inverter.MeteringGridMsTotWOut);
                         printf("Grid Power In  : %dW\n", inverter.MeteringGridMsTotWIn);
                     }
@@ -1171,7 +1171,7 @@ int Inverter::importSpotData(std::time_t timestamp)
         {
             if (VERBOSE_NORMAL)
             {
-                printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.Serial);
+                printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.serial);
                 printf("Device Status:      %s\n", tagdefs.getDesc(inverter.DeviceStatus, "?").c_str());
             }
         }
@@ -1185,7 +1185,7 @@ int Inverter::importSpotData(std::time_t timestamp)
         {
             if (VERBOSE_NORMAL)
             {
-                printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.Serial);
+                printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.serial);
                 printf("Device Temperature: %3.1f%s\n", ((float)inverter.Temperature / 100), tagdefs.getDesc(tagdefs.DEG_C).c_str());
             }
         }
@@ -1203,7 +1203,7 @@ int Inverter::importSpotData(std::time_t timestamp)
                 {
                     if (VERBOSE_NORMAL)
                     {
-                        printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.Serial);
+                        printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.serial);
                         printf("GridRelay Status:      %s\n", tagdefs.getDesc(inverter.GridRelayStatus, "?").c_str());
                     }
                 }
@@ -1224,7 +1224,7 @@ int Inverter::importSpotData(std::time_t timestamp)
             {
                 if (VERBOSE_NORMAL)
                 {
-                    printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.Serial);
+                    printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.serial);
                     printf("Pac max phase 1: %luW\n", inverter.Pmax1);
                     printf("Pac max phase 2: %luW\n", inverter.Pmax2);
                     printf("Pac max phase 3: %luW\n", inverter.Pmax3);
@@ -1244,7 +1244,7 @@ int Inverter::importSpotData(std::time_t timestamp)
         {
             if (VERBOSE_NORMAL)
             {
-                printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.Serial);
+                printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.serial);
                 puts("Energy Production:");
                 printf("\tEToday: %.3fkWh\n", tokWh(inverter.EToday));
                 printf("\tETotal: %.3fkWh\n", tokWh(inverter.ETotal));
@@ -1269,7 +1269,7 @@ int Inverter::importSpotData(std::time_t timestamp)
         inverter.calPdcTot = inverter.Pdc1 + inverter.Pdc2;
         if (VERBOSE_NORMAL)
         {
-            printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.Serial);
+            printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.serial);
             puts("DC Spot Data:");
             printf("\tString 1 Pdc: %7.3fkW - Udc: %6.2fV - Idc: %6.3fA\n", tokW(inverter.Pdc1), toVolt(inverter.Udc1), toAmp(inverter.Idc1));
             printf("\tString 2 Pdc: %7.3fkW - Udc: %6.2fV - Idc: %6.3fA\n", tokW(inverter.Pdc2), toVolt(inverter.Udc2), toAmp(inverter.Idc2));
@@ -1297,7 +1297,7 @@ int Inverter::importSpotData(std::time_t timestamp)
         inverter.calEfficiency = inverter.calPdcTot == 0 ? 0.0f : 100.0f * (float)inverter.calPacTot / (float)inverter.calPdcTot;
         if (VERBOSE_NORMAL)
         {
-            printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.Serial);
+            printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.serial);
             puts("AC Spot Data:");
             printf("\tPhase 1 Pac : %7.3fkW - Uac: %6.2fV - Iac: %6.3fA\n", tokW(inverter.Pac1), toVolt(inverter.Uac1), toAmp(inverter.Iac1));
             printf("\tPhase 2 Pac : %7.3fkW - Uac: %6.2fV - Iac: %6.3fA\n", tokW(inverter.Pac2), toVolt(inverter.Uac2), toAmp(inverter.Iac2));
@@ -1315,7 +1315,7 @@ int Inverter::importSpotData(std::time_t timestamp)
         {
             if (VERBOSE_NORMAL)
             {
-                printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.Serial);
+                printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.serial);
                 printf("Grid Freq. : %.2fHz\n", toHz(inverter.GridFreq));
             }
         }
@@ -1327,7 +1327,7 @@ int Inverter::importSpotData(std::time_t timestamp)
         {
             if (VERBOSE_NORMAL)
             {
-                printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.Serial);
+                printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.serial);
                 if (inverter.InverterDatetime > 0)
                     printf("Current Inverter Time: %s\n", strftime_t(m_config.DateTimeFormat, inverter.InverterDatetime));
 
@@ -1369,7 +1369,7 @@ void Inverter::importDayData()
             {
                 for (const auto& inverter : m_inverters)
                 {
-                    printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.Serial);
+                    printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.serial);
                     for (idx=0; idx<sizeof(inverter.dayData)/sizeof(DayData); idx++)
                         if (inverter.dayData[idx].datetime > 0)
                         {
@@ -1408,7 +1408,7 @@ void Inverter::importMonthData()
             {
                 for (const auto& inverter : m_inverters)
                 {
-                    printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.Serial);
+                    printf("SUSyID: %d - SN: %lu\n", inverter.SUSyID, inverter.serial);
                     for (unsigned int ii = 0; ii < sizeof(inverter.monthData) / sizeof(MonthData); ii++)
                         if (inverter.monthData[ii].datetime > 0)
                             printf("%s : %.3fkWh - %3.3fkWh\n", strfgmtime_t(m_config.DateFormat, inverter.monthData[ii].datetime), (double)inverter.monthData[ii].totalWh / 1000, (double)inverter.monthData[ii].dayWh / 1000);

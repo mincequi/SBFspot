@@ -135,7 +135,7 @@ int db_SQL_Base::type_label(const std::vector<InverterData>& inverters)
 		// Instead of using REPLACE which is actually a DELETE followed by INSERT,
 		// we do an INSERT OR IGNORE (for new records) followed by UPDATE (for existing records)
 		sql << "INSERT OR IGNORE INTO Inverters VALUES(" <<
-            inverter.Serial << ',' <<
+            inverter.serial << ',' <<
             sql::SqlQueries::s_quoted(inverter.DeviceName) << ',' <<
             sql::SqlQueries::s_quoted(inverter.DeviceType) << ',' <<
             sql::SqlQueries::s_quoted(inverter.SWVersion) << ',' <<
@@ -150,7 +150,7 @@ int db_SQL_Base::type_label(const std::vector<InverterData>& inverters)
             " Name=" << sql::SqlQueries::s_quoted(inverter.DeviceName) <<
             ",Type=" << sql::SqlQueries::s_quoted(inverter.DeviceType) <<
             ",SW_Version=" << sql::SqlQueries::s_quoted(inverter.SWVersion) <<
-            " WHERE Serial=" << inverter.Serial;
+            " WHERE Serial=" << inverter.serial;
 
 		if ((rc = exec_query(sql.str())) != SQLITE_OK)
             LOG_S(ERROR) << "exec_query() returned" << sql.str();
@@ -181,7 +181,7 @@ int db_SQL_Base::device_status(const std::vector<InverterData>& inverters, time_
             ",Status=" << sql::SqlQueries::s_quoted(sql::SqlQueries::status_text(inverter.DeviceStatus)) <<
             ",GridRelay=" << sql::SqlQueries::s_quoted(sql::SqlQueries::status_text(inverter.GridRelayStatus)) <<
             ",Temperature=" << (float)inverter.Temperature/100 <<
-            " WHERE Serial=" << inverter.Serial;
+            " WHERE Serial=" << inverter.serial;
 
 		if ((rc = exec_query(sql.str())) != SQLITE_OK)
             LOG_S(ERROR) << "exec_query() returned" << sql.str();
@@ -190,7 +190,7 @@ int db_SQL_Base::device_status(const std::vector<InverterData>& inverters, time_
 	return rc;
 }
 
-int db_SQL_Base::batch_get_archdaydata(std::string &data, unsigned int Serial, int datelimit, int statuslimit, int& recordcount)
+int db_SQL_Base::batch_get_archdaydata(std::string &data, unsigned int serial, int datelimit, int statuslimit, int& recordcount)
 {
 	std::stringstream sql;
 	int rc = SQLITE_OK;
@@ -201,7 +201,7 @@ int db_SQL_Base::batch_get_archdaydata(std::string &data, unsigned int Serial, i
 	sql << "SELECT strftime('%Y%m%d,%H:%M',TimeStamp),V1,V2,V3,V4,V5,V6,V7,V8,V9,V10,V11,V12 FROM [vwPvoData] WHERE "
         "TimeStamp>DATE(DATE(),'" << -(datelimit-2) << " day') "
         "AND PVoutput IS NULL "
-        "AND Serial=" << Serial << " "
+        "AND Serial=" << serial << " "
         "ORDER BY TimeStamp "
         "LIMIT " << statuslimit;
 
@@ -273,7 +273,7 @@ int db_SQL_Base::batch_get_archdaydata(std::string &data, unsigned int Serial, i
 	return rc;
 }
 
-int db_SQL_Base::batch_set_pvoflag(const std::string &data, unsigned int Serial)
+int db_SQL_Base::batch_set_pvoflag(const std::string &data, unsigned int serial)
 {
 	std::stringstream sql;
 	int rc = SQLITE_OK;
@@ -283,7 +283,7 @@ int db_SQL_Base::batch_set_pvoflag(const std::string &data, unsigned int Serial)
 
 	sql << "UPDATE OR ROLLBACK DayData "
 		"SET PVoutput=1 "
-		"WHERE Serial=" << Serial << " "
+        "WHERE Serial=" << serial << " "
 		"AND strftime('%Y%m%d,%H:%M',datetime(TimeStamp, 'unixepoch', 'localtime')) "
 		"IN (";
 
@@ -374,14 +374,14 @@ DataPerInverter db_SQL_Base::getInverterData(std::time_t startTime, std::time_t 
     {
         InverterData data;
         data.InverterDatetime = sqlite3_column_int64(pStmt, 0);
-        data.Serial = sqlite3_column_int64(pStmt, 1);
+        data.serial = sqlite3_column_int64(pStmt, 1);
         data.Pdc1 = sqlite3_column_int(pStmt, 2);
         data.Pdc2 = sqlite3_column_int(pStmt, 3);
         data.Pac1 = sqlite3_column_int(pStmt, 4);
         data.Pac2 = sqlite3_column_int(pStmt, 5);
         data.Pac3 = sqlite3_column_int(pStmt, 6);
         data.TotalPac = data.Pac1 + data.Pac2 + data.Pac3;
-        out[data.Serial].push_back(data);
+        out[data.serial].push_back(data);
     }
 
     sqlite3_finalize(pStmt);

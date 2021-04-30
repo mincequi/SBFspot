@@ -43,6 +43,19 @@ DISCLAIMER:
 
 #include "EventData.h"
 
+class Serial {
+public:
+    Serial(uint32_t serial);
+    //Serial& operator=(uint32_t serial);
+
+    operator uint32_t() const;
+
+    uint32_t serial() const;
+
+private:
+    uint32_t m_serial;
+};
+
 enum class ExporterType : uint16_t {
     None = 0x0,
     Csv = 0x01,
@@ -70,7 +83,7 @@ typedef enum
 struct MonthData
 {
     std::time_t datetime = 0;
-    uint32_t serial = 0;
+    Serial serial = 0;
     long long totalWh = 0;  // changed to signed - issue 58
     long long dayWh = 0;    // changed to signed - issue 58
 };
@@ -78,7 +91,7 @@ struct MonthData
 struct DayData
 {
     std::time_t datetime = 0;
-    uint32_t serial = 0;
+    Serial serial = 0;
     long long totalWh = 0;  // changed to signed - issue 58
     long long watt = 0;     // changed to signed - issue 58
 };
@@ -87,7 +100,7 @@ struct DayData
 struct DayStats
 {
     std::time_t timestamp = 0;  // [sec]
-    uint32_t    serial = 0;
+    Serial    serial = 0;
     float       powerMax = 0;
     std::vector<float> stringPowerMax;    // Maximum power per string
 };
@@ -165,7 +178,7 @@ struct InverterData
     BluetoothAddress BTAddress;
     std::string IPAddress;
     unsigned short SUSyID = 0;
-    unsigned long Serial = 0;
+    unsigned long serial = 0;
     unsigned char NetID = 0;
     float BT_Signal = 0.0f;
     time_t InverterDatetime = 0;
@@ -262,7 +275,7 @@ typedef struct
 typedef struct
 {
     uint16_t SUSyID;
-    uint32_t Serial;
+    uint32_t serial;
     uint16_t Ctrl;  // unused
 } ethEndpoint;
 

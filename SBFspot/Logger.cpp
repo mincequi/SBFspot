@@ -72,6 +72,13 @@ Logger::Logger()
 {
 }
 
+std::ostream& operator<< (std::ostream& out, Serial const& serial)
+{
+    auto strSerial = std::to_string(serial);
+    strSerial.replace(3, strSerial.length()-6, strSerial.length()-6, '*');
+    return out << strSerial;
+}
+
 std::ostream& operator<< (std::ostream& out, QByteArray const& array)
 {
     return out << array.toHex().toStdString();

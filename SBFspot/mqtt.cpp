@@ -78,7 +78,7 @@ void MqttExporter::exportSpotData(std::time_t timestamp, const std::vector<Inver
 
 		std::stringstream serial;
 		serial.str("");
-        serial << inv.Serial;
+        serial << inv.serial;
         boost::replace_first(mqtt_command_line, "{plantname}", m_config.plantname);
 		boost::replace_first(mqtt_command_line, "{serial}", serial.str());
         boost::replace_first(mqtt_command_line, "{message}", str);

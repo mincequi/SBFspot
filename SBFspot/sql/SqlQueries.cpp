@@ -189,7 +189,7 @@ std::string SqlQueries::exportSpotData(std::time_t timestamp, const InverterData
     std::stringstream sql;
     sql << "INSERT INTO SpotData VALUES(" <<
            timestamp << ',' <<
-           inv.Serial << ',' <<
+           inv.serial << ',' <<
            inv.Pdc1 << ',' <<
            inv.Pdc2 << ',' <<
            (float)inv.Idc1/1000 << ',' <<
