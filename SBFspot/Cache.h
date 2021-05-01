@@ -38,6 +38,7 @@ DISCLAIMER:
 
 #include <ctime>
 #include <map>
+#include <vector>
 
 #include "EventData.h"
 

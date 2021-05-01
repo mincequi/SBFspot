@@ -42,8 +42,8 @@ namespace sql {
 
 std::string SqlQueries::createTableLiveDataAc() {
     return "CREATE Table LiveDataAc ("
-           "TimeStamp int(4) NOT NULL,"
-           "Serial int(4) NOT NULL,"
+           "TimeStamp INT UNSIGNED NOT NULL,"
+           "Serial INT UNSIGNED NOT NULL,"
            "P1 int, I1 float, U1 float,"
            "P2 int, I2 float, U2 float,"
            "P3 int, I3 float, U3 float,"
@@ -54,8 +54,8 @@ std::string SqlQueries::createTableLiveDataAc() {
 
 std::string SqlQueries::createTableLiveDataDc() {
     return "CREATE TABLE LiveDataDc ("
-           "TimeStamp int(4) NOT NULL,"
-           "Serial int(4) NOT NULL,"
+           "TimeStamp INT UNSIGNED NOT NULL,"
+           "Serial INT UNSIGNED NOT NULL,"
            "Cls int NOT NULL,"
            "P int, I float, U float,"
            "PRIMARY KEY (TimeStamp, Serial, Cls)"
@@ -64,18 +64,18 @@ std::string SqlQueries::createTableLiveDataDc() {
 
 std::string SqlQueries::createTableLiveDataAux() {
     return "CREATE TABLE LiveDataAux ("
-           "TimeStamp int(4) NOT NULL,"
-           "Serial int(4) NOT NULL,"
-           "Key int(4) NOT NULL,"
+           "TimeStamp INT UNSIGNED NOT NULL,"
+           "Serial INT UNSIGNED NOT NULL,"
+           "`Key` int(4) NOT NULL,"
            "Value int(4),"
-           "PRIMARY KEY (TimeStamp, Serial, Key)"
+           "PRIMARY KEY (TimeStamp, Serial, `Key`)"
            ")";
 }
 
 std::string SqlQueries::createTableDayData() {
     return "CREATE TABLE DayData ("
-           "TimeStamp int(4) NOT NULL,"
-           "Serial int(4) NOT NULL,"
+           "TimeStamp INT UNSIGNED NOT NULL,"
+           "Serial INT UNSIGNED NOT NULL,"
            "TotalYield int(8),"
            "Power int(8),"
            "PRIMARY KEY (TimeStamp, Serial)"
@@ -84,8 +84,8 @@ std::string SqlQueries::createTableDayData() {
 
 std::string SqlQueries::createTableMonthData() {
     return "CREATE TABLE MonthData ("
-           "TimeStamp int(4) NOT NULL,"
-           "Serial int(4) NOT NULL,"
+           "TimeStamp INT UNSIGNED NOT NULL,"
+           "Serial INT UNSIGNED NOT NULL,"
            "TotalYield int(8),"
            "DayYield int(8),"
            "PRIMARY KEY (TimeStamp, Serial)"
@@ -94,7 +94,7 @@ std::string SqlQueries::createTableMonthData() {
 
 std::string SqlQueries::createInvertersTable() {
     return "CREATE Table Inverters ("
-            "Serial int(4) NOT NULL,"
+            "Serial INT UNSIGNED NOT NULL,"
             "Name varchar(32),"
             "Type varchar(32),"
             "SW_Version varchar(32),"

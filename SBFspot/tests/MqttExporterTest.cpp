@@ -92,7 +92,7 @@ int main()
     InverterData inverterData;
     inverterData.DeviceName = "STP 12000TL-10";
     //strncpy(inverterData.DeviceName, "123456789012345678901234567890", 30);
-    inverterData.Serial = 1234567890;
+    inverterData.serial = 1234567890;
     inverterData.Pmax1 = 10000;
 
     DayStats dayStats;

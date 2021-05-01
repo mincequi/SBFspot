@@ -55,6 +55,7 @@ if (Mosquitto_FOUND AND MessagePack_FOUND)
         ../sunrise_sunset.cpp
         ../TagDefs.cpp
         ../Timer.cpp
+        ../Types.cpp
     )
     target_link_libraries(mqttexportertest
         Boost::date_time
@@ -71,6 +72,7 @@ if (Mosquitto_FOUND AND MessagePack_FOUND)
         ../sunrise_sunset.cpp
         ../TagDefs.cpp
         ../Timer.cpp
+        ../Types.cpp
     )
     target_link_libraries(mqttsubscribertest
         Boost::date_time

@@ -70,7 +70,7 @@ void MqttMsgPackExport::exportConfig(const InverterData& inv)
 
     std::string topic = m_config.mqtt_topic;
     boost::replace_first(topic, "{plantname}", m_config.plantname);
-    boost::replace_first(topic, "{serial}", std::to_string(inv.Serial));
+    boost::replace_first(topic, "{serial}", std::to_string(inv.serial));
     topic += "/config";
 
     // Pack manually (because a float in map gets stored as double and timestamp is not supported yet).
@@ -95,10 +95,10 @@ void MqttMsgPackExport::exportConfig(const InverterData& inv)
     packer.pack_float(static_cast<float>(inv.Pmax1));
     // 6. Array config
     packer.pack_uint8(static_cast<uint8_t>(Property::Strings));
-    packer.pack_array(m_arrayConfig.count(inv.Serial));   // Store an array to provide data for each PV array.
+    packer.pack_array(m_arrayConfig.count(inv.serial));   // Store an array to provide data for each PV array.
 
-    auto itb = m_arrayConfig.lower_bound(inv.Serial);
-    auto ite = m_arrayConfig.upper_bound(inv.Serial);
+    auto itb = m_arrayConfig.lower_bound(inv.serial);
+    auto ite = m_arrayConfig.upper_bound(inv.serial);
     for (auto it = itb; it != ite; ++it)
     {
         packer.pack_map(4);

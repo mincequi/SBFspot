@@ -34,6 +34,8 @@ DISCLAIMER:
 
 #include "Types.h"
 
+#include <cstring>
+
 #include "Defines.h"
 
 Serial::Serial(u_int32_t serial) :
