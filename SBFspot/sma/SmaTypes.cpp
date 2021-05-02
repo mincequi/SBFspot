@@ -90,20 +90,23 @@ std::ostream& operator<< (std::ostream& out, SmaPacket const& c) {
     out << "," << std::endl;
     out << "to: { ";
     out << "susyId: " << static_cast<uint16_t>(c.destinationSusyId);
-    out << ", serial: " << static_cast<uint32_t>(c.destinationSerial);
+    out << ", serial: " << c.destinationSerial;
     out << ", control: " << static_cast<uint16_t>(c.destinationControl) << " }," << std::endl;
     out << "from: { ";
     out << "susyId: " << static_cast<uint16_t>(c.sourceSusyId);
-    out << ", serial: " << static_cast<uint32_t>(c.sourceSerial);
-    out << ", control: " << static_cast<uint16_t>(c.sourceControl) << "}," << std::endl;
+    out << ", serial: " << c.sourceSerial;
+    out << ", control: " << static_cast<uint16_t>(c.sourceControl) << " }," << std::endl;
 
     out << "error: " << c.error;
     out << ", fragment: " << c.fragmentId;
-    out << ", packet: " << c.packetId << std::endl;
+    out << ", packet: " << c.packetId << "," << std::endl;
 
     out << "dataset: " << c.dataSet;
     out << ", first: " << c.first;
-    out << ", last: " << c.last << std::endl;
+    out << ", last: " << c.last << "," << std::endl;
+
+    out << "payload: " << c.payload << std::endl;
+
     return out;
 }
 

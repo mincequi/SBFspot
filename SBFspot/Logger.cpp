@@ -72,25 +72,13 @@ Logger::Logger()
 {
 }
 
-std::ostream& operator<< (std::ostream& out, Serial const& serial)
-{
-    auto strSerial = std::to_string(serial);
-    strSerial.replace(3, strSerial.length()-6, strSerial.length()-6, '*');
-    return out << strSerial;
-}
-
-std::ostream& operator<< (std::ostream& out, QByteArray const& array)
-{
-    return out << array.toHex().toStdString();
-}
-
-std::ostream& operator<< (std::ostream& out, std::vector<uint8_t> const& buffer)
+std::ostream& operator<< (std::ostream& out, const ByteBuffer& buffer)
 {
     uint i = 0;
-    out << "buffer> size: " << buffer.size() << ", data:" << std::endl;
+    out << "size: " << buffer.size() << ", data:" << std::endl;
     for (const uint8_t& c : buffer) {
         if (i == 0) {
-            out << std::endl;
+            //out << std::endl;
         } else if ((i % 16) == 0) {
             out << std::endl;
         } else if ((i % 8) == 0) {
@@ -104,10 +92,17 @@ std::ostream& operator<< (std::ostream& out, std::vector<uint8_t> const& buffer)
     return out;
 }
 
-std::ostream& operator<< (std::ostream& out, DayData const& dayData)
+std::ostream& operator<< (std::ostream& out, const DayData& dayData)
 {
     return out << "timestamp: " << std::put_time(std::localtime(&dayData.datetime), "%c")
                << ", serial: " << dayData.serial
                << ", totalWh: " << dayData.totalWh
                << ", watt: " << dayData.watt;
+}
+
+std::ostream& operator<< (std::ostream& out, const Serial& serial)
+{
+    auto strSerial = std::to_string(serial);
+    strSerial.replace(3, strSerial.length()-6, strSerial.length()-6, '*');
+    return out << strSerial;
 }

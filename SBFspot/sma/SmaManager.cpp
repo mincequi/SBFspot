@@ -113,7 +113,7 @@ void SmaManager::onUnknownDatagram(const QNetworkDatagram& datagram)
     auto ba = datagram.data();
     ByteBuffer buffer(ba.begin(), ba.end());
     auto packet = SmaPacket::fromBuffer(buffer);
-    //LOG_S(INFO) << packet;
+    LOG_S(2) << packet;
     //LOG_S(INFO) << buffer;
 
     //const ethPacket* pckt = (ethPacket*)datagram.data().data();

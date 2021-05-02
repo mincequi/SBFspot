@@ -51,7 +51,6 @@ private:
     Logger();
 };
 
-std::ostream& operator<< (std::ostream& out, Serial const& serial);
-std::ostream& operator<< (std::ostream& out, QByteArray const& c);
-std::ostream& operator<< (std::ostream& out, std::vector<uint8_t> const& c);
-std::ostream& operator<< (std::ostream& out, DayData const& c);
+std::ostream& operator<< (std::ostream& out, const ByteBuffer& buffer);
+std::ostream& operator<< (std::ostream& out, const DayData& dayData);
+std::ostream& operator<< (std::ostream& out, const Serial& serial);

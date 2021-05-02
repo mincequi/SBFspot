@@ -52,8 +52,7 @@ Ethernet_qt::Ethernet_qt(sma::SmaManager& processor)
 
 void Ethernet_qt::send(const ByteBuffer& data, uint32_t address, uint16_t port)
 {
-    // TODO: implement stream operator for std::vector<uint8_t>
-    LOG_S(2) << "Send datagram: " << QByteArray(reinterpret_cast<const char*>(data.data()), data.size());
+    LOG_S(2) << "Send datagram: " << data;
     m_udpSocket.writeDatagram(reinterpret_cast<const char*>(data.data()), data.size(), QHostAddress(address), port);
 }
 

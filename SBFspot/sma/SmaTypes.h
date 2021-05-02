@@ -65,11 +65,11 @@ struct SmaPacket {
     uint8_t  control= 0;            // ?
 //20
     uint16_t destinationSusyId;
-    uint32_t destinationSerial;
+    Serial destinationSerial = 0;
     uint16_t destinationControl;    // ?
 //28
     uint16_t sourceSusyId;
-    uint32_t sourceSerial;
+    Serial sourceSerial = 0;
     uint16_t sourceControl;     // ?
 //36
     uint16_t error;
