@@ -97,6 +97,3 @@ std::ostream& operator<< (std::ostream& out, SmaPacket const& c);
 // 32 // 3A B3 00 00 00 00 05 00  05 80 01 02 00 70 77 31 // ... fragment (0x0500)
 // 48 // 00 00 C7 31 00 00 4C 6E  7B 60 F7 99 0D 00 00 00 // timestamp(0x4C6E7B60) + value(0xF7990D00 00000000)
 // 64 // 00 00 78 6F 7B 60 F7 99  0D 00 00 00 00 00 A4 70 // ... timestamp(0x786F7B60) + value(0xF7990D00 00000000)
-
-std::ostream& operator<< (std::ostream& out, SpeedwireHeader const& c);
-std::ostream& operator<< (std::ostream& out, SpeedwireInverterProtocol const& c);

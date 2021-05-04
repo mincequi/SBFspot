@@ -195,6 +195,7 @@ add_executable(${PROJECT_NAME}_qt
     sma/SmaInverter.cpp
     sma/SmaInverterRequests.cpp
     sma/SmaManager.cpp
+    sma/SmaRequestStrategy.cpp
     sma/SmaTypes.cpp
     sql/SqlExporter_qt.cpp
     sql/SqlQueries.cpp

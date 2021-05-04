@@ -102,7 +102,7 @@ void ExporterManager::exportSpotData(std::time_t timestamp, const std::vector<In
 
     // SQL, CSV, ... are archive exporters and will cause disk I/O.
     // These can severely exhaust disk space and shall be rate limited.
-    if (!m_config.daemon ||
+    if (!(m_config.command == Config::Command::RunDaemon) ||
             (m_config.archiveInterval > 0 &&
              (timestamp % m_config.archiveInterval == 0)))
     {

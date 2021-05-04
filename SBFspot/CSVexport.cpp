@@ -533,7 +533,7 @@ void CsvExporter::exportEventData(const std::vector<InverterData>& inverters, co
     csvpath << strftime_t(m_config.outputPath_Events, time(NULL));
 	CreatePath(csvpath.str().c_str());
 
-    csvpath << FOLDER_SEP << m_config.plantname << "-" << (m_config.userGroup == UG_USER ? "User" : "Installer") << "-Events-" << dt_range_csv.c_str() << ".csv";
+    csvpath << FOLDER_SEP << m_config.plantname << "-" << (m_config.smaUserGroup == UG_USER ? "User" : "Installer") << "-Events-" << dt_range_csv.c_str() << ".csv";
 
 	if ((csv = fopen(csvpath.str().c_str(), "w+")) == NULL)
 	{

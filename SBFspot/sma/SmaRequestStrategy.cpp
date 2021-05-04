@@ -32,62 +32,59 @@ DISCLAIMER:
 
 ************************************************************************************************/
 
-#pragma once
+#include "SmaRequestStrategy.h"
 
-#include <QTimer>
+#include <Config.h>
 
-#include <Ethernet_qt.h>
-#include <Timer.h>
-#include <sma/SmaInverter.h>
-#include <sma/SmaEnergyMeter.h>
-#include <sma/SmaRequestStrategy.h>
-#include <msgpack/MsgPackSerializer.h>
-
-class QByteArray;
-
-class Config;
-class Exporter;
+#include "SmaInverter.h"
 
 namespace sma {
 
-class SmaManager : public QObject {
-    Q_OBJECT
+SmaRequestStrategy::SmaRequestStrategy(const Config& config) :
+    m_config(config) {
+}
 
-public:
-    SmaManager(Config& config, Exporter& exporter, Storage* storage);
+void SmaRequestStrategy::addInverter(SmaInverter* inverter) {
+    switch (m_config.command) {
+    case Config::Command::RunDaemon:
+        applyLiveDataStrategy(inverter);
+        break;
+    case Config::Command::ImportHistoricalData:
+        applyHistoricalDataStrategy(inverter);
+        break;
+    default:
+        break;
+    }
+}
 
-    void discoverDevices();
+void SmaRequestStrategy::applyLiveDataStrategy(SmaInverter* inverter) {
+    QObject::connect(inverter, &SmaInverter::stateChanged, inverter, [inverter] (SmaInverter::State state) {
+        switch (state) {
+        case SmaInverter::State::Initialized:
+            break;
+        case SmaInverter::State::LoggedIn:
+            inverter->requestLiveData();
+            break;
+        default:
+            break;
+        }
+    });
+}
 
-    const std::map<uint32_t, SmaInverter*>& inverters() const;
-
-private:
-    void onEnergyMeterDatagram(const QNetworkDatagram& datagram);
-    void onDiscoveryResponseDatagram(const QNetworkDatagram& datagram);
-    void onUnknownDatagram(const QNetworkDatagram& datagram);
-
-    void startNextLiveTimer();
-    void onLiveTimeout();
-    void onPollTimeout();
-    void timerEvent(QTimerEvent *event) override;
-
-    const Config&   m_config;
-    Exporter&       m_exporter;
-    Storage*        m_storage = nullptr;
-
-    Ethernet_qt m_ethernet;
-    sma::SmaEnergyMeter     m_energyMeter;
-
-    int m_discoverTimer = 0;
-    std::map<uint32_t, SmaInverter*> m_inverters;
-    SmaRequestStrategy  m_requestStrategy;
-
-    Timer  m_timeComputation;
-    QTimer m_liveTimer;
-    QTimer m_archiveTimer;
-    QTimer  m_pollTimer;
-    std::time_t m_currentTimePoint = 0;
-
-    friend class ::Ethernet_qt;
-};
+void SmaRequestStrategy::applyHistoricalDataStrategy(SmaInverter* inverter) {
+    QObject::connect(inverter, &SmaInverter::stateChanged, inverter, [inverter] (SmaInverter::State state) {
+        switch (state) {
+        case SmaInverter::State::Initialized:
+            inverter->login(0);
+            break;
+        case SmaInverter::State::LoggedIn:
+            inverter->requestDayData(0, std::time(nullptr));
+            inverter->requestMonthData(0, std::time(nullptr));
+            break;
+        default:
+            break;
+        }
+    });
+}
 
 } // namespace sma

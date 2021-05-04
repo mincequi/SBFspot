@@ -72,9 +72,9 @@ int main(int argc, char **argv)
     quiet = config.quiet;
     ConnType = config.ConnectionType;
 
-    if ((config.ConnectionType != CT_BLUETOOTH) && (config.settime == 1))
+    if ((config.ConnectionType != CT_BLUETOOTH) && (config.command == Config::Command::SetTime))
     {
-        std::cout << "-settime is only supported for Bluetooth devices" << std::endl;
+        std::cout << "settime is only supported for Bluetooth devices" << std::endl;
         return 0;
     }
 
@@ -84,7 +84,7 @@ int main(int argc, char **argv)
     if (VERBOSE_NORMAL) print_error(stdout, PROC_INFO, "Starting...\n");
 
     Timer timer(config);
-    if (!timer.isBright() && (!config.forceInq) && (!config.daemon))
+    if (!timer.isBright() && (!config.forceInq) && (!(config.command == Config::Command::RunDaemon)))
     {
         if (quiet == 0) puts("Nothing to do... it's dark. Use -finq to force inquiry.");
         return 0;
@@ -113,7 +113,7 @@ int main(int argc, char **argv)
 
         inverter.process(timePoint);
     }
-    while(config.daemon);
+    while (config.command == Config::Command::RunDaemon);
 
     if (VERBOSE_NORMAL) print_error(stdout, PROC_INFO, "Done.\n");
 

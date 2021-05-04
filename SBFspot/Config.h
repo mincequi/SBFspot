@@ -80,9 +80,10 @@ struct Config
     std::vector<std::string> ip_addresslist; //List of Inverter IP addresses (for Speedwirecommunication )
     int		BT_Timeout = 5;
     int		BT_ConnectRetries = 10;
-    short   IP_Port;
+    short   IP_Port = 9522;
     CONNECTIONTYPE ConnectionType;     // CT_BLUETOOTH | CT_ETHERNET
-    char	SMA_Password[13];
+    SmaUserGroup    smaUserGroup = UG_USER;    // USER|INSTALLER
+    char	smaPassword[13];
     float	latitude = 0.0f;
     float	longitude = 0.0f;
     std::vector<StringConfig> pvArrays;    // Module array configurations
@@ -106,7 +107,6 @@ struct Config
     int		CSV_ExtendedHeader;
     int		CSV_SaveZeroPower;
     int		SunRSOffset;			// Offset to start before sunrise and end after sunset
-    SmaUserGroup    userGroup = UG_USER;    // USER|INSTALLER
     char	prgVersion[16];
     int		SpotTimeSource = 0;     // 0=Use inverter time; 1=Use PC time in Spot CSV
     int		SpotWebboxHeader = 0;   // 0=Use standard Spot CSV hdr; 1=Webbox style hdr
@@ -137,11 +137,18 @@ struct Config
     int		wsl = 0;            // -wsl			WebSolarLog support (http://www.websolarlog.com/index.php/tag/sma-spot/)
     int		quiet = 0;          // -q			Silent operation (No output except for -wsl)
     int		nospot = 0;         // -sp0			Disables Spot CSV export
-    int		loadlive;			// -loadlive	Force settings to prepare for live loading to http://pvoutput.org/loadlive.jsp
-    time_t	startdate;			// -startdate	Start reading of historic data at the given date (YYYYMMDD)
-    S123_COMMAND	s123;		// -123s		123Solar Web Solar logger support(http://www.123solar.org/)
-    int		settime;			// -settime		Set plant time
-    bool	daemon = false;		// -loop		Run SBF spot in daemon mode
+    int		loadlive = 0;       // -loadlive	Force settings to prepare for live loading to http://pvoutput.org/loadlive.jsp
+    time_t	startdate = 0;      // -startdate	Start reading of historic data at the given date (YYYYMMDD)
+    S123_COMMAND    s123 = S123_NOP;    // -123s		123Solar Web Solar logger support(http://www.123solar.org/)
+
+    enum class Command {
+        Invalid,
+        RunDaemon,
+        SetTime,
+        ImportHistoricalData,
+        ImportDatabase
+    };
+    Command command = Command::Invalid;         // <command>    Command to execute
 
     std::set<ExporterType> exporters = { ExporterType::Csv, ExporterType::Sql };    // The exporters to use for publishing data.
 };

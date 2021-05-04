@@ -56,8 +56,9 @@ SmaManager::SmaManager(Config& config, Exporter& exporter, Storage* storage) :
     m_storage(storage),
     m_ethernet(*this),
     m_discoverTimer(startTimer(1*60*1000)),   // discover every 60 seconds
+    m_requestStrategy(config),
     m_timeComputation(config)
-{
+{   
     srand(time(nullptr));
     AppSerial = 900000000 + ((rand() << 16) + rand()) % 100000000;
 
@@ -68,11 +69,14 @@ SmaManager::SmaManager(Config& config, Exporter& exporter, Storage* storage) :
     m_pollTimer.setSingleShot(true);
     m_pollTimer.setInterval(1000);
 
-    startNextLiveTimer();
+    if (m_config.command == Config::Command::RunDaemon) {
+        startNextLiveTimer();
+    }
 }
 
 void SmaManager::discoverDevices()
 {
+    LOG_S(INFO) << "Discovering SMA devices";
     QtConcurrent::run([this](){
         for (auto i = 0; i < 5 ;++i) {
             m_ethernet.send(QByteArray::fromHex("534D4100000402A0FFFFFFFF0000002000000000"), "239.12.255.254", 9522);
@@ -100,9 +104,11 @@ void SmaManager::onDiscoveryResponseDatagram(const QNetworkDatagram& datagram)
 {
     auto ip = datagram.senderAddress().toIPv4Address();
     if (!m_inverters.count(ip)) {
-        LOG_S(INFO) << "Found inverter at: " << datagram.senderAddress().toString().toStdString();
-        m_inverters.emplace(ip, new SmaInverter(this, m_config, m_ethernet, ip, m_storage));
-        m_inverters.at(ip)->m_lastSeen = std::time(nullptr);
+        LOG_S(INFO) << "Discovered inverter at: " << datagram.senderAddress().toString().toStdString();
+        auto inverter = new SmaInverter(this, m_config, m_ethernet, ip, m_storage);
+        inverter->m_lastSeen = std::time(nullptr);
+        m_inverters.emplace(ip, inverter);
+        m_requestStrategy.addInverter(inverter);
     } else {
         m_inverters.at(ip)->m_lastSeen = std::time(nullptr);
     }
@@ -145,7 +151,7 @@ void SmaManager::onLiveTimeout()
         }
 
         pollStarted = true;
-        kv.second->requestLiveData(m_currentTimePoint);
+        kv.second->login(m_currentTimePoint);
     }
 
     if (pollStarted) m_pollTimer.start();

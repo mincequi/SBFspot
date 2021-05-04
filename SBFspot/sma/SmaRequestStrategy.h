@@ -34,60 +34,26 @@ DISCLAIMER:
 
 #pragma once
 
-#include <QTimer>
+#include <QObject>
 
-#include <Ethernet_qt.h>
-#include <Timer.h>
-#include <sma/SmaInverter.h>
-#include <sma/SmaEnergyMeter.h>
-#include <sma/SmaRequestStrategy.h>
-#include <msgpack/MsgPackSerializer.h>
-
-class QByteArray;
-
-class Config;
-class Exporter;
+struct Config;
 
 namespace sma {
+class SmaInverter;
 
-class SmaManager : public QObject {
-    Q_OBJECT
-
+class SmaRequestStrategy {
 public:
-    SmaManager(Config& config, Exporter& exporter, Storage* storage);
+    SmaRequestStrategy(const Config& config);
+    //static SmaRequestStrategy create(const Config& config);
 
-    void discoverDevices();
-
-    const std::map<uint32_t, SmaInverter*>& inverters() const;
+    void addInverter(SmaInverter* inverter);
 
 private:
-    void onEnergyMeterDatagram(const QNetworkDatagram& datagram);
-    void onDiscoveryResponseDatagram(const QNetworkDatagram& datagram);
-    void onUnknownDatagram(const QNetworkDatagram& datagram);
+    void applyLiveDataStrategy(SmaInverter* inverter);
+    void applyHistoricalDataStrategy(SmaInverter* inverter);
 
-    void startNextLiveTimer();
-    void onLiveTimeout();
-    void onPollTimeout();
-    void timerEvent(QTimerEvent *event) override;
-
-    const Config&   m_config;
-    Exporter&       m_exporter;
-    Storage*        m_storage = nullptr;
-
-    Ethernet_qt m_ethernet;
-    sma::SmaEnergyMeter     m_energyMeter;
-
-    int m_discoverTimer = 0;
-    std::map<uint32_t, SmaInverter*> m_inverters;
-    SmaRequestStrategy  m_requestStrategy;
-
-    Timer  m_timeComputation;
-    QTimer m_liveTimer;
-    QTimer m_archiveTimer;
-    QTimer  m_pollTimer;
-    std::time_t m_currentTimePoint = 0;
-
-    friend class ::Ethernet_qt;
+    const Config& m_config;
+    //SmaInverter& m_inverter;
 };
 
 } // namespace sma

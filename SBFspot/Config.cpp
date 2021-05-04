@@ -71,13 +71,6 @@ void Config::parseAppPath(const char* appPath)
 
 int Config::parseCmdline(int argc, char **argv)
 {
-    // 123Solar Web Solar logger support(http://www.123solar.org/)
-    // This is an undocumented feature and should only be used for 123solar
-    this->s123 = S123_NOP;
-    this->loadlive = 0;	//force settings to prepare for live loading to http://pvoutput.org/loadlive.jsp
-    this->startdate = 0;
-    this->settime = 0;
-
     bool help_requested = false;
 
     //Set quiet/help mode
@@ -89,7 +82,7 @@ int Config::parseCmdline(int argc, char **argv)
         if (stricmp(argv[i], "-q") == 0)
             this->quiet = 1;
 
-        if (stricmp(argv[i], "-?") == 0)
+        if (stricmp(argv[i], "-?") == 0 || (stricmp(argv[i], "-h") == 0))
             help_requested = true;
     }
 
@@ -237,7 +230,7 @@ int Config::parseCmdline(int argc, char **argv)
             this->nospot = 1;
 
         else if (stricmp(argv[i], "-installer") == 0)
-            this->userGroup = UG_INSTALLER;
+            this->smaUserGroup = UG_INSTALLER;
 
         else if (strnicmp(argv[i], "-password:", 10) == 0)
             if (strlen(argv[i]) == 10)
@@ -247,8 +240,8 @@ int Config::parseCmdline(int argc, char **argv)
             }
             else
             {
-                memset(this->SMA_Password, 0, sizeof(this->SMA_Password));
-                strncpy(this->SMA_Password, argv[i] + 10, sizeof(this->SMA_Password) - 1);
+                memset(this->smaPassword, 0, sizeof(this->smaPassword));
+                strncpy(this->smaPassword, argv[i] + 10, sizeof(this->smaPassword) - 1);
             }
 
         else if (strnicmp(argv[i], "-startdate:", 11) == 0)
@@ -302,8 +295,14 @@ int Config::parseCmdline(int argc, char **argv)
             }
         }
 
-        else if (stricmp(argv[i], "-settime") == 0)
-            this->settime = 1;
+        else if (stricmp(argv[i], "settime") == 0)
+            this->command = Command::SetTime;
+
+        else if (stricmp(argv[i], "importhistoricaldata") == 0)
+            this->command = Command::ImportHistoricalData;
+
+        else if (stricmp(argv[i], "importdatabase") == 0)
+            this->command = Command::ImportDatabase;
 
         //Scan for bluetooth devices
         else if (stricmp(argv[i], "-scan") == 0)
@@ -323,10 +322,10 @@ int Config::parseCmdline(int argc, char **argv)
             this->exporters.insert(ExporterType::Ble);
 
         else if (stricmp(argv[i], "-loop") == 0)
-            this->daemon = true;
+            this->command = Config::Command::RunDaemon;
 
         //Show Help
-        else if (stricmp(argv[i], "-?") == 0)
+        else if ((stricmp(argv[i], "-?") == 0) || (stricmp(argv[i], "-h") == 0))
         {
             sayHello(1);
             return 1;	// Caller should terminate, no error
@@ -340,12 +339,10 @@ int Config::parseCmdline(int argc, char **argv)
 
     }
 
-    if (this->settime == 1)
+    if (this->command != Command::Invalid)
     {
         // Verbose output level should be at least = 2 (normal)
-        if (this->verbose < 2)
-            this->verbose = 2;
-
+        this->verbose = std::max(this->verbose, 2);
         this->forceInq = true;
     }
 
@@ -366,7 +363,7 @@ int Config::readConfig()
     memset(this->BT_Address, 0, sizeof(this->BT_Address));
     this->outputPath[0] = 0;
     this->outputPath_Events[0] = 0;
-    if (this->userGroup == UG_USER) this->SMA_Password[0] = 0;
+    if (this->smaUserGroup == UG_USER) this->smaPassword[0] = 0;
 
     strcpy(this->DateTimeFormat, "%d/%m/%Y %H:%M:%S");
     strcpy(this->DateFormat, "%d/%m/%Y");
@@ -457,10 +454,10 @@ int Config::readConfig()
                 }
                 else if(stricmp(variable, "Password") == 0)
                 {
-                    if (this->userGroup == UG_USER)
+                    if (this->smaUserGroup == UG_USER)
                     {
-                        memset(this->SMA_Password, 0, sizeof(this->SMA_Password));
-                        strncpy(this->SMA_Password, value, sizeof(this->SMA_Password) - 1);
+                        memset(this->smaPassword, 0, sizeof(this->smaPassword));
+                        strncpy(this->smaPassword, value, sizeof(this->smaPassword) - 1);
                     }
                 }
                 else if (stricmp(variable, "OutputPath") == 0) this->outputPath = value;
@@ -755,12 +752,9 @@ int Config::readConfig()
     if (strlen(this->BT_Address) > 0)
         this->ConnectionType = CT_BLUETOOTH;
     else
-    {
         this->ConnectionType = CT_ETHERNET;
-        this->IP_Port = 9522;
-    }
 
-    if (strlen(this->SMA_Password) == 0)
+    if (strlen(this->smaPassword) == 0)
     {
         fprintf(stderr, "Missing USER Password.\n");
         rc = -2;
@@ -922,7 +916,10 @@ void Config::sayHello(int ShowHelp)
         std::cout << " -password:xxxx      Installer password\n";
         std::cout << " -loadlive           Use predefined settings for manual upload to pvoutput.org\n";
         std::cout << " -startdate:YYYYMMDD Set start date for historic data retrieval\n";
-        std::cout << " -settime            Sync inverter time with host time\n";
+        std::cout << " settime             Sync inverter time with host time\n";
+        std::cout << " importhistoricaldata Get historical day and month data from inverters\n";
+        std::cout << " importdatabase       Import data from old database\n";
+        std::cout << " settime             Sync inverter time with host time\n";
         std::cout << " -mqtt               Publish spot data to MQTT broker\n";
         //std::cout << " -ble                Publish spot data via Bluetooth LE\n" << std::endl;
         std::cout << " -loop               Run SBF spot in daemon mode\n" << std::endl;

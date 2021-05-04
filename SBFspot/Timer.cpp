@@ -66,7 +66,7 @@ std::time_t Timer::nextTimePoint(bool* isStartOfDay)
 {
     std::time_t timePoint;
     // If we are not in daemon mode, we check immediately
-    if (!m_config.daemon)
+    if (!(m_config.command == Config::Command::RunDaemon))
         timePoint = std::time(nullptr);
 
     // If dark, compute next time point after sunrise

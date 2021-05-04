@@ -822,8 +822,8 @@ int Inverter::process(std::time_t timestamp)
     if (VERBOSE_NORMAL) puts("Logon OK");
 
 #ifdef BLUETOOTH_FOUND
-    // If SBFspot is executed with -settime argument
-    if (m_config.settime == 1)
+    // If SBFspot is executed with settime command
+    if (m_config.settime == Config::Command::SetTime)
     {
         rc = bthSetPlantTime(0, 0, 0);	// Set time ignoring limits
         logoffSMAInverter(m_inverters[0]);
@@ -858,7 +858,7 @@ int Inverter::process(std::time_t timestamp)
 
     // Only export archive data, when not running in daemon mode OR
     // when in daemon mode and current timestamp matches archive interval.
-    if (!m_config.daemon ||
+    if (!(m_config.command == Config::Command::RunDaemon) ||
             (m_config.archiveInterval > 0 &&
             (timestamp % m_config.archiveInterval == 0)))
     {
@@ -983,9 +983,9 @@ int Inverter::logOn()
         }
     }
 
-    if (logonSMAInverter(m_inverters, m_config.userGroup, m_config.SMA_Password) != E_OK)
+    if (logonSMAInverter(m_inverters, m_config.smaUserGroup, m_config.smaPassword) != E_OK)
     {
-        snprintf(msg, sizeof(msg), "Logon failed. Check '%s' Password\n", m_config.userGroup == UG_USER? "USER":"INSTALLER");
+        snprintf(msg, sizeof(msg), "Logon failed. Check '%s' Password\n", m_config.smaUserGroup == UG_USER? "USER":"INSTALLER");
         print_error(stdout, PROC_CRITICAL, msg);
         m_import.close();
         return 1;
@@ -1072,10 +1072,10 @@ int Inverter::importSpotData(std::time_t timestamp)
                     }
                 }
 
-                if (logonSMAInverter(m_inverters, m_config.userGroup, m_config.SMA_Password) != E_OK)
+                if (logonSMAInverter(m_inverters, m_config.smaUserGroup, m_config.smaPassword) != E_OK)
                 {
                     char msg[80];
-                    snprintf(msg, sizeof(msg), "Logon failed. Check '%s' Password\n", m_config.userGroup == UG_USER? "USER":"INSTALLER");
+                    snprintf(msg, sizeof(msg), "Logon failed. Check '%s' Password\n", m_config.smaUserGroup == UG_USER? "USER":"INSTALLER");
                     print_error(stdout, PROC_CRITICAL, msg);
                     logOff();
                     m_ethernet.ethClose();
@@ -1449,7 +1449,7 @@ void Inverter::importEventData()
         else if (rc != E_OK) std::cerr << "ArchiveEventData(user) returned an error: " << rc << std::endl;
 
         //When logged in as installer, get installer level events
-        if (m_config.userGroup == UG_INSTALLER)
+        if (m_config.smaUserGroup == UG_INSTALLER)
         {
             rc = m_archData.ArchiveEventData(m_inverters, dt_utc, UG_INSTALLER);
             if (rc == E_EOF) break; // No more data (first event reached)

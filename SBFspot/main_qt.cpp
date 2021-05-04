@@ -55,7 +55,9 @@ int main(int argc, char *argv[])
     if (rc == 1) return 0;  // Nothing to do - Quit, no error
 
     // We are always a daemon.
-    config.daemon = true;
+    if (config.command == Config::Command::Invalid) {
+        config.command = Config::Command::RunDaemon;
+    }
 
     // We default to Ethernet for now.
     ConnType = CT_ETHERNET;

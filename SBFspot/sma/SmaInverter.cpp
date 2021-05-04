@@ -53,8 +53,7 @@ DISCLAIMER:
 namespace sma {
 
 template <class T>
-void setClsData(std::vector<ElectricParameters>& data, uint8_t cls, T value, T ElectricParameters::*field )
-{
+void setClsData(std::vector<ElectricParameters>& data, uint8_t cls, T value, T ElectricParameters::*field ) {
     if (cls < 1) {
         return;
     }
@@ -72,66 +71,12 @@ SmaInverter::SmaInverter(QObject* parent, const Config& config, Ethernet_qt& ioD
     m_ioDevice(ioDevice),
     m_storage(storage),
     m_address(address),
-    m_pendingLiveData(0)
-{
+    m_pendingLiveData(0) {
     resetPendingData();
-
     init();
 }
 
-void SmaInverter::requestLiveData(std::time_t timestamp)
-{
-    if (m_state == State::Invalid) {
-        LOG_S(WARNING) << "Inverter not yet initialized";
-        return;
-    }
-    if (m_state == State::LoggedIn) {
-        LOG_S(WARNING) << "Another poll already running";
-        return;
-    }
-
-    m_pendingLiveData.timestamp = timestamp;
-    // Send login request to inverter. Once logged in, get all the data.
-    login();
-}
-
-std::list<SmaResponse> SmaInverter::result()
-{
-    std::stringstream ss;
-    ss << std::uppercase << std::hex;
-    for (const auto& lri: m_pendingLris) {
-        ss << lri << ", ";
-    }
-
-    LOG_IF_S(WARNING, !m_pendingLris.empty()) << "Polling timed out. Discarding requests: " << ss.str();
-
-    m_pendingLiveData.fixup();
-
-    std::list<SmaResponse> result;
-    result.push_back(m_pendingLiveData);
-    if (!m_pendingDayData.empty())
-        result.push_back(m_pendingDayData);
-    if (!m_pendingMonthData.empty())
-        result.push_back(m_pendingMonthData);
-    resetPendingData();
-
-    logout();
-
-    return result;
-}
-
-void SmaInverter::resetPendingData()
-{
-    m_pendingLris.clear();
-    m_pendingLiveData = LiveData(m_serial);
-    m_pendingDayData.clear();
-    m_pendingMonthData.clear();
-    //m_pendingData.ac.resize(3);
-    m_pendingDataMap.clear();
-}
-
-void SmaInverter::init()
-{
+void SmaInverter::init() {
     // QtConcurrent::run([&](){
         auto buffer = m_sbfSpot.encodeInitRequest();
         // for (auto i = 0; (i < 5) && (m_state == State::Invalid); ++i) {
@@ -141,10 +86,18 @@ void SmaInverter::init()
     //});
 }
 
-void SmaInverter::login()
-{
+void SmaInverter::login(std::time_t timestamp) {
+    if (m_state == State::Invalid) {
+        LOG_S(WARNING) << "(" << m_serial << ") Inverter not yet initialized";
+        return;
+    }
+
+    LOG_S(1) << "(" << m_serial << ") Logging in to inverter";
+
+    m_pendingLiveData.timestamp = timestamp;
+
     // QtConcurrent::run([&](){
-        auto buffer = m_sbfSpot.encodeLoginRequest(m_config.userGroup, std::string(m_config.SMA_Password));
+        auto buffer = m_sbfSpot.encodeLoginRequest(m_config.smaUserGroup, std::string(m_config.smaPassword));
         // for (auto i = 0; (i < 5) && (m_state == State::Initialized); ++i) {
             m_ioDevice.send(buffer, m_address, 9522);
             // QThread::sleep(1);
@@ -152,15 +105,24 @@ void SmaInverter::login()
     // });
 }
 
-void SmaInverter::logout()
-{
+void SmaInverter::logout() {
+    if (m_state != State::LoggedIn) {
+        LOG_S(WARNING) << "(" << m_serial << ") Not logged in";
+        return;
+    }
+
     auto buffer = m_sbfSpot.encodeLogoutRequest();
     m_ioDevice.send(buffer, m_address, 9522);
     m_state = State::Initialized;
+    emit stateChanged(m_state);
 }
 
-void SmaInverter::requestData()
-{
+void SmaInverter::requestLiveData() {
+    if (m_state != State::LoggedIn) {
+        LOG_S(WARNING) << "(" << m_serial << ") Not logged in";
+        return;
+    }
+
     requestDataSet(SoftwareVersion);
     requestDataSet(TypeLabel);
     requestDataSet(DeviceStatus);
@@ -192,20 +154,64 @@ void SmaInverter::requestData()
             requestMonthData(missingSequence.from, missingSequence.to);
         }
     }
-    /*
-    auto localTime = localtime(&m_pendingLiveData.timestamp);
-    if (localTime->tm_hour == 1 && localTime->tm_min == m_config.liveInterval/60 && localTime->tm_sec == m_config.liveInterval%60) {
-        auto missingSequences = m_storage->missingMonthData(m_pendingLiveData.timestamp, m_serial);
-        uint32_t itemCount = 0;
-        for (auto it = missingSequences.begin(); it != missingSequences.end() && itemCount <= 31; ++it) {
-            requestMonthData(seq.from, seq.to);
-        }
-    }
-    */
 }
 
-void SmaInverter::requestDataSet(SmaInverterDataSet dataSet)
-{
+void SmaInverter::requestDayData(std::time_t from, std::time_t to) {
+    if (m_state != State::LoggedIn) {
+        LOG_S(WARNING) << "(" << m_serial << ") Not logged in";
+        return;
+    }
+
+    LOG_S(INFO) << "(" << m_serial << ") Requesting day data from: " << from << ", to: " << to;
+    auto buffer = m_sbfSpot.encodeHistoricDayDataRequest(m_susyId, m_serial, from, to, BluetoothAddress());
+    m_ioDevice.send(buffer, m_address, 9522);
+}
+
+void SmaInverter::requestMonthData(std::time_t from, std::time_t to) {
+    if (m_state != State::LoggedIn) {
+        LOG_S(WARNING) << "(" << m_serial << ") Not logged in";
+        return;
+    }
+
+    LOG_S(INFO) << "(" << m_serial << ") Requesting month data from: " << from << ", to: " << to;
+    auto buffer = m_sbfSpot.encodeHistoricMonthDataRequest(m_susyId, m_serial, from, to, BluetoothAddress());
+    m_ioDevice.send(buffer, m_address, 9522);
+}
+
+std::list<SmaResponse> SmaInverter::result() {
+    std::stringstream ss;
+    ss << std::uppercase << std::hex;
+    for (const auto& lri: m_pendingLris) {
+        ss << lri << ", ";
+    }
+
+    LOG_IF_S(WARNING, !m_pendingLris.empty()) << "Polling timed out. Discarding requests: " << ss.str();
+
+    m_pendingLiveData.fixup();
+
+    std::list<SmaResponse> result;
+    result.push_back(m_pendingLiveData);
+    if (!m_pendingDayData.empty())
+        result.push_back(m_pendingDayData);
+    if (!m_pendingMonthData.empty())
+        result.push_back(m_pendingMonthData);
+    resetPendingData();
+
+    logout();
+
+    return result;
+}
+
+void SmaInverter::resetPendingData() {
+    m_pendingLris.clear();
+    m_pendingLiveData = LiveData(m_serial);
+    m_pendingDayData.clear();
+    m_pendingMonthData.clear();
+    //m_pendingData.ac.resize(3);
+    m_pendingDataMap.clear();
+}
+
+void SmaInverter::requestDataSet(SmaInverterDataSet dataSet) {
     auto lri = static_cast<LriDef>(SmaInverterRequests::create(dataSet).first);
     if (lri == 0) {
         LOG_S(WARNING) << "Illegal LRI";
@@ -217,26 +223,7 @@ void SmaInverter::requestDataSet(SmaInverterDataSet dataSet)
     m_ioDevice.send(buffer, m_address, 9522);
 }
 
-void SmaInverter::requestDayData(std::time_t from, std::time_t to)
-{
-    LOG_S(INFO) << "(" << m_serial << ") Requesting day data from: " << from << ", to: " << to;
-    auto buffer = m_sbfSpot.encodeHistoricDayDataRequest(m_susyId, m_serial, from, to, BluetoothAddress());
-    m_ioDevice.send(buffer, m_address, 9522);
-}
-
-void SmaInverter::requestMonthData(std::time_t from, std::time_t to)
-{
-    LOG_S(INFO) << "(" << m_serial << ") Requesting month data from: " << from << ", to: " << to;
-    auto buffer = m_sbfSpot.encodeHistoricMonthDataRequest(m_susyId, m_serial, from, to, BluetoothAddress());
-    m_ioDevice.send(buffer, m_address, 9522);
-}
-
-void SmaInverter::exportData()
-{
-}
-
-void SmaInverter::onDatagram(const QNetworkDatagram& datagram)
-{
+void SmaInverter::onDatagram(const QNetworkDatagram& datagram) {
     auto ba = datagram.data();
     ByteBuffer buffer(ba.begin(), ba.end());
     const char* data = datagram.data().data() + sizeof(ethPacketHeaderL1) - 1;
@@ -248,11 +235,12 @@ void SmaInverter::onDatagram(const QNetworkDatagram& datagram)
         LOG_S(INFO) << "Inverter " << datagram.senderAddress().toString().toStdString() << ", serial: " << m_serial;
         resetPendingData();
         m_state = State::Initialized;
+        emit stateChanged(m_state);
         return;
     case State::Initialized:
         if (btohs(pckt->ErrorCode) == 0) {
             m_state = State::LoggedIn;
-            requestData();
+            emit stateChanged(m_state);
         } else {
             LOG_S(ERROR) << "Login error. Password correct?";
         }
@@ -263,8 +251,7 @@ void SmaInverter::onDatagram(const QNetworkDatagram& datagram)
     }
 }
 
-void SmaInverter::decodeResponse(ByteBuffer& buffer, InverterDataMap& inverterDataMap, std::set<LriDef>& lris)
-{
+void SmaInverter::decodeResponse(ByteBuffer& buffer, InverterDataMap& inverterDataMap, std::set<LriDef>& lris) {
     auto packet = SmaPacket::fromBuffer(buffer);
     if (packet.payload.size() < 12) {
         LOG_F(WARNING, "(%u) Invalid payload size: %lu, for packet type: %X", m_serial, packet.payload.size(), packet.dataSet);
@@ -290,8 +277,7 @@ void SmaInverter::decodeResponse(ByteBuffer& buffer, InverterDataMap& inverterDa
     unsigned char Vmajor = 0;
 
     int recordsize = 0;
-    for (uint ii = 40 + sizeof(ethPacketHeaderL1); ii < buffer.size() - 3; ii += recordsize)
-    {
+    for (uint ii = 40 + sizeof(ethPacketHeaderL1); ii < buffer.size() - 3; ii += recordsize) {
         uint32_t code = ((uint32_t)get_long(buffer.data() + ii));
         LriDef lri = (LriDef)(code & 0x00FFFF00);
         uint32_t cls = code & 0xFF;
@@ -622,14 +608,12 @@ void SmaInverter::decodeResponse(ByteBuffer& buffer, InverterDataMap& inverterDa
     }
 }
 
-void SmaInverter::decodeDayData(const ByteBuffer& buffer)
-{
+void SmaInverter::decodeDayData(const ByteBuffer& buffer) {
     const uint recordsize = 12;
     m_pendingDayData.reserve(buffer.size()/recordsize);
 
     std::time_t endOfDayData = 0;
-    for (uint x = 0; x < (buffer.size() - recordsize); x += recordsize)
-    {
+    for (uint x = 0; x < (buffer.size() - recordsize); x += recordsize) {
         auto datetime = (time_t)get_long(buffer.data() + x);
         auto totalWh = (unsigned long long)get_longlong(buffer.data() + x + 4);
         if (totalWh == NaN_U64) {
@@ -650,8 +634,7 @@ void SmaInverter::decodeDayData(const ByteBuffer& buffer)
     }
 }
 
-void SmaInverter::decodeMonthData(const ByteBuffer& buffer)
-{
+void SmaInverter::decodeMonthData(const ByteBuffer& buffer) {
     const uint recordsize = 12;
     m_pendingMonthData.reserve(buffer.size()/recordsize);
 

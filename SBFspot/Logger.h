@@ -42,8 +42,7 @@ DISCLAIMER:
 
 class QByteArray;
 
-class Logger
-{
+class Logger {
 public:
     static void init(int& argc, char* argv[]);
 

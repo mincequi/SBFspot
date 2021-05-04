@@ -109,39 +109,3 @@ std::ostream& operator<< (std::ostream& out, SmaPacket const& c) {
 
     return out;
 }
-
-std::ostream& operator<< (std::ostream& out, SpeedwireHeader const& c) {
-    if (!c.checkHeader()) {
-        return out << "Speedwire header is invalid!";
-    }
-
-    out << "signature: " << std::uppercase << std::hex << c.getSignature();
-    out << ", tag0: " << c.getTag0();
-    out << ", group: " << std::dec << c.getGroup();
-    out << ", length: " << c.getLength();
-    out << ", network version: " << std::hex << c.getNetworkVersion();
-    out << ", protocol id: " << c.getProtocolID();
-    out << ", long words: " << static_cast<uint32_t>(c.getGroup());
-    out << ", control: " << static_cast<uint32_t>(c.getControl());
-
-    return out;
-}
-
-std::ostream& operator<< (std::ostream& out, SpeedwireInverterProtocol const& c) {
-
-    out << "DstSusyID: " << c.getDstSusyID();
-    out << ", DstSerialNumber: " << c.getDstSerialNumber();
-    out << ", DstControl: " << c.getDstControl();
-    out << ", SrcSusyID: " << c.getSrcSusyID();
-    out << ", SrcSerialNumber: " << c.getSrcSerialNumber();
-    out << ", SrcControl: " << c.getSrcControl();
-    out << ", ErrorCode: " << c.getErrorCode();
-    out << ", FragmentID: " << c.getFragmentID();
-    out << ", PacketID: " << c.getPacketID();
-    out << ", CommandID: " << std::hex << c.getCommandID();
-    out << ", FirstRegisterID: " << c.getFirstRegisterID();
-    out << ", LastRegisterID: " << c.getLastRegisterID();
-
-    return out;
-}
-

@@ -56,21 +56,77 @@ class SmaInverter : public QObject
     Q_OBJECT
 
 public:
+    /**
+     * @brief The current inverter state.
+     */
+    enum class State {
+        Invalid,
+        Initialized,
+        LoggedIn
+    };
+
+    /**
+     * @brief SmaInverter
+     * @param parent
+     * @param config
+     * @param ioDevice
+     * @param address
+     * @param storage
+     */
     SmaInverter(QObject* parent, const Config& config, Ethernet_qt& ioDevice, uint32_t address, Storage* storage);
 
-    void requestLiveData(std::time_t timestamp = 0);
+    // TODO: these are candidates for std::future and std::promise
+    /**
+     * @brief Log in to inverter.
+     * @param timestamp for upcoming request
+     */
+    void login(std::time_t timestamp);
+
+    /**
+     * @brief Log out from inverter.
+     */
+    void logout();
+
+    /**
+     * @brief Request LiveData from inverter asynchronously. The result can be obtained via result().
+     */
+    void requestLiveData();
+
+    /**
+     * @brief Request DayData from inverter asynchronously. The result can be obtained via result().
+     * @param from timestamp to start from
+     * @param to timestamp to end
+     */
+    void requestDayData(std::time_t from, std::time_t to);
+
+    /**
+     * @brief Request MonthData from inverter asynchronously. The result can be obtained via result().
+     * @param from timestamp to start from
+     * @param to timestamp to end
+     */
+    void requestMonthData(std::time_t from, std::time_t to);
+
+    /**
+     * @brief Obtain result(s) from a previous called requestXxxData().
+     * @return A list of responses. One item for each data set.
+     */
     std::list<SmaResponse> result();
 
+signals:
+    /**
+     * @brief Notifies about the current inverter state.
+     * @param state
+     */
+    void stateChanged(State state);
+
 private:
-    void resetPendingData();
+    /**
+     * @brief Initialize inverter.
+     */
     void init();
-    void login();
-    void logout();
-    void requestData();
+
+    void resetPendingData();
     void requestDataSet(SmaInverterDataSet dataSet);
-    void requestDayData(std::time_t from, std::time_t to);
-    void requestMonthData(std::time_t from, std::time_t to);
-    void exportData();
 
     void onDatagram(const QNetworkDatagram& datagram);
 
@@ -88,11 +144,7 @@ private:
     Serial m_serial = 0x3803E8C8;
     std::time_t m_lastSeen = 0;
 
-    enum class State {
-        Invalid,
-        Initialized,
-        LoggedIn
-    } m_state = State::Invalid;
+    State m_state = State::Invalid;
 
     std::set<LriDef>    m_pendingLris;
     LiveData            m_pendingLiveData;

@@ -68,12 +68,10 @@ void Logger::init(int& argc, char* argv[]) {
     loguru::init(argc, argv);
 }
 
-Logger::Logger()
-{
+Logger::Logger() {
 }
 
-std::ostream& operator<< (std::ostream& out, const ByteBuffer& buffer)
-{
+std::ostream& operator<< (std::ostream& out, const ByteBuffer& buffer) {
     uint i = 0;
     out << "size: " << buffer.size() << ", data:" << std::endl;
     for (const uint8_t& c : buffer) {
@@ -92,16 +90,14 @@ std::ostream& operator<< (std::ostream& out, const ByteBuffer& buffer)
     return out;
 }
 
-std::ostream& operator<< (std::ostream& out, const DayData& dayData)
-{
+std::ostream& operator<< (std::ostream& out, const DayData& dayData) {
     return out << "timestamp: " << std::put_time(std::localtime(&dayData.datetime), "%c")
                << ", serial: " << dayData.serial
                << ", totalWh: " << dayData.totalWh
                << ", watt: " << dayData.watt;
 }
 
-std::ostream& operator<< (std::ostream& out, const Serial& serial)
-{
+std::ostream& operator<< (std::ostream& out, const Serial& serial) {
     auto strSerial = std::to_string(serial);
     strSerial.replace(3, strSerial.length()-6, strSerial.length()-6, '*');
     return out << strSerial;
